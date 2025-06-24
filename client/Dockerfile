@@ -1,32 +1,42 @@
 # Build stage
-FROM node:20-alpine AS build
+FROM node:18-alpine as build
 
-# Set working directory
+# Install build dependencies and clean up cache in the same layer
+RUN apk add --no-cache python3 make g++ && \
+    npm cache clean --force
+
 WORKDIR /app
 
-# Copy package files
+# Copy only package files first
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies with clean npm cache and force flag
+RUN npm install --legacy-peer-deps --force && \
+    npm cache clean --force
 
-# Copy source code
-COPY . .
+# Copy only necessary source files
+COPY src ./src
+COPY public ./public
+COPY index.html ./
+COPY vite.config.js ./
 
-# Build the application
-RUN npm run build
+# Build the app
+RUN npm run build && \
+    npm cache clean --force && \
+    rm -rf node_modules
 
-# Production stage
-FROM nginx:alpine
+# Install serve globally in a separate stage
+FROM node:18-alpine
 
-# Copy built assets from build stage
-COPY --from=build /app/dist /usr/share/nginx/html
+WORKDIR /app
 
-# Copy nginx configuration (we'll create this next)
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Install serve
+RUN npm install -g serve
 
-# Expose port
-EXPOSE 80
+# Copy only the built files from build stage
+COPY --from=build /app/dist ./dist
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"] 
+EXPOSE 3001
+
+# Serve the Vite build output
+CMD ["serve", "-s", "dist", "-l", "3001"] 
