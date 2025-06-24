@@ -43,12 +43,15 @@ builder.Services.AddCors(options =>
         builder =>
         {
             builder
-                .WithOrigins("http://localhost:3000")
+                .WithOrigins(
+                    "http://localhost:3000",
+                    "https://localhost:3000",
+                    "https://4931257-dv98943.twc1.net"
+                )
                 .AllowAnyHeader()
                 .AllowAnyMethod()
                 .AllowCredentials()
-                .WithExposedHeaders("Content-Disposition")
-                .SetIsOriginAllowed(origin => true);
+                .WithExposedHeaders("Content-Disposition");
         });
 });
 
@@ -79,6 +82,11 @@ using (var scope = app.Services.CreateScope())
 // Перемещаем CORS в начало конвейера middleware
 app.UseCors("AllowAllOrigins");
 
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseWebSockets();
 app.UseMiddleware<WebSocketMiddleware>();
 
@@ -94,11 +102,18 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/Uploads",
     OnPrepareResponse = ctx =>
     {
-        ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+        // Используем тот же CORS, что и для основного приложения
+        var origin = ctx.Context.Request.Headers["Origin"].ToString();
+        if (!string.IsNullOrEmpty(origin))
+        {
+            ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", origin);
+            ctx.Context.Response.Headers.Append("Access-Control-Allow-Credentials", "true");
+        }
         ctx.Context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
     }
 });
 
+app.UseRouting();
 app.UseAuthorization();
 
 app.MapHub<ServerHub>("/serverhub");
