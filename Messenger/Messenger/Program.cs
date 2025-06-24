@@ -91,7 +91,7 @@ if (app.Environment.IsDevelopment())
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "Uploads")),
-    RequestPath = "/uploads",
+    RequestPath = "/Uploads",
     OnPrepareResponse = ctx =>
     {
         ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
