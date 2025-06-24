@@ -1,77 +1,25 @@
 services:
   server:
-    build:
-      context: ./Messenger
-      dockerfile: Messenger/Dockerfile
-    expose:
-      - "8080"
-      - "8081"
-    environment:
-      - ASPNETCORE_URLS=http://+:8080
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=Whithin;Username=postgres;Password=1000-7
-      - LISTEN_IP=0.0.0.0
-      - ANNOUNCED_IP=4931257-dv98943.twc1.net
-    volumes:
-      - uploads_data:/app/Uploads
-      - uploads_avatars:/app/Uploads/Avatars
-      - uploads_banners:/app/Uploads/Banners
-      - uploads_server_avatar:/app/Uploads/ServerAvatar
-      - uploads_server_banner:/app/Uploads/ServerBanner
-      - ./ssl:/app/ssl
-    networks:
-      - app-network
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: unless-stopped
-
-  webrtc-server:
-    build:
+    build: 
       context: ./server
       dockerfile: Dockerfile
-    expose:
-      - "3000"
-      - "40000-40100/udp"
-      - "40000-40100/tcp"
+    ports:
+      - "3000:3000"
+      - "40000-40100:40000-40100/udp"
+      - "40000-40100:40000-40100/tcp"
     volumes:
       - ./ssl:/app/ssl
     environment:
       - NODE_ENV=production
-      - SSL_CERT_PATH=/app/ssl/certificate.crt
-      - SSL_KEY_PATH=/app/ssl/private.key
       - LISTEN_IP=0.0.0.0
       - ANNOUNCED_IP=4931257-dv98943.twc1.net
       - MEDIASOUP_LISTEN_IP=0.0.0.0
       - MEDIASOUP_ANNOUNCED_IP=4931257-dv98943.twc1.net
-      - MEDIASOUP_MIN_PORT=40000
-      - MEDIASOUP_MAX_PORT=40100
-      - MEDIASOUP_WORKER_RTX_MIN_PORT=40000
-      - MEDIASOUP_WORKER_RTX_MAX_PORT=40100
-      - MEDIASOUP_WORKER_LOG_LEVEL=debug
-      - MEDIASOUP_WORKER_LOG_TAGS=info,ice,dtls,rtp,srtp,rtcp
       - HTTPS=true
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
       - app-network
-    restart: unless-stopped
-
-  client:
-    build:
-      context: ./client
-      dockerfile: Dockerfile
-    expose:
-      - "80"
-    environment:
-      - NODE_ENV=production
-      - REACT_APP_API_URL=https://4931257-dv98943.twc1.net
-      - REACT_APP_WEBRTC_URL=https://4931257-dv98943.twc1.net
-    networks:
-      - app-network
-    depends_on:
-      - server
-      - webrtc-server
     restart: unless-stopped
 
   nginx:
@@ -85,38 +33,31 @@ services:
     depends_on:
       - client
       - server
-      - webrtc-server
     networks:
       - app-network
     restart: unless-stopped
 
-  db:
-    image: postgres:16-alpine
-    environment:
-      - POSTGRES_DB=Whithin
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=1000-7
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
     expose:
-      - "5432"
+      - "3001"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./ssl:/app/ssl
+    environment:
+      - NODE_ENV=production
+      - HTTPS=true
+      - SSL_CRT_FILE=/app/ssl/certificate.crt
+      - SSL_KEY_FILE=/app/ssl/private.key
+      - REACT_APP_SERVER_URL=https://4931257-dv98943.twc1.net:3000
+      - REACT_APP_ICE_SERVERS=[{"urls":["turn:185.119.59.23:3478"],"username":"test","credential":"test123"}]
     networks:
       - app-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+    depends_on:
+      - server
     restart: unless-stopped
 
 networks:
   app-network:
-    driver: bridge
-
-volumes:
-  postgres_data:
-  uploads_data:
-  uploads_avatars:
-  uploads_banners:
-  uploads_server_avatar:
-  uploads_server_banner:
+    driver: bridge 
