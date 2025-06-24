@@ -16,6 +16,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network
 
   csharp-server:
     build:
@@ -30,11 +32,11 @@ services:
       - ASPNETCORE_URLS=http://+:8080
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=Whithin;Username=postgres;Password=1000-7
-    networks:
-      - app-network
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - app-network
     restart: unless-stopped
 
   server:
@@ -82,16 +84,11 @@ services:
       - "3001:3001"
     volumes:
       - ./ssl:/etc/nginx/ssl
-    environment:
-      - NODE_ENV=production
-      - REACT_APP_API_URL=https://4931257-dv98943.twc1.net
-      - REACT_APP_SERVER_URL=https://4931257-dv98943.twc1.net:3000
-      - REACT_APP_ICE_SERVERS=[{"urls":["turn:185.119.59.23:3478"],"username":"test","credential":"test123"}]
-    networks:
-      - app-network
     depends_on:
       - csharp-server
       - server
+    networks:
+      - app-network
     restart: unless-stopped
 
 volumes:
