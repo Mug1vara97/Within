@@ -1,7 +1,6 @@
 #See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-USER app
 WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
@@ -22,4 +21,10 @@ RUN dotnet publish "./Messenger.csproj" -c $BUILD_CONFIGURATION -o /app/publish 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
+# Создаем директории для загрузок и устанавливаем права
+RUN mkdir -p /app/Uploads/Avatars /app/Uploads/Banners /app/Uploads/ServerAvatar /app/Uploads/ServerBanner \
+    && chown -R 1000:1000 /app/Uploads
+
+USER 1000:1000
 ENTRYPOINT ["dotnet", "Messenger.dll"]
