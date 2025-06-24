@@ -4,10 +4,15 @@ import VideoPlayer from './VideoPlayer';
 import { BASE_URL } from '../config/apiConfig';
 
 const MediaMessage = ({ content }) => {
-  if (!content.toLowerCase().startsWith('/uploads/') && 
-      !content.toLowerCase().startsWith('uploads/') && 
-      !content.startsWith('/Uploads/') && 
-      !content.startsWith('Uploads/')) return content;
+  // Проверяем, является ли контент путем к файлу
+  const isMediaPath = content && typeof content === 'string' && (
+    content.includes('/Uploads/') || 
+    content.includes('/uploads/') ||
+    content.startsWith('Uploads/') ||
+    content.startsWith('uploads/')
+  );
+
+  if (!isMediaPath) return content;
 
   const src = `${BASE_URL}${content}`;
   const extension = content.split('.').pop().toLowerCase();

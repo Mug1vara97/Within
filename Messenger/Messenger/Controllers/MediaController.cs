@@ -33,6 +33,6 @@ public class MediaController : ControllerBase
             await file.CopyToAsync(stream);
         }
 
-        return Ok(new { url = $"/Uploads/{fileName}" });
+        return Ok(new { url = $"/uploads/{fileName}" });
     }
 }
