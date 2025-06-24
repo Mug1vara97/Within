@@ -48,6 +48,7 @@ const Register = () => {
                         onChange={(e) => setUsername(e.target.value)}
                         required
                         className="form-input"
+                        autoComplete="username"
                     />
                 </div>
                 <div className="form-group">
@@ -58,6 +59,7 @@ const Register = () => {
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         className="form-input"
+                        autoComplete="new-password"
                     />
                 </div>
                 <div className="form-group">
@@ -68,6 +70,7 @@ const Register = () => {
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         required
                         className="form-input"
+                        autoComplete="new-password"
                     />
                 </div>
                 <button type="submit" className="login-button">Register</button>

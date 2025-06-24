@@ -60,6 +60,7 @@ const Login = ({ onLogin }) => {
                             required
                             className="form-input"
                             placeholder="Enter your username"
+                            autoComplete="username"
                         />
                     </div>
                     <div className="form-group">
@@ -71,6 +72,7 @@ const Login = ({ onLogin }) => {
                             required
                             className="form-input"
                             placeholder="Enter your password"
+                            autoComplete="current-password"
                         />
                     </div>
                     {error && <p className="error-message">{error}</p>}
