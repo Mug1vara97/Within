@@ -200,6 +200,28 @@ namespace Messenger.Migrations
                         .IsUnique();
 
                     b.ToTable("chat_types", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            TypeId = 1,
+                            TypeName = "direct"
+                        },
+                        new
+                        {
+                            TypeId = 2,
+                            TypeName = "group"
+                        },
+                        new
+                        {
+                            TypeId = 3,
+                            TypeName = "text_chanel"
+                        },
+                        new
+                        {
+                            TypeId = 4,
+                            TypeName = "voice_chanel"
+                        });
                 });
 
             modelBuilder.Entity("Messenger.Models.Member", b =>

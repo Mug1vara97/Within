@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Messenger.Migrations
 {
     [DbContext(typeof(MessengerContext))]
-    [Migration("20250624184612_Initial")]
+    [Migration("20250624192659_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -203,6 +203,28 @@ namespace Messenger.Migrations
                         .IsUnique();
 
                     b.ToTable("chat_types", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            TypeId = 1,
+                            TypeName = "direct"
+                        },
+                        new
+                        {
+                            TypeId = 2,
+                            TypeName = "group"
+                        },
+                        new
+                        {
+                            TypeId = 3,
+                            TypeName = "text_chanel"
+                        },
+                        new
+                        {
+                            TypeId = 4,
+                            TypeName = "voice_chanel"
+                        });
                 });
 
             modelBuilder.Entity("Messenger.Models.Member", b =>

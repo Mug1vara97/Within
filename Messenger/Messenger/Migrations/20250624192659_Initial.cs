@@ -4,6 +4,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
+#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
+
 namespace Messenger.Migrations
 {
     /// <inheritdoc />
@@ -405,21 +407,8 @@ namespace Messenger.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
-                name: "chat_type",
-                columns: table => new
-                {
-                    type_id = table.Column<int>(type: "integer", nullable: false),
-                    type_name = table.Column<string>(type: "text", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("pk_chat_type", x => x.type_id);
-                });
-
-            // Insert initial chat types
             migrationBuilder.InsertData(
-                table: "chat_type",
+                table: "chat_types",
                 columns: new[] { "type_id", "type_name" },
                 values: new object[,]
                 {
@@ -616,9 +605,6 @@ namespace Messenger.Migrations
 
             migrationBuilder.DropTable(
                 name: "users");
-
-            migrationBuilder.DropTable(
-                name: "chat_type");
         }
     }
 }
