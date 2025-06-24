@@ -33,6 +33,7 @@ services:
     depends_on:
       - client
       - server
+      - csharp-server
     networks:
       - app-network
     restart: unless-stopped
@@ -58,6 +59,41 @@ services:
       - server
     restart: unless-stopped
 
+  csharp-server:
+    build:
+      context: ./Messenger/Messenger
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=Whithin;Username=postgres;Password=1000-7
+      - ASPNETCORE_URLS=http://+:80
+    volumes:
+      - ./Messenger/Messenger/Uploads:/app/Uploads
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=messenger
+      - POSTGRES_USER=messenger
+      - POSTGRES_PASSWORD=messenger_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    restart: unless-stopped
+
 networks:
   app-network:
-    driver: bridge 
+    driver: bridge
+
+volumes:
+  postgres_data: 
