@@ -1,0 +1,227 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal {
+    background-color: #36393f;
+    border-radius: 8px;
+    padding: 24px;
+    width: 100%;
+    max-width: 480px;
+    color: #dcddde;
+}
+
+.modal h3 {
+    color: #fff;
+    margin: 0 0 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #b9bbbe;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.channel-name-input {
+    width: 100%;
+    padding: 10px;
+    background-color: #2f3136;
+    border: 1px solid #202225;
+    border-radius: 4px;
+    color: #dcddde;
+    font-size: 16px;
+}
+
+.channel-name-input:focus {
+    outline: none;
+    border-color: #7289da;
+}
+
+.radio-group {
+    display: flex;
+    gap: 16px;
+}
+
+.radio-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background-color: #2f3136;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.radio-option:hover {
+    background-color: #36393f;
+}
+
+.radio-option.active {
+    background-color: #7289da;
+    color: #fff;
+}
+
+.radio-option input[type="radio"] {
+    display: none;
+}
+
+.privacy-section {
+    border-top: 1px solid #40444b;
+    padding-top: 20px;
+}
+
+.privacy-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    color: #fff;
+    cursor: pointer;
+}
+
+.privacy-description {
+    margin: 8px 0 0;
+    color: #b9bbbe;
+    font-size: 14px;
+}
+
+.roles-list, .users-list {
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: #2f3136;
+    border-radius: 4px;
+    padding: 8px;
+}
+
+.role-item, .user-item {
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.role-item:hover, .user-item:hover {
+    background-color: #36393f;
+}
+
+.role-item label, .user-item label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    margin: 0;
+    text-transform: none;
+    font-size: 14px;
+}
+
+.role-name, .user-name {
+    color: #fff;
+}
+
+input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #72767d;
+    border-radius: 3px;
+    background-color: transparent;
+    cursor: pointer;
+}
+
+input[type="checkbox"]:checked {
+    background-color: #7289da;
+    border-color: #7289da;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.confirm-button, .cancel-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.confirm-button {
+    background-color: #7289da;
+    color: #fff;
+}
+
+.confirm-button:hover {
+    background-color: #677bc4;
+}
+
+.confirm-button:disabled {
+    background-color: #72767d;
+    cursor: not-allowed;
+}
+
+.cancel-button {
+    background-color: #36393f;
+    color: #fff;
+}
+
+.cancel-button:hover {
+    background-color: #40444b;
+}
+
+.error-message {
+    background-color: rgba(240, 71, 71, 0.1);
+    color: #f04747;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+}
+
+.private-active {
+    color: #7289da;
+}
+
+/* Стилизация скроллбара */
+.roles-list::-webkit-scrollbar,
+.users-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.roles-list::-webkit-scrollbar-track,
+.users-list::-webkit-scrollbar-track {
+    background-color: #2f3136;
+    border-radius: 4px;
+}
+
+.roles-list::-webkit-scrollbar-thumb,
+.users-list::-webkit-scrollbar-thumb {
+    background-color: #202225;
+    border-radius: 4px;
+}
+
+.roles-list::-webkit-scrollbar-thumb:hover,
+.users-list::-webkit-scrollbar-thumb:hover {
+    background-color: #40444b;
+} 

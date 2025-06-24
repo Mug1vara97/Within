@@ -1,0 +1,289 @@
+.server-header {
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid #202225;
+    position: relative;
+    overflow: visible;
+    min-height: 48px;
+    transition: min-height 0.3s ease;
+}
+
+.server-banner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0.8;
+    z-index: 0;
+    transition: opacity 0.3s ease;
+}
+
+.server-banner:hover {
+    opacity: 1;
+}
+
+.server-header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    z-index: 1;
+    height: 52px;
+    width: 100%;
+}
+
+.server-name {
+    color: #fff;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dropdown-container {
+    margin-left: 8px;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.dropdown-container button.icon-toggle {
+    background-color: transparent;
+    border: none;
+    color: #fff;
+    padding: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+}
+
+.dropdown-container button.icon-toggle:hover {
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.dropdown-menu {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background-color: #2f3136;;
+    border-radius: 4px;
+    padding: 6px 0;
+    min-width: 180px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
+    z-index: 100;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 10px 12px;
+    text-align: left;
+    background: none;
+    border: none;
+    color: #dbdee1;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.dropdown-item:hover {
+    background-color: #4752c4;
+    color: #ffffff;
+}
+
+.dropdown-item.danger {
+    color: #f23f43;
+}
+
+.dropdown-item.danger:hover {
+    background-color: #f23f43;
+    color: #ffffff;
+}
+
+.uncategorized-drop-area {
+    margin: 0 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.uncategorized-drop-area.dragging-over {
+    background-color: rgba(71, 82, 196, 0.2);
+    border: 2px dashed #4752c4;
+}
+
+.uncategorized-chats {
+    padding: 0;
+    border-radius: 4px;
+    min-height: 8px;
+    transition: all 0.2s ease;
+}
+
+.uncategorized-chats.dragging-over {
+    padding: 8px 0;
+    background-color: rgba(71, 82, 196, 0.2);
+    border: 2px dashed #4752c4;
+    min-height: 40px;
+}
+
+.uncategorized-chats .channel {
+    padding: 6px 8px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.uncategorized-chats .channel:hover {
+    color: #fff;
+}
+
+.uncategorized-chats .channel.dragging {
+    background-color: #2f3136;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.server-info-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.server-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 14px;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.avatar-upload-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.server-avatar:hover .avatar-upload-overlay {
+    opacity: 1;
+}
+
+.avatar-upload-button {
+    color: #ffffff;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.avatar-upload-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Стили для приватных категорий */
+.category.private .category-name-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.category.private .private-icon {
+    font-size: 12px;
+    color: #72767d;
+}
+
+/* Стили для приватных чатов */
+.channel.private {
+    position: relative;
+}
+
+.channel.private .channel-icons {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.channel.private .private-icon {
+    font-size: 10px;
+    color: #72767d;
+}
+
+/* Общие стили для категорий */
+.category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.category-name-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.category-actions {
+    display: flex;
+    align-items: center;
+}
+
+/* Общие стили для чатов */
+.channel-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.channel-icons {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Стили для иконок */
+.private-icon {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.category:hover .private-icon,
+.channel:hover .private-icon {
+    opacity: 1;
+}
+
+.channel.private .channel-name {
+    margin-left: 4px;
+}
+

@@ -1,0 +1,184 @@
+.discover-container {
+    display: flex;
+    flex: 1;
+    background-color: #313338;
+    overflow: hidden;
+}
+
+.discover-lists {
+    background-color: #2b2d31;
+    width: 240px;
+    height: 100%;
+    padding: 0 0 16px;
+    color: #f2f3f5;
+    border-right: 1px solid rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+}
+
+.discover-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 20px 0;
+    padding: 0 10px;
+    color: #f2f3f5;
+}
+
+.discover-categories {
+    display: flex;
+    flex-direction: column;
+}
+
+.discover-category {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    margin: 0 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    color: #949ba4;
+    border-radius: 4px;
+    height: 42px;
+}
+
+.discover-category:hover {
+    background-color: #393c41;
+    color: #f2f3f5;
+}
+
+.discover-category.active {
+    background-color: #404249;
+    color: #f2f3f5;
+}
+
+.category-icon {
+    font-size: 20px;
+    margin-right: 12px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    color: #dbdee1;
+}
+
+.category-info h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.category-info p {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: #b5bac1;
+}
+
+.servers-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: #313338;
+}
+
+/* .servers-header {
+    padding: 96px 16px 16px;
+    background-color: #1e1f22;
+} */
+
+.servers-header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+    color: #f2f3f5;
+}
+
+.servers-header p {
+    font-size: 16px;
+    color: #b5bac1;
+    margin: 0;
+}
+
+.servers-header .search-container {
+    margin-top: 24px;
+    position: relative;
+}
+
+.servers-header .search-input {
+    width: 100%;
+    padding: 10px;
+    background-color: #1e1f22;
+    border: 2px solid #da373c;
+    border-radius: 4px;
+    color: #dbdee1;
+    font-size: 16px;
+    outline: none;
+}
+
+.servers-header .search-input:focus {
+    border-color: #f23f43;
+}
+
+.servers-header .search-input::placeholder {
+    color: #949ba4;
+}
+
+.popular-tags {
+    color: #b5bac1;
+    font-size: 14px;
+    margin-top: 16px;
+}
+
+.popular-tags span {
+    display: inline-block;
+    margin-right: 8px;
+    font-weight: 500;
+}
+
+.tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.tag {
+    background-color: #2b2d31;
+    color: #dbdee1;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-weight: 500;
+}
+
+.tag:hover {
+    background-color: #393c41;
+    color: #f2f3f5;
+} 
+
+
+.discover-header {
+    padding: 0 16px;
+    min-height: 52px;
+    background-color: #2f3136;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.discover-header-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 48px;
+}
+
+.discover-name {
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+}
