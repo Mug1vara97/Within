@@ -1150,7 +1150,7 @@ namespace Messenger.Controllers
                 }
 
                 // Создаем директорию, если она не существует
-                var uploadPath = Path.Combine("uploads", "ServerAvatar");
+                var uploadPath = Path.Combine("Uploads", "ServerAvatar");
                 if (!Directory.Exists(uploadPath))
                 {
                     Directory.CreateDirectory(uploadPath);
@@ -1177,7 +1177,7 @@ namespace Messenger.Controllers
                 }
 
                 // Обновляем путь к аватару в базе данных
-                server.Avatar = $"/uploads/ServerAvatar/{fileName}";
+                server.Avatar = $"/Uploads/ServerAvatar/{fileName}";
                 await _context.SaveChangesAsync();
 
                 return Ok(new { 

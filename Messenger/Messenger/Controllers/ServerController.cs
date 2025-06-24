@@ -26,7 +26,7 @@ namespace Messenger1.Controllers
             _context = context;
             _hubContext = hubContext;
             _environment = environment;
-            _uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads", "ServerBanner");
+            _uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Uploads", "ServerBanner");
             if (!Directory.Exists(_uploadPath))
             {
                 Directory.CreateDirectory(_uploadPath);
@@ -635,7 +635,7 @@ namespace Messenger1.Controllers
                 }
 
                 // Обновляем путь к баннеру в базе данных
-                server.Banner = $"/uploads/ServerBanner/{fileName}";
+                server.Banner = $"/Uploads/ServerBanner/{fileName}";
                 await _context.SaveChangesAsync();
 
                 // Уведомляем клиентов об обновлении баннера

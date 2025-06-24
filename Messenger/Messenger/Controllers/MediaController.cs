@@ -10,7 +10,7 @@ public class MediaController : ControllerBase
 
     public MediaController()
     {
-        _uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
+        _uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Uploads");
         if (!Directory.Exists(_uploadPath))
         {
             Directory.CreateDirectory(_uploadPath);
@@ -33,6 +33,6 @@ public class MediaController : ControllerBase
             await file.CopyToAsync(stream);
         }
 
-        return Ok(new { url = $"/uploads/{fileName}" });
+        return Ok(new { url = $"/Uploads/{fileName}" });
     }
 }

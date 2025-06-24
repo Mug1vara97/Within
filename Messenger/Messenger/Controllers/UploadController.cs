@@ -24,7 +24,7 @@ namespace Test1.Controllers
                 await file.CopyToAsync(stream);
             }
 
-            return Ok(new { url = $"/uploads/{fileName}" });
+            return Ok(new { url = $"/Uploads/{fileName}" });
         }
     }
 }
