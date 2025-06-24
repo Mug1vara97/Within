@@ -16,7 +16,7 @@ namespace Messenger.Controllers
         public ProfileController(MessengerContext context)
         {
             _context = context;
-            _uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads", "banners");
+            _uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Uploads", "Banners");
             if (!Directory.Exists(_uploadPath))
             {
                 Directory.CreateDirectory(_uploadPath);
@@ -123,7 +123,7 @@ namespace Messenger.Controllers
             if (file == null || file.Length == 0)
                 return BadRequest("No file uploaded");
 
-            var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads", "avatars");
+            var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Uploads", "Avatars");
             if (!Directory.Exists(uploadPath))
             {
                 Directory.CreateDirectory(uploadPath);
@@ -137,7 +137,7 @@ namespace Messenger.Controllers
                 await file.CopyToAsync(stream);
             }
 
-            return Ok(new { url = $"/uploads/avatars/{uniqueFileName}" });
+            return Ok(new { url = $"/Uploads/Avatars/{uniqueFileName}" });
         }
 
         public class UpdateAvatarModel
