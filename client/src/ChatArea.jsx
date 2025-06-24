@@ -4,7 +4,7 @@ import VoiceChat from './VoiceChat';
 
 const ChatArea = ({ selectedChat, leftVoiceChat, setLeftVoiceChat, username, userId, serverId, userPermissions, isServerOwner }) => {
     if (selectedChat) {
-        if (selectedChat.isVoiceChat) {
+        if (selectedChat.typeId !== 3) {
             return (
                 <VoiceChat
                     roomId={selectedChat.chatId.toString()}
