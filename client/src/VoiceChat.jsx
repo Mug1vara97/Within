@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, useContext } from 'react';
 import {
   Container,
   Paper,
@@ -1041,30 +1041,37 @@ const VideoView = React.memo(({
   );
 });
 
-function VoiceChat({ roomId, username, autoJoin = false }) {
-  const [, setIsConnected] = useState(false);
+function VoiceChat() {
+  const [isConnected, setIsConnected] = useState(false);
   const [isJoined, setIsJoined] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [useEarpiece, setUseEarpiece] = useState(true);
-  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
+  const isMobile = useMemo(() => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent), []);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
+  const [roomId, setRoomId] = useState('');
+  const [userName, setUserName] = useState('');
+  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [peers, setPeers] = useState(new Map());
-  const [videos, setVideos] = useState(new Map());
-  const [screens, setScreens] = useState(new Map());
   const [error, setError] = useState('');
   const [volumes, setVolumes] = useState(new Map());
   const [isJoining, setIsJoining] = useState(false);
   const [speakingStates, setSpeakingStates] = useState(new Map());
-  const [audioStates, setAudioStates] = useState(new Map());
+  const [audioStates, setAudioStates] = useState(new Map()); // Состояния аудио для всех пиров
   const [screenProducer, setScreenProducer] = useState(null);
+  const [screenStream, setScreenStream] = useState(null);
+  const [remoteScreens, setRemoteScreens] = useState(new Map());
   const [videoProducer, setVideoProducer] = useState(null);
-  const [noiseSuppression, setNoiseSuppression] = useState(true);
-  const [noiseSuppressionMode, setNoiseSuppressionMode] = useState('moderate');
+  const [videoStream, setVideoStream] = useState(null);
+  const [remoteVideos, setRemoteVideos] = useState(new Map());
+  const [isNoiseSuppressed, setIsNoiseSuppressed] = useState(false);
+  const [noiseSuppressionMode, setNoiseSuppressionMode] = useState('rnnoise');
   const [noiseSuppressMenuAnchor, setNoiseSuppressMenuAnchor] = useState(null);
-  
   const noiseSuppressionRef = useRef(null);
+  const masterGainNodeRef = useRef(null);
   const isAudioEnabledRef = useRef(isAudioEnabled);
+
+
   const socketRef = useRef();
   const deviceRef = useRef();
   const producerTransportRef = useRef();
@@ -1077,99 +1084,336 @@ function VoiceChat({ roomId, username, autoJoin = false }) {
   const gainNodesRef = useRef(new Map());
   const analyserNodesRef = useRef(new Map());
   const animationFramesRef = useRef(new Map());
-  
-  const isMobile = useMemo(() => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent), []);
 
-  // Обновляем ref при изменении isAudioEnabled
+  // Добавляем новый ref для хранения состояний mute
+  const mutedPeersRef = useRef(new Map());
+
+  // Добавляем новый ref для хранения состояний индивидуального mute
+  const individualMutedPeersRef = useRef(new Map());
+
+  const [fullscreenShare, setFullscreenShare] = useState(null);
+
   useEffect(() => {
-    isAudioEnabledRef.current = isAudioEnabled;
-  }, [isAudioEnabled]);
-
-  useEffect(() => {
-    if (autoJoin && roomId && username && !isJoined && !isJoining) {
-      handleJoin();
-    }
-  }, [autoJoin, roomId, username, isJoined, isJoining]);
-
-  const handleProducerClosed = useCallback(({ producerId, producerSocketId, mediaType }) => {
-    if (mediaType === 'screen') {
-      setScreens(prev => {
-        const newScreens = new Map(prev);
-        const screenEntry = [...newScreens.entries()].find(
-          ([, data]) => data.producerId === producerId
-        );
-        
-        if (screenEntry) {
-          const [entryPeerId] = screenEntry;
-          if (entryPeerId === producerSocketId) {
-            const stream = screenEntry[1].stream;
-            if (stream) {
-              stream.getTracks().forEach(track => track.stop());
-            }
-            newScreens.delete(entryPeerId);
-          }
+    const resumeAudioContext = async () => {
+      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        try {
+          await audioContextRef.current.resume();
+          console.log('AudioContext resumed successfully');
+        } catch (error) {
+          console.error('Failed to resume AudioContext:', error);
         }
-        return newScreens;
+      }
+    };
+
+    const handleInteraction = async () => {
+      await resumeAudioContext();
+      document.removeEventListener('click', handleInteraction);
+      document.removeEventListener('touchstart', handleInteraction);
+    };
+
+    if (socketRef.current) {
+      socketRef.current.on('speakingStateChanged', ({ peerId, speaking }) => {
+        setSpeakingStates(prev => {
+          const newStates = new Map(prev);
+          newStates.set(peerId, speaking);
+          return newStates;
+        });
       });
-    } else if (mediaType === 'webcam') {
-      setVideos(prev => {
-        const newVideos = new Map(prev);
-        const videoEntry = [...newVideos.entries()].find(
-          ([, data]) => data.producerId === producerId
-        );
-        
-        if (videoEntry) {
-          const [entryPeerId] = videoEntry;
-          if (entryPeerId === producerSocketId) {
-            const stream = videoEntry[1].stream;
-            if (stream) {
-              stream.getTracks().forEach(track => track.stop());
-            }
-            newVideos.delete(entryPeerId);
 
-            // Находим и закрываем соответствующий consumer
-            const consumer = Array.from(consumersRef.current.entries()).find(
-              ([, consumer]) => consumer.producerId === producerId
-            );
-            if (consumer) {
-              consumer[1].close();
-              consumersRef.current.delete(consumer[0]);
-            }
-          }
+      socketRef.current.on('peerMuteStateChanged', ({ peerId, isMuted }) => {
+        setVolumes(prev => {
+          const newVolumes = new Map(prev);
+          newVolumes.set(peerId, isMuted ? 0 : 100);
+          return newVolumes;
+        });
+        
+        if (isMuted) {
+          setSpeakingStates(prev => {
+            const newStates = new Map(prev);
+            newStates.set(peerId, false);
+            return newStates;
+          });
         }
-        return newVideos;
       });
     }
+
+    document.addEventListener('click', handleInteraction);
+    document.addEventListener('touchstart', handleInteraction);
+
+    return () => {
+      document.removeEventListener('click', handleInteraction);
+      document.removeEventListener('touchstart', handleInteraction);
+    };
   }, []);
 
   useEffect(() => {
     const socket = socketRef.current;
     if (!socket) return;
 
-    socket.on('producerClosed', handleProducerClosed);
-    
+    // Глобальный логгер всех событий сокета
+    socket.onAny((event, ...args) => {
+      console.log('Socket event received:', event, args);
+    });
+
+    // Обработчик закрытия producer
+    socket.on('producerClosed', ({ producerId, producerSocketId, mediaType }) => {
+      console.log('Producer closed event received:', { producerId, producerSocketId, mediaType });
+      
+      if (mediaType === 'screen') {
+        console.log('Processing screen sharing producer closure');
+        setRemoteScreens(prev => {
+          const newScreens = new Map(prev);
+          const screenEntry = [...newScreens.entries()].find(
+            ([id, data]) => data.producerId === producerId
+          );
+          
+          if (screenEntry) {
+            const [peerId] = screenEntry;
+            if (peerId === producerSocketId) {
+              console.log('Removing screen from remoteScreens:', peerId);
+              // Останавливаем треки перед удалением
+              const stream = screenEntry[1].stream;
+              if (stream) {
+                stream.getTracks().forEach(track => {
+                  track.stop();
+                });
+              }
+              newScreens.delete(peerId);
+            }
+          }
+          return newScreens;
+        });
+      } else if (mediaType === 'webcam') {
+        console.log('Processing webcam producer closure');
+        setRemoteVideos(prev => {
+          const newVideos = new Map(prev);
+          const videoEntry = [...newVideos.entries()].find(
+            ([id, data]) => data.producerId === producerId
+          );
+          
+          if (videoEntry) {
+            const [peerId] = videoEntry;
+            if (peerId === producerSocketId) {
+              console.log('Removing video from remoteVideos:', peerId);
+              // Останавливаем треки перед удалением
+              const stream = videoEntry[1].stream;
+              if (stream) {
+                stream.getTracks().forEach(track => {
+                  track.stop();
+                });
+              }
+              newVideos.delete(peerId);
+
+              // Находим и закрываем соответствующий consumer
+              const consumer = Array.from(consumersRef.current.entries()).find(
+                ([id, consumer]) => consumer.producerId === producerId
+              );
+              if (consumer) {
+                console.log('Found and closing associated consumer:', consumer[0]);
+                consumer[1].close();
+                consumersRef.current.delete(consumer[0]);
+              }
+            }
+          }
+          return newVideos;
+        });
+      }
+    });
+
+    // Обработчики состояния говорения и отключения звука
+    socket.on('speakingStateChanged', ({ peerId, speaking }) => {
+      setSpeakingStates(prev => {
+        const newStates = new Map(prev);
+        newStates.set(peerId, speaking);
+        return newStates;
+      });
+    });
+
+    socket.on('peerMuteStateChanged', ({ peerId, isMuted }) => {
+      setVolumes(prev => {
+        const newVolumes = new Map(prev);
+        newVolumes.set(peerId, isMuted ? 0 : 100);
+        return newVolumes;
+      });
+      
+      if (isMuted) {
+        setSpeakingStates(prev => {
+          const newStates = new Map(prev);
+          newStates.set(peerId, false);
+          return newStates;
+        });
+      }
+    });
+
+    // Очистка при размонтировании
     return () => {
-      socket.off('producerClosed', handleProducerClosed);
+      socket.offAny();
+      socket.off('producerClosed');
+      socket.off('speakingStateChanged');
+      socket.off('peerMuteStateChanged');
     };
-  }, [handleProducerClosed]);
+  }, [socketRef.current]); // Зависим только от socketRef.current
+
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    // Add audio state change handler
+    socket.on('peerAudioStateChanged', ({ peerId, isEnabled }) => {
+      setAudioStates(prev => {
+        const newStates = new Map(prev);
+        newStates.set(peerId, isEnabled);
+        return newStates;
+      });
+    });
+
+    return () => {
+      socket.off('peerAudioStateChanged');
+    };
+  }, [socketRef.current]);
+
+  const cleanup = () => {
+    // Reset states to enabled
+    setIsAudioEnabled(true);
+    isAudioEnabledRef.current = true;
+    setUseEarpiece(true);
+    setIsMuted(false); // Reset mute state
+    
+    // Close all media streams
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
+    }
+    
+    try {
+      // Stop screen sharing if active
+      if (screenProducer) {
+        screenProducer.close();
+        setScreenProducer(null);
+      }
+      
+      if (screenStream) {
+        screenStream.getTracks().forEach(track => track.stop());
+        setScreenStream(null);
+      }
+
+      setIsScreenSharing(false);
+      setRemoteScreens(new Map());
+
+      // Cleanup voice detection workers
+      audioRef.current.forEach((peerAudio, peerId) => {
+        if (peerAudio instanceof Map && peerAudio.has('voiceDetector')) {
+          const voiceDetector = peerAudio.get('voiceDetector');
+          if (voiceDetector) {
+            voiceDetector.port.close();
+            voiceDetector.disconnect();
+          }
+        }
+      });
+
+      // Cleanup analyzers
+      analyserNodesRef.current.forEach(analyser => {
+        if (analyser) {
+          analyser.disconnect();
+        }
+      });
+      analyserNodesRef.current.clear();
+
+      // Cancel all animation frames
+      animationFramesRef.current.forEach((frameId) => {
+        cancelAnimationFrame(frameId);
+      });
+      animationFramesRef.current.clear();
+
+      // Close socket and transports
+      if (socketRef.current) {
+        socketRef.current.close();
+        socketRef.current = null;
+      }
+
+      // Close producer transport
+      if (producerTransportRef.current) {
+        producerTransportRef.current.close();
+        producerTransportRef.current = null;
+      }
+
+      // Close consumer transports
+      consumerTransportsRef.current.forEach(transport => {
+        if (transport) {
+          transport.close();
+        }
+      });
+      consumerTransportsRef.current.clear();
+      
+      // Close producers
+      producersRef.current.forEach(producer => {
+        if (producer) {
+          producer.close();
+        }
+      });
+      producersRef.current.clear();
+      
+      // Close consumers
+      consumersRef.current.forEach(consumer => {
+        if (consumer) {
+          consumer.close();
+        }
+      });
+      consumersRef.current.clear();
+
+      // Cleanup local stream
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current = null;
+      }
+
+      // Cleanup audio elements
+      audioRef.current.forEach(audio => {
+        if (audio instanceof HTMLAudioElement) {
+          audio.pause();
+          audio.srcObject = null;
+          audio.remove();
+        }
+      });
+      audioRef.current.clear();
+
+      // Cleanup gain nodes
+      gainNodesRef.current.forEach(node => {
+        if (node) {
+          node.disconnect();
+        }
+      });
+      gainNodesRef.current.clear();
+
+      // Close audio context
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close();
+      }
+      audioContextRef.current = null;
+
+      deviceRef.current = null;
+      
+      // Cleanup noise suppression
+      if (noiseSuppressionRef.current) {
+        noiseSuppressionRef.current.cleanup();
+        noiseSuppressionRef.current = null;
+      }
+
+    } catch (error) {
+      console.error('Cleanup error:', error);
+    }
+  };
 
   const handleJoin = async () => {
-    if (!roomId) {
-      setError('Room ID is required');
+    if (!roomId || !userName) {
+      setError('Please enter room ID and username');
       return;
     }
-
-    if (!username) {
-      setError('Username is required');
-      return;
-    }
-
-    setIsJoining(true);
-    setError('');
 
     try {
       // Reset states to enabled when joining
       setIsAudioEnabled(true);
+      isAudioEnabledRef.current = true;
       setUseEarpiece(true);
       setIsMuted(false); // Reset mute state
 
@@ -1295,7 +1539,7 @@ function VoiceChat({ roomId, username, autoJoin = false }) {
       socket.emit('createRoom', { roomId }, async ({ error: createError }) => {
         console.log('Create room response:', createError ? `Error: ${createError}` : 'Success');
         
-        socket.emit('join', { roomId, name: username }, async ({ error: joinError, routerRtpCapabilities, existingPeers, existingProducers }) => {
+        socket.emit('join', { roomId, name: userName }, async ({ error: joinError, routerRtpCapabilities, existingPeers, existingProducers }) => {
           if (joinError) {
             console.error('Join error:', joinError);
             setError(joinError);
@@ -1374,8 +1618,6 @@ function VoiceChat({ roomId, username, autoJoin = false }) {
       console.error('Connection error:', err);
       setError('Failed to connect to server: ' + err.message);
       cleanup();
-    } finally {
-      setIsJoining(false);
     }
   };
 
@@ -1440,7 +1682,7 @@ function VoiceChat({ roomId, username, autoJoin = false }) {
         
         if (kind === 'video') {
           console.log('Setting up screen sharing video');
-          setScreens(prev => {
+          setRemoteScreens(prev => {
             const newScreens = new Map(prev);
             newScreens.set(producer.producerSocketId, { 
               producerId,
@@ -1455,7 +1697,7 @@ function VoiceChat({ roomId, username, autoJoin = false }) {
         
         if (kind === 'video') {
           console.log('Setting up webcam stream');
-          setVideos(prev => {
+          setRemoteVideos(prev => {
             const newVideos = new Map(prev);
             newVideos.set(producer.producerSocketId, {
               producerId,
@@ -1472,7 +1714,7 @@ function VoiceChat({ roomId, username, autoJoin = false }) {
           audio.srcObject = stream;
           audio.id = `audio-${producer.producerSocketId}`;
           audio.autoplay = true;
-          audio.muted = !isAudioEnabled; // Use ref for current state
+          audio.muted = !isAudioEnabledRef.current; // Use ref for current state
 
           if (isMobile) {
             await setAudioOutput(audio, useEarpiece);
@@ -1487,7 +1729,7 @@ function VoiceChat({ roomId, username, autoJoin = false }) {
           
           // Create gain node
           const gainNode = audioContext.createGain();
-          gainNode.gain.value = isAudioEnabled ? 1.0 : 0.0; // Use ref for current state
+          gainNode.gain.value = isAudioEnabledRef.current ? 1.0 : 0.0; // Use ref for current state
 
           // Connect nodes только для анализа голоса
           source.connect(analyser);
@@ -1541,7 +1783,7 @@ function VoiceChat({ roomId, username, autoJoin = false }) {
         console.log('Consumer producer paused:', consumer.id);
         // Очищаем видео при паузе producer'а
         if (appData?.mediaType === 'webcam') {
-          setVideos(prev => {
+          setRemoteVideos(prev => {
             const newVideos = new Map(prev);
             for (const [peerId, videoData] of newVideos.entries()) {
               if (videoData.consumerId === consumer.id) {
@@ -1893,7 +2135,7 @@ function VoiceChat({ roomId, username, autoJoin = false }) {
       // Ensure track is enabled and not muted
       track.enabled = true; // Always enable the track initially
       
-      if (noiseSuppression) {
+      if (isNoiseSuppressed) {
         const enableResult = await noiseSuppressionRef.current.enable(noiseSuppressionMode);
         if (!enableResult) {
           console.warn('Failed to enable noise suppression, continuing without it');
@@ -2033,7 +2275,7 @@ function VoiceChat({ roomId, username, autoJoin = false }) {
         consumersRef.current.delete(consumerId);
         
         // Находим и удаляем соответствующее видео
-        setVideos(prev => {
+        setRemoteVideos(prev => {
           const newVideos = new Map(prev);
           for (const [peerId, videoData] of newVideos.entries()) {
             if (videoData.consumerId === consumerId) {
@@ -2897,126 +3139,253 @@ function VoiceChat({ roomId, username, autoJoin = false }) {
     }
   };
 
-  const handleScreenShare = async (peerId, { stream, producerId }) => {
-    setScreens(prev => {
-      const newScreens = new Map(prev);
-      newScreens.set(peerId, { stream, producerId });
-      return newScreens;
-    });
-  };
-
-  const handleVideoShare = async (peerId, { stream, producerId }) => {
-    setVideos(prev => {
-      const newVideos = new Map(prev);
-      newVideos.set(peerId, { stream, producerId });
-      return newVideos;
-    });
-  };
-
-  const handleProducerClosed = useCallback(({ producerId, producerSocketId, mediaType }) => {
-    if (mediaType === 'screen') {
-      setScreens(prev => {
-        const newScreens = new Map(prev);
-        const screenEntry = [...newScreens.entries()].find(
-          ([, data]) => data.producerId === producerId
-        );
-        
-        if (screenEntry) {
-          const [entryPeerId] = screenEntry;
-          if (entryPeerId === producerSocketId) {
-            const stream = screenEntry[1].stream;
-            if (stream) {
-              stream.getTracks().forEach(track => track.stop());
-            }
-            newScreens.delete(entryPeerId);
-          }
-        }
-        return newScreens;
-      });
-    } else if (mediaType === 'webcam') {
-      setVideos(prev => {
-        const newVideos = new Map(prev);
-        const videoEntry = [...newVideos.entries()].find(
-          ([, data]) => data.producerId === producerId
-        );
-        
-        if (videoEntry) {
-          const [entryPeerId] = videoEntry;
-          if (entryPeerId === producerSocketId) {
-            const stream = videoEntry[1].stream;
-            if (stream) {
-              stream.getTracks().forEach(track => track.stop());
-            }
-            newVideos.delete(entryPeerId);
-
-            // Находим и закрываем соответствующий consumer
-            const consumer = Array.from(consumersRef.current.entries()).find(
-              ([, consumer]) => consumer.producerId === producerId
-            );
-            if (consumer) {
-              consumer[1].close();
-              consumersRef.current.delete(consumer[0]);
-            }
-          }
-        }
-        return newVideos;
-      });
-    }
-  }, []);
-
-  useEffect(() => {
-    const socket = socketRef.current;
-    if (!socket) return;
-
-    socket.on('producerClosed', handleProducerClosed);
-    
-    return () => {
-      socket.off('producerClosed', handleProducerClosed);
-    };
-  }, [handleProducerClosed]);
-
-  useEffect(() => {
-    if (roomId && userName && !isJoined) {
-      handleJoin();
-    }
-  }, [roomId, userName, isJoined]);
+  if (!isJoined) {
+    return (
+      <Box sx={styles.root}>
+        <Container maxWidth="sm" sx={{ mt: 4 }}>
+          <Paper sx={styles.joinPaper}>
+            <Typography variant="h5" gutterBottom sx={{ color: '#ffffff' }}>
+              Join Voice Channel
+            </Typography>
+            <TextField
+              fullWidth
+              label="Channel ID"
+              value={roomId}
+              onChange={(e) => setRoomId(e.target.value)}
+              margin="normal"
+              disabled={isJoining}
+              sx={styles.textField}
+            />
+            <TextField
+              fullWidth
+              label="Your Name"
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              margin="normal"
+              disabled={isJoining}
+              sx={styles.textField}
+            />
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={handleJoin}
+              disabled={!roomId || !userName || isJoining}
+              sx={{ ...styles.joinButton, mt: 2 }}
+            >
+              {isJoining ? 'Joining...' : 'Join Channel'}
+            </Button>
+            {error && (
+              <Typography color="error" sx={{ mt: 2 }}>
+                {error}
+              </Typography>
+            )}
+          </Paper>
+        </Container>
+      </Box>
+    );
+  }
 
   return (
-    <div className="voice-chat-container">
-      {error && <div className="error-message">{error}</div>}
-      
-      <div className="voice-chat-controls">
-        {/* Существующие элементы управления */}
-        <div className="video-grid">
-          {Array.from(videos.entries()).map(([peerId, { stream }]) => (
-            <video
-              key={peerId}
-              autoPlay
-              playsInline
-              ref={el => {
-                if (el) {
-                  el.srcObject = stream;
-                }
-              }}
-            />
-          ))}
-        </div>
-        <div className="screen-share-grid">
-          {Array.from(screens.entries()).map(([peerId, { stream }]) => (
-            <video
-              key={peerId}
-              autoPlay
-              playsInline
-              ref={el => {
-                if (el) {
-                  el.srcObject = stream;
-                }
-              }}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
+    <MuteProvider socket={socketRef.current}>
+      <Box sx={styles.root}>
+        <AppBar position="static" sx={styles.appBar}>
+          <Toolbar sx={styles.toolbar}>
+            <Box sx={styles.channelName}>
+              <Tag />
+              <Typography variant="subtitle1">
+                {roomId}
+              </Typography>
+            </Box>
+          </Toolbar>
+        </AppBar>
+        <Container sx={styles.container}>
+          <Box sx={styles.videoGrid}>
+            {/* Only render video grid when not in fullscreen mode */}
+            {fullscreenShare === null && (
+              <>
+                {/* Local user */}
+                <Box sx={styles.videoItem} className={speakingStates.get(socketRef.current?.id) ? 'speaking' : ''}>
+                  {isVideoEnabled && videoStream ? (
+                    <VideoView 
+                      stream={videoStream} 
+                      peerName={userName}
+                      isMuted={isMuted}
+                      isSpeaking={speakingStates.get(socketRef.current?.id)}
+                      isAudioEnabled={isAudioEnabled}
+                      isLocal={true}
+                      isAudioMuted={isMuted}
+                    />
+                  ) : (
+                    <div style={{ 
+                      position: 'relative', 
+                      width: '100%', 
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      alignItems: 'center'
+                    }}>
+                      <Box sx={styles.userAvatar}>
+                        {userName[0].toUpperCase()}
+                      </Box>
+                      <VideoOverlay
+                        peerName={userName}
+                        isMuted={isMuted}
+                        isSpeaking={speakingStates.get(socketRef.current?.id)}
+                        isAudioEnabled={isAudioEnabled}
+                        isLocal={true}
+                        isAudioMuted={isMuted}
+                      />
+                    </div>
+                  )}
+                </Box>
+
+                {/* Remote users */}
+                {Array.from(peers.values()).map((peer) => (
+                  <Box key={peer.id} sx={styles.videoItem} className={speakingStates.get(peer.id) ? 'speaking' : ''}>
+                    {remoteVideos.get(peer.id)?.stream ? (
+                      <VideoView
+                        stream={remoteVideos.get(peer.id).stream}
+                        peerName={peer.name}
+                        isMuted={peer.isMuted}
+                        isSpeaking={speakingStates.get(peer.id)}
+                        isAudioEnabled={audioStates.get(peer.id)}
+                        isLocal={false}
+                        onVolumeClick={() => handleVolumeChange(peer.id)}
+                        volume={volumes.get(peer.id) || 100}
+                        isAudioMuted={individualMutedPeersRef.current.get(peer.id) || false}
+                      />
+                    ) : (
+                      <div style={{ 
+                        position: 'relative', 
+                        width: '100%', 
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                      }}>
+                        <Box sx={styles.userAvatar}>
+                          {peer.name[0].toUpperCase()}
+                        </Box>
+                        <VideoOverlay
+                          peerName={peer.name}
+                          isMuted={peer.isMuted}
+                          isSpeaking={speakingStates.get(peer.id)}
+                          isAudioEnabled={audioStates.get(peer.id)}
+                          isLocal={false}
+                          onVolumeClick={() => handleVolumeChange(peer.id)}
+                          volume={volumes.get(peer.id) || 100}
+                          isAudioMuted={individualMutedPeersRef.current.get(peer.id) || false}
+                        />
+                      </div>
+                    )}
+                  </Box>
+                ))}
+              </>
+            )}
+
+            {/* Screen sharing */}
+            {renderScreenShares}
+          </Box>
+        </Container>
+        <Box sx={styles.bottomBar}>
+          <Box sx={styles.controlsContainer}>
+            <Box sx={styles.controlGroup}>
+              <IconButton
+                sx={styles.iconButton}
+                onClick={handleMute}
+                title={isMuted ? "Unmute" : "Mute"}
+              >
+                {isMuted ? <MicOff /> : <Mic />}
+              </IconButton>
+              <IconButton
+                sx={styles.iconButton}
+                onClick={isVideoEnabled ? stopVideo : startVideo}
+                title={isVideoEnabled ? "Stop camera" : "Start camera"}
+              >
+                {isVideoEnabled ? <VideocamOff /> : <Videocam />}
+              </IconButton>
+              <IconButton
+                sx={styles.iconButton}
+                onClick={toggleAudio}
+                title={isAudioEnabled ? "Disable audio output" : "Enable audio output"}
+              >
+                {isAudioEnabled ? <Headset /> : <HeadsetOff />}
+              </IconButton>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <IconButton
+                  sx={styles.iconButton}
+                  onClick={handleNoiseSuppressionToggle}
+                  title={isNoiseSuppressed ? "Disable noise suppression" : "Enable noise suppression"}
+                  disabled={!noiseSuppressionRef.current?.isInitialized()}
+                >
+                  {isNoiseSuppressed ? <NoiseAware /> : <NoiseControlOff />}
+                </IconButton>
+                <IconButton
+                  size="small"
+                  sx={styles.iconButton}
+                  onClick={handleNoiseSuppressionMenuOpen}
+                  disabled={!noiseSuppressionRef.current?.isInitialized()}
+                >
+                  <ExpandMore />
+                </IconButton>
+                <Menu
+                  anchorEl={noiseSuppressMenuAnchor}
+                  open={Boolean(noiseSuppressMenuAnchor)}
+                  onClose={handleNoiseSuppressionMenuClose}
+                >
+                  <MenuItem 
+                    onClick={() => handleNoiseSuppressionModeSelect('rnnoise')}
+                    selected={noiseSuppressionMode === 'rnnoise'}
+                  >
+                    RNNoise (AI-based)
+                  </MenuItem>
+                  <MenuItem 
+                    onClick={() => handleNoiseSuppressionModeSelect('speex')}
+                    selected={noiseSuppressionMode === 'speex'}
+                  >
+                    Speex (Classic)
+                  </MenuItem>
+                  <MenuItem 
+                    onClick={() => handleNoiseSuppressionModeSelect('noisegate')}
+                    selected={noiseSuppressionMode === 'noisegate'}
+                  >
+                    Noise Gate
+                  </MenuItem>
+                </Menu>
+              </Box>
+            </Box>
+            <Box sx={styles.controlGroup}>
+              <IconButton
+                sx={styles.iconButton}
+                onClick={isScreenSharing ? stopScreenSharing : startScreenSharing}
+                title={isScreenSharing ? "Stop sharing" : "Share screen"}
+              >
+                {isScreenSharing ? <StopScreenShare /> : <ScreenShare />}
+              </IconButton>
+              {isMobile && (
+                <IconButton
+                  sx={styles.iconButton}
+                  onClick={toggleSpeakerMode}
+                  title={useEarpiece ? "Switch to speaker" : "Switch to earpiece"}
+                >
+                  {useEarpiece ? <Hearing /> : <VolumeUpRounded />}
+                </IconButton>
+              )}
+            </Box>
+          </Box>
+          <Button
+            variant="contained"
+            sx={styles.leaveButton}
+            onClick={handleLeaveCall}
+            startIcon={<PhoneDisabled />}
+          >
+            Leave
+          </Button>
+        </Box>
+      </Box>
+    </MuteProvider>
   );
 }
 
