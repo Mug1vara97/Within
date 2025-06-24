@@ -15,4 +15,30 @@ export default defineConfig({
       util: 'util',
     },
   },
+  optimizeDeps: {
+    exclude: ['@sapphi-red/web-noise-suppressor']
+  },
+  build: {
+    target: 'esnext',
+    rollupOptions: {
+      output: {
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name.endsWith('.worklet.js')) {
+            return '[name][extname]';
+          }
+          return 'assets/[name]-[hash][extname]';
+        }
+      }
+    }
+  },
+  server: {
+    host: true,
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp'
+    }
+  },
+  worker: {
+    format: 'es'
+  }
 })

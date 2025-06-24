@@ -7,9 +7,8 @@ const ChatArea = ({ selectedChat, leftVoiceChat, setLeftVoiceChat, username, use
         if (selectedChat.isVoiceChat) {
             return (
                 <VoiceChat
-                    roomId={selectedChat.chatId}
-                    username={username}
-                    autoJoin={true}
+                    roomId={selectedChat.chatId.toString()}
+                    userName={username}
                 />
             );
         }
