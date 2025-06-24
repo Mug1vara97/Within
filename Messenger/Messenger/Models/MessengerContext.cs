@@ -63,6 +63,14 @@ public partial class MessengerContext : DbContext
             }
         }
 
+        // Добавляем начальные данные для типов чатов
+        modelBuilder.Entity<ChatType>().HasData(
+            new ChatType { TypeId = 1, TypeName = "direct" },
+            new ChatType { TypeId = 2, TypeName = "group" },
+            new ChatType { TypeId = 3, TypeName = "text_chanel" },
+            new ChatType { TypeId = 4, TypeName = "voice_chanel" }
+        );
+
         modelBuilder.Entity<AuditLog>(entity =>
         {
             entity.HasKey(e => e.LogId).HasName("audit_logs_pkey");
