@@ -1,10 +1,18 @@
 import React from 'react';
 import GroupChat from './Chats/GroupChat';
-// import VoiceChat from './VoiceChat';
+import VoiceChat from './VoiceChat';
 
 const ChatArea = ({ selectedChat, leftVoiceChat, setLeftVoiceChat, username, userId, serverId, userPermissions, isServerOwner }) => {
     if (selectedChat) {
-        // Temporarily disable voice chat functionality
+        if (selectedChat.isVoiceChat) {
+            return (
+                <VoiceChat
+                    roomId={selectedChat.chatId}
+                    username={username}
+                    autoJoin={true}
+                />
+            );
+        }
         return (
             <GroupChat
                 username={username}

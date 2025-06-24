@@ -1,1 +1,1 @@
-export const BASE_URL = 'http://4931257-dv98943.twc1.net';
+export const BASE_URL = 'https://4931257-dv98943.twc1.net';
