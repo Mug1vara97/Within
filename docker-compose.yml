@@ -13,7 +13,11 @@ services:
       - LISTEN_IP=0.0.0.0
       - ANNOUNCED_IP=4931257-dv98943.twc1.net
     volumes:
-      - ./Messenger/Messenger/Uploads:/app/Uploads
+      - uploads_data:/app/Uploads
+      - uploads_avatars:/app/Uploads/Avatars
+      - uploads_banners:/app/Uploads/Banners
+      - uploads_server_avatar:/app/Uploads/ServerAvatar
+      - uploads_server_banner:/app/Uploads/ServerBanner
     networks:
       - app-network
     depends_on:
@@ -74,3 +78,8 @@ networks:
 
 volumes:
   postgres_data:
+  uploads_data:
+  uploads_avatars:
+  uploads_banners:
+  uploads_server_avatar:
+  uploads_server_banner:
