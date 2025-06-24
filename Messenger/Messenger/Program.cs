@@ -58,7 +58,22 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<MessengerContext>();
-    db.Database.Migrate();
+    try
+    {
+        db.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        // Если ошибка связана с существующей таблицей, продолжаем работу
+        if (ex.Message.Contains("already exists"))
+        {
+            Console.WriteLine("Some tables already exist, continuing...");
+        }
+        else
+        {
+            throw; // Если другая ошибка, выбрасываем её
+        }
+    }
 }
 
 // Перемещаем CORS в начало конвейера middleware
