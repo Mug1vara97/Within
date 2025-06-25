@@ -229,7 +229,8 @@
 }
 
 .message-text {
-    color: #2e3338;
+    color: #ffffff;
+    background-color: #36393f;
     font-size: 0.95em;
     line-height: 1.4;
     word-break: break-word;
