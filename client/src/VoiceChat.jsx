@@ -1093,7 +1093,6 @@ const VideoView = React.memo(({
 function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave }) {
   const { activeVoiceChat, voiceChatSocketRef, joinVoiceChat, leaveVoiceChat } = useAudio();
   const [isJoined, setIsJoined] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [useEarpiece, setUseEarpiece] = useState(true);
@@ -1142,6 +1141,52 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
   const mutedPeersRef = useRef(new Map());
 
   const [fullscreenShare, setFullscreenShare] = useState(null);
+
+  // Function to get current room state
+  const getRoomState = () => {
+    if (!socketRef.current) return;
+    
+    socketRef.current.emit('getRoomState', ({ error, roomState }) => {
+      if (error) {
+        console.error('Failed to get room state:', error);
+        return;
+      }
+
+      if (roomState) {
+        // Update peers
+        const newPeers = new Map();
+        roomState.peers.forEach(peer => {
+          newPeers.set(peer.id, {
+            id: peer.id,
+            name: peer.name,
+            isMuted: peer.isMuted
+          });
+        });
+        setPeers(newPeers);
+
+        // Update audio states
+        const newAudioStates = new Map();
+        Object.entries(roomState.audioStates).forEach(([peerId, isEnabled]) => {
+          newAudioStates.set(peerId, isEnabled);
+        });
+        setAudioStates(newAudioStates);
+
+        // Update volumes
+        const newVolumes = new Map();
+        Object.entries(roomState.volumes).forEach(([peerId, volume]) => {
+          newVolumes.set(peerId, volume);
+        });
+        setVolumes(newVolumes);
+
+        // Update speaking states
+        const newSpeakingStates = new Map();
+        Object.entries(roomState.speakingStates).forEach(([peerId, isSpeaking]) => {
+          newSpeakingStates.set(peerId, isSpeaking);
+        });
+        setSpeakingStates(newSpeakingStates);
+      }
+    });
+  };
 
   useEffect(() => {
     const resumeAudioContext = async () => {
@@ -1471,8 +1516,44 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
       if (activeVoiceChat === roomId && voiceChatSocketRef.current?.connected) {
         console.log('Already connected to this room, reusing connection');
         socketRef.current = voiceChatSocketRef.current;
+
+        // Запрашиваем текущее состояние комнаты
+        socketRef.current.emit('getRoomState', { roomId }, ({ peers: existingPeers, producers: existingProducers }) => {
+          console.log('Received room state:', { existingPeers, existingProducers });
+          
+          // Восстанавливаем состояние пиров
+          if (existingPeers && existingPeers.length > 0) {
+            const peersMap = new Map();
+            const audioStatesMap = new Map();
+            const volumesMap = new Map();
+            const speakingStatesMap = new Map();
+
+            existingPeers.forEach(peer => {
+              peersMap.set(peer.id, {
+                id: peer.id,
+                name: peer.name,
+                isMuted: peer.isMuted || false
+              });
+              audioStatesMap.set(peer.id, peer.isAudioEnabled);
+              volumesMap.set(peer.id, peer.isMuted ? 0 : 100);
+              speakingStatesMap.set(peer.id, false);
+            });
+
+            setPeers(peersMap);
+            setAudioStates(audioStatesMap);
+            setVolumes(volumesMap);
+            setSpeakingStates(speakingStatesMap);
+          }
+
+          // Восстанавливаем существующие producers
+          if (existingProducers && existingProducers.length > 0) {
+            for (const producer of existingProducers) {
+              handleExistingProducer(producer);
+            }
+          }
+        });
+
         setIsJoined(true);
-        setIsConnected(true);
         return;
       }
 
@@ -1502,11 +1583,12 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
 
       socketRef.current.on('connect', () => {
         console.log('Socket connected successfully');
-        setIsConnected(true);
         joinVoiceChat(roomId, socketRef.current);
         // Set initial states
         socketRef.current.emit('muteState', { isMuted: false });
         socketRef.current.emit('audioState', { isEnabled: isAudioEnabled });
+        // Get initial room state
+        getRoomState();
       });
 
       socketRef.current.on('connect_error', (error) => {
@@ -1518,7 +1600,6 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
 
       socketRef.current.on('disconnect', () => {
   console.log('Socket disconnected');
-  setIsConnected(false);
   setIsJoined(false);
   cleanup();
   leaveVoiceChat();
