@@ -9,7 +9,7 @@ const AddMemberModal = ({ isOpen, onClose, serverId, userId, fetchServerData }) 
     const fetchUsers = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch(`${BASE_URL}/api/messages/${serverId}/available-users?userId=${userId}`);
+            const response = await fetch(`${BASE_URL}/api/messages/servers/${serverId}/available-users?userId=${userId}`);
             if (response.ok) {
                 const data = await response.json();
                 setUsers(data);
@@ -25,7 +25,7 @@ const AddMemberModal = ({ isOpen, onClose, serverId, userId, fetchServerData }) 
 
     const handleAddMember = async (userIdToAdd) => {
         try {
-            const response = await fetch(`${BASE_URL}/api/messages/${serverId}/add-member`, {
+            const response = await fetch(`${BASE_URL}/api/messages/servers/${serverId}/add-member`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
