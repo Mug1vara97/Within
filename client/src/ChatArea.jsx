@@ -1,10 +1,29 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import GroupChat from './Chats/GroupChat';
 import VoiceChat from './VoiceChat';
 
 const ChatArea = ({ selectedChat, leftVoiceChat, setLeftVoiceChat, username, userId, serverId, userPermissions, isServerOwner }) => {
+    // Сбрасываем leftVoiceChat при смене чата
+    useEffect(() => {
+        if (selectedChat?.typeId === 3) {
+            setLeftVoiceChat(false);
+        }
+    }, [selectedChat, setLeftVoiceChat]);
+
+    // Если пользователь покинул голосовой чат
+    if (leftVoiceChat && (!selectedChat || selectedChat.typeId !== 3)) {
+        return (
+            <div className="no-chat-selected">
+                <h3>Вы покинули голосовой чат</h3>
+                <button onClick={() => setLeftVoiceChat(false)}>
+                    Вернуться к списку каналов
+                </button>
+            </div>
+        );
+    }
+
     if (selectedChat) {
-        return selectedChat.chatType === 3 ? (
+        return selectedChat.typeId === 3 ? (
             <GroupChat
                 username={username}
                 userId={userId}
@@ -24,17 +43,6 @@ const ChatArea = ({ selectedChat, leftVoiceChat, setLeftVoiceChat, username, use
                 autoJoin={true}
                 onLeave={() => setLeftVoiceChat(true)}
             />
-        );
-    }
-
-    if (leftVoiceChat) {
-        return (
-            <div className="no-chat-selected">
-                <h3>Вы покинули голосовой чат</h3>
-                <button onClick={() => setLeftVoiceChat(false)}>
-                    Вернуться к списку каналов
-                </button>
-            </div>
         );
     }
 
