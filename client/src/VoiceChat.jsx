@@ -1091,9 +1091,8 @@ const VideoView = React.memo(({
   );
 });
 
-function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave }) {
+function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave, onJoin }) {
   const [isJoined, setIsJoined] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [useEarpiece, setUseEarpiece] = useState(true);
@@ -1112,6 +1111,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
       socketRef.current.emit('setUserInfo', { userId, serverId });
     }
   }, [userId, serverId]);
+
   const [screenProducer, setScreenProducer] = useState(null);
   const [screenStream, setScreenStream] = useState(null);
   const [remoteScreens, setRemoteScreens] = useState(new Map());
@@ -1137,9 +1137,6 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
   const gainNodesRef = useRef(new Map());
   const analyserNodesRef = useRef(new Map());
   const animationFramesRef = useRef(new Map());
-
-  // Добавляем новый ref для хранения состояний mute
-  const mutedPeersRef = useRef(new Map());
 
   const [fullscreenShare, setFullscreenShare] = useState(null);
 
@@ -1214,7 +1211,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
         setRemoteScreens(prev => {
           const newScreens = new Map(prev);
           const screenEntry = [...newScreens.entries()].find(
-            ([id, data]) => data.producerId === producerId
+            ([_, data]) => data.producerId === producerId
           );
           
           if (screenEntry) {
@@ -1238,7 +1235,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
         setRemoteVideos(prev => {
           const newVideos = new Map(prev);
           const videoEntry = [...newVideos.entries()].find(
-            ([id, data]) => data.producerId === producerId
+            ([_, data]) => data.producerId === producerId
           );
           
           if (videoEntry) {
@@ -1256,7 +1253,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
 
               // Находим и закрываем соответствующий consumer
               const consumer = Array.from(consumersRef.current.entries()).find(
-                ([id, consumer]) => consumer.producerId === producerId
+                ([_, consumer]) => consumer.producerId === producerId
               );
               if (consumer) {
                 console.log('Found and closing associated consumer:', consumer[0]);
@@ -1351,7 +1348,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
       setRemoteScreens(new Map());
 
       // Cleanup voice detection workers
-      audioRef.current.forEach((peerAudio, peerId) => {
+      audioRef.current.forEach((peerAudio) => {
         if (peerAudio instanceof Map && peerAudio.has('voiceDetector')) {
           const voiceDetector = peerAudio.get('voiceDetector');
           if (voiceDetector) {
@@ -1499,10 +1496,14 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
 
       socket.on('connect', () => {
         console.log('Socket connected successfully');
-        setIsConnected(true);
+        setIsJoined(true);
         // Set initial states
         socket.emit('muteState', { isMuted: false });
         socket.emit('audioState', { isEnabled: isAudioEnabled });
+        // Вызываем callback после успешного подключения
+        if (onJoin) {
+          onJoin();
+        }
       });
 
       socket.on('connect_error', (error) => {
@@ -1512,7 +1513,6 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
 
       socket.on('disconnect', () => {
         console.log('Socket disconnected');
-        setIsConnected(false);
         setIsJoined(false);
         setPeers(new Map());
         cleanup();
