@@ -1,5 +1,11 @@
 import React, { useRef, useState, useEffect } from "react";
 import "../videoplayer.css";
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import PauseIcon from '@mui/icons-material/Pause';
+import VolumeUpIcon from '@mui/icons-material/VolumeUp';
+import VolumeOffIcon from '@mui/icons-material/VolumeOff';
+import FullscreenIcon from '@mui/icons-material/Fullscreen';
+import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 
 const VideoPlayer = ({ src }) => {
     const videoRef = useRef(null);
@@ -124,11 +130,19 @@ const VideoPlayer = ({ src }) => {
                 <div className="video-controls">
                     {/* Левая группа: кнопки воспроизведения, громкости */}
                     <div className="controls-left">
-                        <button onClick={togglePlayPause}>
-                            {isPlaying ? "⏸️" : "▶️"}
+                        <button onClick={togglePlayPause} className="control-button">
+                            {isPlaying ? (
+                                <PauseIcon sx={{ width: 24, height: 24, color: '#fff' }} />
+                            ) : (
+                                <PlayArrowIcon sx={{ width: 24, height: 24, color: '#fff' }} />
+                            )}
                         </button>
-                        <button onClick={toggleMute}>
-                            {isMuted ? "🔇" : "🔊"}
+                        <button onClick={toggleMute} className="control-button">
+                            {isMuted ? (
+                                <VolumeOffIcon sx={{ width: 24, height: 24, color: '#fff' }} />
+                            ) : (
+                                <VolumeUpIcon sx={{ width: 24, height: 24, color: '#fff' }} />
+                            )}
                         </button>
                         <input
                             ref={volumeSliderRef} // Добавляем ref для ползунка звука
@@ -145,8 +159,12 @@ const VideoPlayer = ({ src }) => {
                     {/* Правая группа: таймер и полноэкранный режим */}
                     <div className="controls-right">
                         <span>{formatTime(currentTime)} / {formatTime(duration)}</span>
-                        <button onClick={toggleFullscreen}>
-                            {isFullscreen ? "🖥️" : "📺"}
+                        <button onClick={toggleFullscreen} className="control-button">
+                            {isFullscreen ? (
+                                <FullscreenExitIcon sx={{ width: 24, height: 24, color: '#fff' }} />
+                            ) : (
+                                <FullscreenIcon sx={{ width: 24, height: 24, color: '#fff' }} />
+                            )}
                         </button>
                     </div>
                 </div>

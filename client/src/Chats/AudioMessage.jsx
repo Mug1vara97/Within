@@ -1,5 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import WaveSurfer from 'wavesurfer.js';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import PauseIcon from '@mui/icons-material/Pause';
 
 const AudioMessage = ({ src }) => {
     const waveformRef = useRef(null); // Ref для контейнера waveform
@@ -111,12 +113,11 @@ const AudioMessage = ({ src }) => {
             ) : (
                 <>
                     <button onClick={togglePlay} className="play-pause-button">
-                        {/* Используем изображения из папки public */}
-                        <img
-                            src={isPlaying ? "/pause.png" : "/play.png"}
-                            alt={isPlaying ? 'Pause' : 'Play'}
-                            style={{ width: '24px', height: '24px' }} // Настройте размер изображения
-                        />
+                        {isPlaying ? (
+                            <PauseIcon sx={{ width: 24, height: 24, color: '#4a90e2' }} />
+                        ) : (
+                            <PlayArrowIcon sx={{ width: 24, height: 24, color: '#4a90e2' }} />
+                        )}
                     </button>
                     <div ref={waveformRef} className="waveform-container" style={{ width: '200px', height: '40px' }} />
                     <span className="duration">

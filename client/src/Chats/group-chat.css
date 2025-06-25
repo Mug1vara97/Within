@@ -233,7 +233,6 @@
     font-size: 0.95em;
     line-height: 1.4;
     word-break: break-word;
-    white-space: pre-wrap;
 }
 
 @media (prefers-color-scheme: dark) {
