@@ -140,10 +140,13 @@ const styles = {
     backgroundColor: '#36393f',
     boxShadow: 'none',
     borderBottom: '1px solid #202225',
-    position: 'relative' // Added to prevent fixed positioning
+    position: 'relative',
+    width: '100%',
+    flexShrink: 0,
+    height: '52px' // Fixed header height
   },
   toolbar: {
-    Height: '52x',
+    height: '52px',
     display: 'flex',
     alignItems: 'center',
     padding: '0 16px',
@@ -156,8 +159,14 @@ const styles = {
     alignItems: 'center',
     gap: '8px',
     color: '#ffffff',
+    height: '100%', // Take full height
     '& .MuiSvgIcon-root': {
-      color: '#72767d'
+      color: '#72767d',
+      fontSize: '20px' // Adjust icon size
+    },
+    '& .MuiTypography-root': {
+      fontSize: '16px', // Adjust text size
+      fontWeight: 500
     },
     '@media (max-width: 600px)': {
       fontSize: '0.9rem',
