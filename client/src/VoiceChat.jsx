@@ -143,7 +143,7 @@ const styles = {
     position: 'relative' // Added to prevent fixed positioning
   },
   toolbar: {
-    minHeight: '48px',
+    Height: '52x',
     display: 'flex',
     alignItems: 'center',
     padding: '0 16px',
@@ -390,7 +390,7 @@ const styles = {
     right: 0,
     width: '100%',
     zIndex: 2,
-    height: '80px',
+    height: '65px',
     boxSizing: 'border-box' // Include padding in width calculation
   },
   controlsGroup: {
