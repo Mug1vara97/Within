@@ -15,8 +15,9 @@ class Room {
         this.peers.set(peerId, peer);
         // Инициализируем состояние пира
         this.peerStates.set(peerId, {
-            userName: peer.userName || 'Unknown',
-            isMuted: false
+            userName: peer.data?.userName || 'Unknown',
+            isMuted: peer.isMuted || false,
+            isAudioEnabled: peer.isAudioEnabled || true
         });
         
         // Broadcast new peer's state to all peers in the room
@@ -69,7 +70,11 @@ class Room {
 
     getPeers() {
         return new Map(Array.from(this.peers.entries()).map(([peerId, peer]) => {
-            const state = this.peerStates.get(peerId) || { userName: 'Unknown', isMuted: false };
+            const state = this.peerStates.get(peerId) || {
+                userName: peer.data?.userName || 'Unknown',
+                isMuted: peer.isMuted || false,
+                isAudioEnabled: peer.isAudioEnabled || true
+            };
             return [peerId, { ...peer, ...state }];
         }));
     }
@@ -77,11 +82,29 @@ class Room {
     getPeer(peerId) {
         const peer = this.peers.get(peerId);
         const state = this.peerStates.get(peerId);
-        return peer ? { ...peer, ...(state || { userName: 'Unknown', isMuted: false }) } : null;
+        if (!peer) return null;
+        
+        const defaultState = {
+            userName: peer.data?.userName || 'Unknown',
+            isMuted: peer.isMuted || false,
+            isAudioEnabled: peer.isAudioEnabled || true
+        };
+        return { ...peer, ...(state || defaultState) };
     }
 
     updatePeerState(peerId, update) {
-        const currentState = this.peerStates.get(peerId) || { userName: 'Unknown', isMuted: false };
+        const peer = this.peers.get(peerId);
+        if (!peer) return;
+
+        // Обновляем состояние в объекте peer
+        Object.assign(peer, update);
+
+        // Обновляем состояние в peerStates
+        const currentState = this.peerStates.get(peerId) || {
+            userName: peer.data?.userName || 'Unknown',
+            isMuted: peer.isMuted || false,
+            isAudioEnabled: peer.isAudioEnabled || true
+        };
         this.peerStates.set(peerId, { ...currentState, ...update });
     }
 

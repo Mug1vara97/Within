@@ -104,29 +104,16 @@ io.on('connection', async (socket) => {
 
     socket.on('muteState', ({ isMuted }) => {
         const peer = peers.get(socket.id);
-        if (!peer || !socket.data?.roomId) return;
-
-        const room = rooms.get(socket.data.roomId);
-        if (!room) return;
-
-        peer.setMuted(isMuted);
+        const room = rooms.get(socket.data?.roomId);
         
-        // If muted, ensure speaking state is false
-        if (isMuted) {
-            peer.setSpeaking(false);
-        }
-
-        // Broadcast mute state to all peers in the room
-        socket.to(room.id).emit('peerMuteStateChanged', {
-            peerId: socket.id,
-            isMuted
-        });
-
-        // Also broadcast speaking state update if needed
-        if (isMuted) {
-            socket.to(room.id).emit('speakingStateChanged', {
+        if (peer && room) {
+            peer.isMuted = isMuted;
+            room.updatePeerState(socket.id, { isMuted });
+            
+            // Broadcast to all peers in the room
+            socket.to(room.id).emit('peerMuteStateChanged', {
                 peerId: socket.id,
-                speaking: false
+                isMuted: isMuted
             });
         }
     });
@@ -171,6 +158,7 @@ io.on('connection', async (socket) => {
                     userName: userName
                 },
                 isMuted: false,
+                isAudioEnabled: true,
                 producers: new Map(),
                 consumers: new Map(),
                 close: function() {
@@ -189,7 +177,8 @@ io.on('connection', async (socket) => {
             // Notify other peers
             socket.to(roomId).emit('peerJoined', {
                 peerId: socket.id,
-                userName: userName
+                userName: userName,
+                isMuted: peer.isMuted
             });
 
             callback({ peers: Array.from(room.getPeers().entries()).map(([peerId, peer]) => ({
@@ -822,14 +811,16 @@ io.on('connection', async (socket) => {
     // Add audio state handling
     socket.on('audioState', ({ isEnabled }) => {
         const peer = peers.get(socket.id);
-        if (peer) {
-            // Update peer's audio state
-            peer.setAudioEnabled(isEnabled);
+        const room = rooms.get(socket.data?.roomId);
+        
+        if (peer && room) {
+            peer.isAudioEnabled = isEnabled;
+            room.updatePeerState(socket.id, { isAudioEnabled });
             
-            // Broadcast to all peers in the room except sender
-            socket.to(peer.roomId).emit('peerAudioStateChanged', {
+            // Broadcast to all peers in the room
+            socket.to(room.id).emit('peerAudioStateChanged', {
                 peerId: socket.id,
-                isEnabled
+                isEnabled: isEnabled
             });
         }
     });

@@ -1525,8 +1525,18 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
       });
       setPeers(newPeers);
       persistentPeersRef.current = newPeers;
+      setIsJoined(true);
+      
+      // Set initial states
+      socketRef.current?.emit('muteState', { isMuted: false });
+      socketRef.current?.emit('audioState', { isEnabled: isAudioEnabled });
+      
+      // Вызываем callback после успешного подключения
+      if (onJoin) {
+        onJoin();
+      }
     }
-  }, []);
+  }, [onJoin, isAudioEnabled]);
 
   const handleJoin = async () => {
     if (!roomId || !userName) {
