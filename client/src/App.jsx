@@ -4,6 +4,7 @@ import Login from './Authentication/Login';
 import Home from './Home';
 import Register from './Authentication/Register';
 import "./UserProfile.css"
+import { AudioProvider } from './contexts/AudioContext';
 
 const App = () => {
     const [user, setUser] = useState(() => {
@@ -23,13 +24,15 @@ const App = () => {
     };
 
     return (
-        <Router>
-            <Routes>
-                <Route path="/*" element={user.username ? <Home user={user} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />} />
-                <Route path="/login" element={<Login onLogin={handleLogin} />} />
-                <Route path="/register" element={<Register />} />
-            </Routes>
-        </Router>
+        <AudioProvider>
+            <Router>
+                <Routes>
+                    <Route path="/*" element={user.username ? <Home user={user} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />} />
+                    <Route path="/login" element={<Login onLogin={handleLogin} />} />
+                    <Route path="/register" element={<Register />} />
+                </Routes>
+            </Router>
+        </AudioProvider>
     );
 };
 

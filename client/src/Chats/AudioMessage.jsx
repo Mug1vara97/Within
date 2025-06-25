@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
+import { useAudio } from '../contexts/AudioContext';
 
 const AudioMessage = ({ src }) => {
     const waveformRef = useRef(null); // Ref для контейнера waveform
@@ -10,6 +11,7 @@ const AudioMessage = ({ src }) => {
     const [duration, setDuration] = useState(0); // Длительность аудио
     const [currentTime, setCurrentTime] = useState(0); // Текущее время воспроизведения
     const [error, setError] = useState(null); // Состояние для ошибок
+    const { setCurrentAudio } = useAudio();
 
     // Проверка доступности аудиофайла
     useEffect(() => {
@@ -94,6 +96,9 @@ const AudioMessage = ({ src }) => {
     // Управление воспроизведением
     const togglePlay = () => {
         if (wavesurferRef.current) {
+            if (!isPlaying) {
+                setCurrentAudio(wavesurferRef.current);
+            }
             wavesurferRef.current.playPause();
             setIsPlaying(!isPlaying);
         }

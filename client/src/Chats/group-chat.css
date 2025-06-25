@@ -245,7 +245,6 @@
     flex: 1;
     overflow-y: auto;
     padding: 16px 0;
-    background-color: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
