@@ -4,21 +4,7 @@ import VoiceChat from './VoiceChat';
 
 const ChatArea = ({ selectedChat, leftVoiceChat, setLeftVoiceChat, username, userId, serverId, userPermissions, isServerOwner }) => {
     if (selectedChat) {
-        // Если это голосовой чат (typeId !== 3)
-        if (selectedChat.typeId !== 3) {
-            return (
-                <VoiceChat
-                    roomId={selectedChat.chatId.toString()}
-                    userName={username}
-                    userId={userId}
-                    serverId={serverId}
-                    autoJoin={true}
-                    onLeave={() => setLeftVoiceChat(true)}
-                />
-            );
-        }
-        // Если это текстовый чат (typeId === 3)
-        return (
+        return selectedChat.chatType === 3 ? (
             <GroupChat
                 username={username}
                 userId={userId}
@@ -28,6 +14,15 @@ const ChatArea = ({ selectedChat, leftVoiceChat, setLeftVoiceChat, username, use
                 serverId={serverId}
                 userPermissions={userPermissions}
                 isServerOwner={isServerOwner}
+            />
+        ) : (
+            <VoiceChat
+                roomId={selectedChat.chatId.toString()}
+                userName={username}
+                userId={userId}
+                serverId={serverId}
+                autoJoin={true}
+                onLeave={() => setLeftVoiceChat(true)}
             />
         );
     }

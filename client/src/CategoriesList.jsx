@@ -127,7 +127,6 @@ const CategoriesList = ({
   userRoles,
   userAccess,
   userId,
-  setLeftVoiceChat,
   ...props 
 }) => {
   const [localCategories, setLocalCategories] = useState(initialCategories || []);
@@ -409,7 +408,6 @@ const CategoriesList = ({
                       isServerOwner={isServerOwner}
                       handleGroupChatClick={props.handleGroupChatClick}
                       selectedChat={props.selectedChat}
-                      setLeftVoiceChat={setLeftVoiceChat}
                     />
                   ))}
                   {provided.placeholder}

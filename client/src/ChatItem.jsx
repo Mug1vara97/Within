@@ -15,15 +15,6 @@ const ChatItem = ({
 }) => {
     const isDragDisabled = !(isServerOwner || userPermissions?.manageChannels);
 
-    const handleClick = () => {
-        // Сбрасываем состояние выхода из голосового чата при входе в новый чат
-        if (props.setLeftVoiceChat) {
-            props.setLeftVoiceChat(false);
-        }
-        // Вызываем обработчик клика с типом чата
-        handleGroupChatClick(chat.chatId, chat.name, chat.typeId);
-    };
-
     console.log('ChatItem render:', {
         chatId: chat.chatId,
         index,
@@ -53,7 +44,7 @@ const ChatItem = ({
                         {...provided.draggableProps}
                         {...provided.dragHandleProps}
                         className={`channel ${selectedChat?.chatId === chat.chatId ? 'active' : ''} ${snapshot.isDragging ? 'dragging' : ''} ${chat.isPrivate ? 'private' : ''}`}
-                        onClick={handleClick}
+                        onClick={() => handleGroupChatClick(chat.chatId, chat.name, chat.typeId)}
                         onContextMenu={(e) => onContextMenu(e, chat.chatId, chat.name, chat.typeId)}
                         style={{
                             ...provided.draggableProps.style,

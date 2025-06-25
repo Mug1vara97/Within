@@ -18,7 +18,6 @@ const ServerSidebar = ({
     connection,
     userId,
     userRoles,
-    setLeftVoiceChat,
     ...props
 }) => {
     const [showDropdown, setShowDropdown] = useState(false);
@@ -178,7 +177,6 @@ const ServerSidebar = ({
                     isServerOwner={isServerOwner}
                     userRoles={userRoles}
                     userId={userId}
-                    setLeftVoiceChat={setLeftVoiceChat}
                 />
             </div>
             
