@@ -1097,14 +1097,30 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
   const [isMuted, setIsMuted] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [useEarpiece, setUseEarpiece] = useState(true);
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
+  const [error, setError] = useState(null);
   const [peers, setPeers] = useState(new Map());
-  const [error, setError] = useState('');
   const [volumes, setVolumes] = useState(new Map());
   const [speakingStates, setSpeakingStates] = useState(new Map());
   const [audioStates, setAudioStates] = useState(new Map());
+  const [remoteVideos, setRemoteVideos] = useState(new Map());
+  const [remoteScreens, setRemoteScreens] = useState(new Map());
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [screenStream, setScreenStream] = useState(null);
+  const [screenProducer, setScreenProducer] = useState(null);
+  const [videoProducer, setVideoProducer] = useState(null);
+  const [videoStream, setVideoStream] = useState(null);
+  const [isNoiseSuppressed, setIsNoiseSuppressed] = useState(false);
+  const [noiseSuppressionMode, setNoiseSuppressionMode] = useState('moderate');
+  const [noiseSuppressMenuAnchor, setNoiseSuppressMenuAnchor] = useState(null);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
+
   const isMobile = useMemo(() => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent), []);
+
+  // Добавляем ref для отслеживания активного соединения
+  const activeConnectionRef = useRef(null);
+  const noiseSuppressionRef = useRef(null);
+  const isAudioEnabledRef = useRef(isAudioEnabled);
+  const individualMutedPeersRef = useRef(new Map());
 
   // Use userId and serverId in socket connection
   useEffect(() => {
@@ -1112,18 +1128,6 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
       socketRef.current.emit('setUserInfo', { userId, serverId });
     }
   }, [userId, serverId]);
-  const [screenProducer, setScreenProducer] = useState(null);
-  const [screenStream, setScreenStream] = useState(null);
-  const [remoteScreens, setRemoteScreens] = useState(new Map());
-  const [videoProducer, setVideoProducer] = useState(null);
-  const [videoStream, setVideoStream] = useState(null);
-  const [remoteVideos, setRemoteVideos] = useState(new Map());
-  const [isNoiseSuppressed, setIsNoiseSuppressed] = useState(false);
-  const [noiseSuppressionMode, setNoiseSuppressionMode] = useState('rnnoise');
-  const [noiseSuppressMenuAnchor, setNoiseSuppressMenuAnchor] = useState(null);
-  const noiseSuppressionRef = useRef(null);
-  const isAudioEnabledRef = useRef(isAudioEnabled);
-  const individualMutedPeersRef = useRef(new Map());
 
   const socketRef = useRef();
   const deviceRef = useRef();
@@ -1323,9 +1327,13 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
   }, [socketRef.current]);
 
   const cleanup = () => {
+    console.log('Cleaning up voice chat...');
+    
+    // Очищаем идентификатор активной комнаты
+    activeConnectionRef.current = null;
+
     // Reset states to enabled
     setIsAudioEnabled(true);
-    isAudioEnabledRef.current = true;
     setUseEarpiece(true);
     setIsMuted(false); // Reset mute state
     
@@ -1460,10 +1468,16 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
       return;
     }
 
+    // Проверяем, есть ли уже активное соединение для этой комнаты
+    if (activeConnectionRef.current === roomId && socketRef.current?.connected) {
+      console.log('Already connected to this room, reusing connection');
+      setIsJoined(true);
+      return;
+    }
+
     try {
       // Reset states to enabled when joining
       setIsAudioEnabled(true);
-      isAudioEnabledRef.current = true;
       setUseEarpiece(true);
       setIsMuted(false); // Reset mute state
 
@@ -1488,6 +1502,9 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
         secure: true,
         rejectUnauthorized: false
       });
+
+      // Сохраняем идентификатор активной комнаты
+      activeConnectionRef.current = roomId;
 
       // Сразу добавляем временный логгер для отладки
       socket.onAny((event, ...args) => {
