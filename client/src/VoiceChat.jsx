@@ -1455,6 +1455,12 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
   };
 
   const handleJoin = async () => {
+    // Проверяем, не подключены ли мы уже
+    if (isJoined) {
+      console.log('Already joined the voice chat');
+      return;
+    }
+
     if (!roomId || !userName) {
       setError('Please enter room ID and username');
       return;
