@@ -53,7 +53,7 @@ const ChatItem = ({
                     >
                         <div className="channel-content">
                             <div className="channel-icons">
-                                {chat.typeId === 4 ? <FaMicrophone /> : <FaHashtag />}
+                                {chat.typeId === 3 ? <FaHashtag /> : <FaMicrophone />}
                                 {chat.isPrivate && <FaLock className="private-icon" />}
                             </div>
                             <span className="channel-name">{chat.name}</span>
