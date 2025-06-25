@@ -188,14 +188,14 @@ const styles = {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
     gap: '16px',
-    padding: '20px 30px',
+    padding: '20px 60px', // Increased side padding
     width: '100%',
     flex: 1,
     margin: 0,
     overflow: 'auto',
     minHeight: 0,
-    marginBottom: '80px',
-    boxSizing: 'border-box' // Include padding in width calculation
+    marginBottom: '65px',
+    boxSizing: 'border-box'
   },
   videoItem: {
     backgroundColor: '#2B2D31',
@@ -208,6 +208,7 @@ const styles = {
     justifyContent: 'center',
     alignItems: 'center',
     transition: 'all 0.2s ease-in-out',
+    padding: '16px',
     '&:hover': {
       transform: 'translateY(-2px)',
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
@@ -387,7 +388,7 @@ const styles = {
   },
   bottomBar: {
     backgroundColor: '#2B2D31',
-    padding: '16px 30px',
+    padding: '12px 60px', // Increased side padding, reduced vertical padding
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -400,7 +401,7 @@ const styles = {
     width: '100%',
     zIndex: 2,
     height: '65px',
-    boxSizing: 'border-box' // Include padding in width calculation
+    boxSizing: 'border-box'
   },
   controlsGroup: {
     display: 'flex',
@@ -415,11 +416,17 @@ const styles = {
   controlGroup: {
     backgroundColor: '#383A40',
     borderRadius: '8px',
-    padding: '8px',
+    padding: '6px', // Reduced padding
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
-    transition: 'background-color 0.2s ease'
+    gap: '6px', // Reduced gap
+    transition: 'background-color 0.2s ease',
+    '& .MuiIconButton-root': {
+      padding: '6px', // Reduced button padding
+      '& .MuiSvgIcon-root': {
+        fontSize: '20px' // Reduced icon size
+      }
+    }
   },
   userInfo: {
     display: 'flex',
@@ -437,11 +444,12 @@ const styles = {
     backgroundColor: '#f04747',
     color: '#ffffff',
     borderRadius: '8px',
-    padding: '8px 16px',
+    padding: '6px 12px', // Reduced padding
     '&:hover': {
       backgroundColor: '#d84040'
     },
-    minWidth: '120px'
+    minWidth: '100px', // Reduced min-width
+    fontSize: '14px' // Reduced font size
   },
   volumeControl: {
     width: 100,
