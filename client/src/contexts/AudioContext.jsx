@@ -1,9 +1,11 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useRef } from 'react';
 
 const AudioContext = createContext();
 
 export const AudioProvider = ({ children }) => {
     const [currentlyPlaying, setCurrentlyPlaying] = useState(null);
+    const [activeVoiceChat, setActiveVoiceChat] = useState(null);
+    const voiceChatSocketRef = useRef(null);
 
     const stopCurrentAudio = () => {
         if (currentlyPlaying) {
@@ -19,8 +21,30 @@ export const AudioProvider = ({ children }) => {
         setCurrentlyPlaying(wavesurfer);
     };
 
+    const joinVoiceChat = (roomId) => {
+        setActiveVoiceChat(roomId);
+    };
+
+    const leaveVoiceChat = () => {
+        setActiveVoiceChat(null);
+        if (voiceChatSocketRef.current) {
+            voiceChatSocketRef.current.disconnect();
+            voiceChatSocketRef.current = null;
+        }
+    };
+
+    const value = {
+        currentlyPlaying,
+        setCurrentAudio,
+        stopCurrentAudio,
+        activeVoiceChat,
+        voiceChatSocketRef,
+        joinVoiceChat,
+        leaveVoiceChat
+    };
+
     return (
-        <AudioContext.Provider value={{ currentlyPlaying, setCurrentAudio, stopCurrentAudio }}>
+        <AudioContext.Provider value={value}>
             {children}
         </AudioContext.Provider>
     );
