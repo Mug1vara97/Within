@@ -104,11 +104,6 @@ const ServerSidebar = ({
         navigate(`/channels/${props.serverId}/${chatId}`);
     };
 
-    const handleVoiceChatClick = (chatId, chatName) => {
-        props.handleGroupChatClick(chatId, chatName, 4); // 4 - voice chat type
-        navigate(`/channels/${props.serverId}/${chatId}`);
-    };
-
     const handleShowAddMember = () => {
         fetchUsers();
         setModalsState(prev => ({ ...prev, showAddMemberModal: true }));
@@ -184,7 +179,6 @@ const ServerSidebar = ({
                     userRoles={userRoles}
                     userId={userId}
                     setLeftVoiceChat={setLeftVoiceChat}
-                    handleVoiceChatClick={handleVoiceChatClick}
                 />
             </div>
             

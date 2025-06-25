@@ -16,14 +16,12 @@ const ChatItem = ({
     const isDragDisabled = !(isServerOwner || userPermissions?.manageChannels);
 
     const handleClick = () => {
-        // Если это текстовый чат (typeId === 3)
-        if (chat.typeId === 3) {
-            handleGroupChatClick(chat.chatId, chat.name, chat.typeId);
-        } else {
-            // Если это голосовой чат, открываем его напрямую
+        // Сбрасываем состояние выхода из голосового чата при входе в новый чат
+        if (props.setLeftVoiceChat) {
             props.setLeftVoiceChat(false);
-            props.handleVoiceChatClick(chat.chatId, chat.name);
         }
+        // Вызываем обработчик клика с типом чата
+        handleGroupChatClick(chat.chatId, chat.name, chat.typeId);
     };
 
     console.log('ChatItem render:', {
