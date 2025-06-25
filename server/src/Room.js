@@ -21,15 +21,15 @@ class Room {
         });
         
         // Broadcast new peer's state to all peers in the room
-        this.io.to(this.id).emit('peerMuteStateChanged', {
+        this.io?.to(this.id).emit('peerMuteStateChanged', {
             peerId: peerId,
-            isMuted: Boolean(peer.isMuted())
+            isMuted: peer.isMuted || false
         });
 
         // Also broadcast audio state
-        this.io.to(this.id).emit('peerAudioStateChanged', {
+        this.io?.to(this.id).emit('peerAudioStateChanged', {
             peerId: peerId,
-            isEnabled: Boolean(peer.isAudioEnabled())
+            isEnabled: peer.isAudioEnabled || true
         });
 
         console.log(`Peer ${peerId} added to room ${this.id}`);

@@ -3,8 +3,8 @@ const cors = require('cors');
 const compression = require('compression');
 const mediasoup = require('mediasoup');
 const config = require('./config');
-const Room = require('./Room');
-const Peer = require('./Peer');
+const { Room } = require('./Room');
+const createPeer = require('./Peer');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
@@ -86,19 +86,17 @@ io.on('connection', async (socket) => {
     // Add voice activity event handlers
     socket.on('speaking', ({ speaking }) => {
         const peer = peers.get(socket.id);
-        if (!peer || !socket.data?.roomId) return;
-
-        const room = rooms.get(socket.data.roomId);
-        if (!room) return;
-
-        // Only update speaking state if the peer is not muted
-        if (!peer.isMuted()) {
-            peer.setSpeaking(speaking);
-            // Broadcast speaking state to all peers in the room
-            socket.to(room.id).emit('speakingStateChanged', {
-                peerId: socket.id,
-                speaking: speaking && !peer.isMuted()
-            });
+        const room = rooms.get(socket.data?.roomId);
+        
+        if (peer && room) {
+            // Если пользователь замьючен, он не может говорить
+            if (!peer.isMuted) {
+                // Broadcast speaking state to all peers in the room
+                socket.to(room.id).emit('speakingStateChanged', {
+                    peerId: socket.id,
+                    speaking: speaking && !peer.isMuted
+                });
+            }
         }
     });
 
@@ -139,39 +137,23 @@ io.on('connection', async (socket) => {
         }
     });
 
-    socket.on('join', async ({ roomId, userName }, callback) => {
+    socket.on('join', async ({ roomId, userName }) => {
         try {
-            // Store roomId in socket data
-            socket.data.roomId = roomId;
-
-            // Get or create room
+            socket.data = { roomId, userName };
+            
+            // Create or get the room
             let room = rooms.get(roomId);
             if (!room) {
                 room = new Room(roomId);
                 rooms.set(roomId, room);
             }
 
-            // Create peer
-            const peer = {
-                id: socket.id,
-                data: {
-                    userName: userName
-                },
-                isMuted: false,
-                isAudioEnabled: true,
-                producers: new Map(),
-                consumers: new Map(),
-                close: function() {
-                    this.producers.forEach(producer => producer.close());
-                    this.consumers.forEach(consumer => consumer.close());
-                }
-            };
-
-            // Add peer to room
-            room.addPeer(socket.id, peer);
+            // Create a new peer
+            const peer = createPeer(socket, roomId, userName);
             peers.set(socket.id, peer);
-
-            // Join socket to room
+            
+            // Add peer to the room
+            room.addPeer(socket.id, peer);
             socket.join(roomId);
 
             // Notify other peers
@@ -187,8 +169,8 @@ io.on('connection', async (socket) => {
                 isMuted: peer?.isMuted || false
             }))});
         } catch (error) {
-            console.error('Error joining room:', error);
-            callback({ error: error.message });
+            console.error('Error in join handler:', error);
+            socket.emit('error', { message: error.message });
         }
     });
 
@@ -820,7 +802,7 @@ io.on('connection', async (socket) => {
             // Broadcast to all peers in the room
             socket.to(room.id).emit('peerAudioStateChanged', {
                 peerId: socket.id,
-                isEnabled: isEnabled
+                isEnabled: peer.isAudioEnabled
             });
         }
     });
