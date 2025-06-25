@@ -162,11 +162,15 @@ const styles = {
   },
   container: {
     flex: 1,
-    padding: '20px 30px 0 30px', // Match GroupChat padding
+    padding: '20px 30px 0 30px',
     backgroundColor: '#36393f',
     display: 'flex',
     flexDirection: 'column',
-    overflow: 'hidden', // Prevent scrolling issues
+    overflow: 'hidden',
+    height: '100%',
+    width: '100%', // Add full width
+    maxWidth: 'none', // Remove max-width limitation
+    margin: 0, // Remove any margins
     '@media (max-width: 600px)': {
       padding: '8px',
     }
@@ -177,9 +181,9 @@ const styles = {
     gap: '16px',
     padding: '16px',
     width: '100%',
-    height: 'calc(100% - 48px)', // Subtract header height
-    margin: '0 auto',
-    overflow: 'auto' // Allow scrolling for many participants
+    flex: 1,
+    margin: 0, // Remove margin
+    overflow: 'auto'
   },
   videoItem: {
     backgroundColor: '#2B2D31',
@@ -376,9 +380,10 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'space-between',
     borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-    margin: '20px 30px 10px 30px',
-    borderRadius: '20px',
+    margin: '20px 0 10px 0', // Remove horizontal margins
+    borderRadius: '0', // Remove border radius
     position: 'relative',
+    width: '100%', // Add full width
     zIndex: 2
   },
   controlsGroup: {
@@ -3186,7 +3191,11 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
             {error}
           </Typography>
         )}
-        <Container sx={styles.container}>
+        <Container 
+          sx={styles.container} 
+          maxWidth={false} 
+          disableGutters
+        >
           <Box sx={styles.videoGrid}>
             {/* Only render video grid when not in fullscreen mode */}
             {fullscreenShare === null && (
