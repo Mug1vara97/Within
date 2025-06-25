@@ -854,41 +854,25 @@ io.on('connection', async (socket) => {
         }
     });
 
-    // Add handler for getting room state
-    socket.on('getRoomState', (callback) => {
-        if (!socket.data?.roomId) {
-            callback({ error: 'Not in a room' });
-            return;
+    socket.on('getPeers', (_, callback) => {
+        try {
+            const room = rooms.get(socket.data?.roomId);
+            if (!room) {
+                callback([]);
+                return;
+            }
+
+            const peersArray = Array.from(room.getPeers().entries()).map(([peerId, peer]) => ({
+                peerId,
+                userName: peer.userName,
+                isMuted: peer.isMuted || false
+            }));
+
+            callback(peersArray);
+        } catch (error) {
+            console.error('Error in getPeers:', error);
+            callback([]);
         }
-
-        const room = rooms.get(socket.data.roomId);
-        if (!room) {
-            callback({ error: 'Room not found' });
-            return;
-        }
-
-        const roomState = {
-            peers: [],
-            audioStates: {},
-            volumes: {},
-            speakingStates: {}
-        };
-
-        room.peers.forEach((peer) => {
-            roomState.peers.push({
-                id: peer.id,
-                name: peer.name,
-                isMuted: peer.isMuted(),
-                isAudioEnabled: peer.isAudioEnabled(),
-                isSpeaking: peer.isSpeaking()
-            });
-
-            roomState.audioStates[peer.id] = peer.isAudioEnabled();
-            roomState.volumes[peer.id] = peer.isMuted() ? 0 : 100;
-            roomState.speakingStates[peer.id] = peer.isSpeaking();
-        });
-
-        callback({ roomState });
     });
 
     socket.on('disconnect', () => {

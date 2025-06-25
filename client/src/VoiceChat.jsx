@@ -46,7 +46,7 @@ import { Device } from 'mediasoup-client';
 import { io } from 'socket.io-client';
 import { NoiseSuppressionManager } from './utils/noiseSuppression';
 import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
-import { useAudio } from './contexts/AudioContext';
+
 
 const config = {
   server: {
@@ -113,6 +113,7 @@ const config = {
   }
 };
 
+// Add Discord-like styles
 const styles = {
   root: {
     height: '100%',
@@ -1091,8 +1092,8 @@ const VideoView = React.memo(({
 });
 
 function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave }) {
-  const { activeVoiceChat, voiceChatSocketRef, joinVoiceChat, leaveVoiceChat } = useAudio();
   const [isJoined, setIsJoined] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [useEarpiece, setUseEarpiece] = useState(true);
@@ -1141,52 +1142,6 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
   const mutedPeersRef = useRef(new Map());
 
   const [fullscreenShare, setFullscreenShare] = useState(null);
-
-  // Function to get current room state
-  const getRoomState = () => {
-    if (!socketRef.current) return;
-    
-    socketRef.current.emit('getRoomState', ({ error, roomState }) => {
-      if (error) {
-        console.error('Failed to get room state:', error);
-        return;
-      }
-
-      if (roomState) {
-        // Update peers
-        const newPeers = new Map();
-        roomState.peers.forEach(peer => {
-          newPeers.set(peer.id, {
-            id: peer.id,
-            name: peer.name,
-            isMuted: peer.isMuted
-          });
-        });
-        setPeers(newPeers);
-
-        // Update audio states
-        const newAudioStates = new Map();
-        Object.entries(roomState.audioStates).forEach(([peerId, isEnabled]) => {
-          newAudioStates.set(peerId, isEnabled);
-        });
-        setAudioStates(newAudioStates);
-
-        // Update volumes
-        const newVolumes = new Map();
-        Object.entries(roomState.volumes).forEach(([peerId, volume]) => {
-          newVolumes.set(peerId, volume);
-        });
-        setVolumes(newVolumes);
-
-        // Update speaking states
-        const newSpeakingStates = new Map();
-        Object.entries(roomState.speakingStates).forEach(([peerId, isSpeaking]) => {
-          newSpeakingStates.set(peerId, isSpeaking);
-        });
-        setSpeakingStates(newSpeakingStates);
-      }
-    });
-  };
 
   useEffect(() => {
     const resumeAudioContext = async () => {
@@ -1512,57 +1467,6 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
       setUseEarpiece(true);
       setIsMuted(false); // Reset mute state
 
-      // Проверяем, есть ли уже активное подключение к этой комнате
-      if (activeVoiceChat === roomId && voiceChatSocketRef.current?.connected) {
-        console.log('Already connected to this room, reusing connection');
-        socketRef.current = voiceChatSocketRef.current;
-
-        // Запрашиваем текущее состояние комнаты
-        socketRef.current.emit('getRoomState', { roomId }, ({ peers: existingPeers, producers: existingProducers }) => {
-          console.log('Received room state:', { existingPeers, existingProducers });
-          
-          // Восстанавливаем состояние пиров
-          if (existingPeers && existingPeers.length > 0) {
-            const peersMap = new Map();
-            const audioStatesMap = new Map();
-            const volumesMap = new Map();
-            const speakingStatesMap = new Map();
-
-            existingPeers.forEach(peer => {
-              peersMap.set(peer.id, {
-                id: peer.id,
-                name: peer.name,
-                isMuted: peer.isMuted || false
-              });
-              audioStatesMap.set(peer.id, peer.isAudioEnabled);
-              volumesMap.set(peer.id, peer.isMuted ? 0 : 100);
-              speakingStatesMap.set(peer.id, false);
-            });
-
-            setPeers(peersMap);
-            setAudioStates(audioStatesMap);
-            setVolumes(volumesMap);
-            setSpeakingStates(speakingStatesMap);
-          }
-
-          // Восстанавливаем существующие producers
-          if (existingProducers && existingProducers.length > 0) {
-            for (const producer of existingProducers) {
-              handleExistingProducer(producer);
-            }
-          }
-        });
-
-        setIsJoined(true);
-        return;
-      }
-
-      // Если есть активное подключение к другой комнате, отключаемся
-      if (voiceChatSocketRef.current) {
-        await cleanup();
-        leaveVoiceChat();
-      }
-
       // Clean up old socket if exists
       if (socketRef.current) {
         socketRef.current.disconnect();
@@ -1575,39 +1479,48 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
       });
 
       console.log('Connecting to server...');
+      const socket = io(config.server.url, {
+        transports: ['websocket'],
+        upgrade: false,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        secure: true,
+        rejectUnauthorized: false
+      });
 
       // Сразу добавляем временный логгер для отладки
-      socketRef.current.onAny((event, ...args) => {
+      socket.onAny((event, ...args) => {
         console.log('IMMEDIATE SOCKET EVENT:', event, args);
       });
+      
+      // Сразу присваиваем сокет в ref
+      socketRef.current = socket;
 
-      socketRef.current.on('connect', () => {
+      socket.on('connect', () => {
         console.log('Socket connected successfully');
-        joinVoiceChat(roomId, socketRef.current);
+        setIsConnected(true);
         // Set initial states
-        socketRef.current.emit('muteState', { isMuted: false });
-        socketRef.current.emit('audioState', { isEnabled: isAudioEnabled });
-        // Get initial room state
-        getRoomState();
+        socket.emit('muteState', { isMuted: false });
+        socket.emit('audioState', { isEnabled: isAudioEnabled });
       });
 
-      socketRef.current.on('connect_error', (error) => {
-  console.error('Socket connection error:', error);
-  setError('Failed to connect to server: ' + error.message);
-  cleanup();
-  leaveVoiceChat();
-});
+      socket.on('connect_error', (error) => {
+        console.error('Socket connection error:', error);
+        setError('Failed to connect to server: ' + error.message);
+      });
 
-      socketRef.current.on('disconnect', () => {
-  console.log('Socket disconnected');
-  setIsJoined(false);
-  cleanup();
-  leaveVoiceChat();
-});
+      socket.on('disconnect', () => {
+        console.log('Socket disconnected');
+        setIsConnected(false);
+        setIsJoined(false);
+        setPeers(new Map());
+        cleanup();
+      });
 
       // Add handlers for peer events
-      socketRef.current.on('peerJoined', ({ peerId, name, isMuted, isAudioEnabled }) => {
-  console.log('New peer joined:', { peerId, name, isMuted, isAudioEnabled });
+      socket.on('peerJoined', ({ peerId, name, isMuted, isAudioEnabled }) => {
+        console.log('New peer joined:', { peerId, name, isMuted, isAudioEnabled });
         
         // Update peers state
         setPeers(prev => {
@@ -1649,7 +1562,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
         individualMutedPeersRef.current.set(peerId, Boolean(isMuted));
       });
 
-      socketRef.current.on('peerLeft', ({ peerId }) => {
+      socket.on('peerLeft', ({ peerId }) => {
         console.log('Peer left:', peerId);
         setPeers(prev => {
           const newPeers = new Map(prev);
@@ -1663,7 +1576,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
         });
       });
 
-      socketRef.current.on('newProducer', async ({ producerId, producerSocketId, kind }) => {
+      socket.on('newProducer', async ({ producerId, producerSocketId, kind }) => {
         console.log('New producer:', { producerId, producerSocketId, kind });
         await handleExistingProducer({ producerId, producerSocketId, kind });
       });
@@ -1673,10 +1586,10 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
       const device = new Device();
       deviceRef.current = device;
 
-      socketRef.current.emit('createRoom', { roomId }, async ({ error: createError }) => {
+      socket.emit('createRoom', { roomId }, async ({ error: createError }) => {
         console.log('Create room response:', createError ? `Error: ${createError}` : 'Success');
         
-        socketRef.current.emit('join', { roomId, name: userName }, async ({ error: joinError, routerRtpCapabilities, existingPeers, existingProducers }) => {
+        socket.emit('join', { roomId, name: userName }, async ({ error: joinError, routerRtpCapabilities, existingPeers, existingProducers }) => {
           if (joinError) {
             console.error('Join error:', joinError);
             setError(joinError);
@@ -1729,8 +1642,8 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
             console.log('Local stream created successfully');
 
             // Send initial states to server
-            socketRef.current.emit('audioState', { isEnabled: true });
-            socketRef.current.emit('muteState', { isMuted: false });
+            socket.emit('audioState', { isEnabled: true });
+            socket.emit('muteState', { isMuted: false });
 
             // Handle existing producers
             if (existingProducers && existingProducers.length > 0) {
@@ -1755,7 +1668,6 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
       console.error('Connection error:', err);
       setError('Failed to connect to server: ' + err.message);
       cleanup();
-      leaveVoiceChat();
     }
   };
 
@@ -2464,14 +2376,12 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
 
   const handleLeaveCall = () => {
     cleanup();
-    leaveVoiceChat();
+    setIsJoined(false);
     setPeers(new Map());
     setVolumes(new Map());
     setError('');
-    setIsJoined(false);
     if (socketRef.current) {
       socketRef.current.disconnect();
-      socketRef.current = null;
     }
     if (onLeave) {
       onLeave();
