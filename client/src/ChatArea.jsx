@@ -1,14 +1,25 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import GroupChat from './Chats/GroupChat';
 import VoiceChat from './VoiceChat';
 
 const ChatArea = ({ selectedChat, leftVoiceChat, setLeftVoiceChat, username, userId, serverId, userPermissions, isServerOwner }) => {
+    useEffect(() => {
+        if (selectedChat?.type === 'voice' && !leftVoiceChat) {
+            // Автоматически подключаемся к голосовому чату
+            setLeftVoiceChat(false);
+        }
+    }, [selectedChat, leftVoiceChat]);
+
     if (selectedChat) {
         if (selectedChat.typeId !== 3) {
             return (
                 <VoiceChat
                     roomId={selectedChat.chatId.toString()}
                     userName={username}
+                    userId={userId}
+                    serverId={serverId}
+                    autoJoin={true}
+                    onLeave={() => setLeftVoiceChat(true)}
                 />
             );
         }

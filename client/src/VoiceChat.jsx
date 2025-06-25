@@ -1041,23 +1041,27 @@ const VideoView = React.memo(({
   );
 });
 
-function VoiceChat() {
-  const [isConnected, setIsConnected] = useState(false);
+function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave }) {
   const [isJoined, setIsJoined] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [useEarpiece, setUseEarpiece] = useState(true);
-  const isMobile = useMemo(() => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent), []);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(false);
-  const [roomId, setRoomId] = useState('');
-  const [userName, setUserName] = useState('');
-  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [peers, setPeers] = useState(new Map());
   const [error, setError] = useState('');
   const [volumes, setVolumes] = useState(new Map());
-  const [isJoining, setIsJoining] = useState(false);
   const [speakingStates, setSpeakingStates] = useState(new Map());
-  const [audioStates, setAudioStates] = useState(new Map()); // Состояния аудио для всех пиров
+  const [audioStates, setAudioStates] = useState(new Map());
+  const isMobile = useMemo(() => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent), []);
+
+  // Use userId and serverId in socket connection
+  useEffect(() => {
+    if (socketRef.current) {
+      socketRef.current.emit('setUserInfo', { userId, serverId });
+    }
+  }, [userId, serverId]);
   const [screenProducer, setScreenProducer] = useState(null);
   const [screenStream, setScreenStream] = useState(null);
   const [remoteScreens, setRemoteScreens] = useState(new Map());
@@ -1068,9 +1072,8 @@ function VoiceChat() {
   const [noiseSuppressionMode, setNoiseSuppressionMode] = useState('rnnoise');
   const [noiseSuppressMenuAnchor, setNoiseSuppressMenuAnchor] = useState(null);
   const noiseSuppressionRef = useRef(null);
-  const masterGainNodeRef = useRef(null);
   const isAudioEnabledRef = useRef(isAudioEnabled);
-
+  const individualMutedPeersRef = useRef(new Map());
 
   const socketRef = useRef();
   const deviceRef = useRef();
@@ -1087,9 +1090,6 @@ function VoiceChat() {
 
   // Добавляем новый ref для хранения состояний mute
   const mutedPeersRef = useRef(new Map());
-
-  // Добавляем новый ref для хранения состояний индивидуального mute
-  const individualMutedPeersRef = useRef(new Map());
 
   const [fullscreenShare, setFullscreenShare] = useState(null);
 
@@ -2327,12 +2327,14 @@ function VoiceChat() {
   const handleLeaveCall = () => {
     cleanup();
     setIsJoined(false);
-    setIsConnected(false);
     setPeers(new Map());
     setVolumes(new Map());
     setError('');
     if (socketRef.current) {
       socketRef.current.disconnect();
+    }
+    if (onLeave) {
+      onLeave();
     }
   };
 
@@ -3139,51 +3141,11 @@ function VoiceChat() {
     }
   };
 
-  if (!isJoined) {
-    return (
-      <Box sx={styles.root}>
-        <Container maxWidth="sm" sx={{ mt: 4 }}>
-          <Paper sx={styles.joinPaper}>
-            <Typography variant="h5" gutterBottom sx={{ color: '#ffffff' }}>
-              Join Voice Channel
-            </Typography>
-            <TextField
-              fullWidth
-              label="Channel ID"
-              value={roomId}
-              onChange={(e) => setRoomId(e.target.value)}
-              margin="normal"
-              disabled={isJoining}
-              sx={styles.textField}
-            />
-            <TextField
-              fullWidth
-              label="Your Name"
-              value={userName}
-              onChange={(e) => setUserName(e.target.value)}
-              margin="normal"
-              disabled={isJoining}
-              sx={styles.textField}
-            />
-            <Button
-              fullWidth
-              variant="contained"
-              onClick={handleJoin}
-              disabled={!roomId || !userName || isJoining}
-              sx={{ ...styles.joinButton, mt: 2 }}
-            >
-              {isJoining ? 'Joining...' : 'Join Channel'}
-            </Button>
-            {error && (
-              <Typography color="error" sx={{ mt: 2 }}>
-                {error}
-              </Typography>
-            )}
-          </Paper>
-        </Container>
-      </Box>
-    );
-  }
+  useEffect(() => {
+    if (autoJoin && roomId && userName && !isJoined) {
+      handleJoin();
+    }
+  }, [autoJoin, roomId, userName]);
 
   return (
     <MuteProvider socket={socketRef.current}>
@@ -3198,6 +3160,11 @@ function VoiceChat() {
             </Box>
           </Toolbar>
         </AppBar>
+        {error && (
+          <Typography color="error" sx={{ p: 2 }}>
+            {error}
+          </Typography>
+        )}
         <Container sx={styles.container}>
           <Box sx={styles.videoGrid}>
             {/* Only render video grid when not in fullscreen mode */}
