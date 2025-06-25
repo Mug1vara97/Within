@@ -122,11 +122,7 @@ const styles = {
     backgroundColor: '#36393f',
     color: '#dcddde',
     flex: 1,
-    position: 'absolute', // Add absolute positioning
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    minHeight: '100%',
     '@keyframes pulse': {
       '0%': {
         boxShadow: '0 0 0 2px rgba(59, 165, 92, 0.8)'
@@ -168,29 +164,26 @@ const styles = {
   },
   container: {
     flex: 1,
-    padding: '20px 30px 0 30px',
-    backgroundColor: '#36393f',
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
     height: '100%',
-    width: '100%', // Add full width
-    maxWidth: 'none', // Remove max-width limitation
-    margin: 0, // Remove any margins
-    '@media (max-width: 600px)': {
-      padding: '8px',
-    }
+    width: '100%',
+    maxWidth: 'none',
+    margin: 0,
+    position: 'relative'
   },
   videoGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
     gap: '16px',
-    padding: '16px 16px 0 16px', // Remove bottom padding to prevent scroll
+    padding: '20px 30px',
     width: '100%',
     flex: 1,
     margin: 0,
     overflow: 'auto',
-    minHeight: 0
+    minHeight: 0,
+    marginBottom: '80px' // Add space for bottom bar
   },
   videoItem: {
     backgroundColor: '#2B2D31',
@@ -382,20 +375,19 @@ const styles = {
   },
   bottomBar: {
     backgroundColor: '#2B2D31',
-    padding: '16px',
+    padding: '16px 30px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderTop: '1px solid rgba(255, 255, 255, 0.06)',
     margin: 0,
-    borderRadius: '0',
-    position: 'sticky',
+    position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     width: '100%',
     zIndex: 2,
-    flexShrink: 0 // Prevent shrinking
+    height: '80px' // Fixed height for bottom bar
   },
   controlsGroup: {
     display: 'flex',
