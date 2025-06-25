@@ -31,8 +31,8 @@ const AddMemberModal = ({ isOpen, onClose, serverId, userId, fetchServerData }) 
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ 
-                    RequestingUserId: userId, 
-                    UserIdToAdd: userIdToAdd 
+                    requestingUserId: userId, 
+                    userIdToAdd: userIdToAdd 
                 }),
             });
 

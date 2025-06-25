@@ -635,10 +635,6 @@ namespace Messenger.Controllers
                     }
 
                     // Проверяем, является ли сервер публичным
-                    if (!server.IsPublic)
-                    {
-                        return BadRequest(new { error = "Этот сервер не является публичным" });
-                    }
 
                     var userToAdd = await _context.Users
                         .FirstOrDefaultAsync(u => u.UserId == request.UserIdToAdd);
