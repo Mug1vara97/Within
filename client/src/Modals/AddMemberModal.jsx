@@ -9,7 +9,7 @@ const AddMemberModal = ({ isOpen, onClose, serverId, userId, fetchServerData }) 
     const fetchUsers = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch(`${BASE_URL}/api/messages/servers/${serverId}/available-users?userId=${userId}`);
+            const response = await fetch(`${BASE_URL}/api/messages/${serverId}/available-users?userId=${userId}`);
             if (response.ok) {
                 const data = await response.json();
                 setUsers(data);

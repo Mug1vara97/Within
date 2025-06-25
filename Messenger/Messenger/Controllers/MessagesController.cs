@@ -634,8 +634,6 @@ namespace Messenger.Controllers
                         return NotFound(new { error = "Сервер не найден" });
                     }
 
-                    // Проверяем, является ли сервер публичным
-
                     var userToAdd = await _context.Users
                         .FirstOrDefaultAsync(u => u.UserId == request.UserIdToAdd);
 
