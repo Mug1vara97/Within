@@ -116,11 +116,17 @@ const config = {
 // Add Discord-like styles
 const styles = {
   root: {
-    height: '100%', // Changed from 100vh to 100%
+    height: '100%',
     display: 'flex',
     flexDirection: 'column',
     backgroundColor: '#36393f',
     color: '#dcddde',
+    flex: 1,
+    position: 'absolute', // Add absolute positioning
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     '@keyframes pulse': {
       '0%': {
         boxShadow: '0 0 0 2px rgba(59, 165, 92, 0.8)'
@@ -179,11 +185,12 @@ const styles = {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
     gap: '16px',
-    padding: '16px',
+    padding: '16px 16px 0 16px', // Remove bottom padding to prevent scroll
     width: '100%',
     flex: 1,
-    margin: 0, // Remove margin
-    overflow: 'auto'
+    margin: 0,
+    overflow: 'auto',
+    minHeight: 0
   },
   videoItem: {
     backgroundColor: '#2B2D31',
@@ -380,11 +387,15 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'space-between',
     borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-    margin: '20px 0 10px 0', // Remove horizontal margins
-    borderRadius: '0', // Remove border radius
-    position: 'relative',
-    width: '100%', // Add full width
-    zIndex: 2
+    margin: 0,
+    borderRadius: '0',
+    position: 'sticky',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    width: '100%',
+    zIndex: 2,
+    flexShrink: 0 // Prevent shrinking
   },
   controlsGroup: {
     display: 'flex',
@@ -3191,11 +3202,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
             {error}
           </Typography>
         )}
-        <Container 
-          sx={styles.container} 
-          maxWidth={false} 
-          disableGutters
-        >
+        <Box sx={styles.container}>
           <Box sx={styles.videoGrid}>
             {/* Only render video grid when not in fullscreen mode */}
             {fullscreenShare === null && (
@@ -3285,101 +3292,101 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
             {/* Screen sharing */}
             {renderScreenShares}
           </Box>
-        </Container>
-        <Box sx={styles.bottomBar}>
-          <Box sx={styles.controlsContainer}>
-            <Box sx={styles.controlGroup}>
-              <IconButton
-                sx={styles.iconButton}
-                onClick={handleMute}
-                title={isMuted ? "Unmute" : "Mute"}
-              >
-                {isMuted ? <MicOff /> : <Mic />}
-              </IconButton>
-              <IconButton
-                sx={styles.iconButton}
-                onClick={isVideoEnabled ? stopVideo : startVideo}
-                title={isVideoEnabled ? "Stop camera" : "Start camera"}
-              >
-                {isVideoEnabled ? <VideocamOff /> : <Videocam />}
-              </IconButton>
-              <IconButton
-                sx={styles.iconButton}
-                onClick={toggleAudio}
-                title={isAudioEnabled ? "Disable audio output" : "Enable audio output"}
-              >
-                {isAudioEnabled ? <Headset /> : <HeadsetOff />}
-              </IconButton>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Box sx={styles.bottomBar}>
+            <Box sx={styles.controlsContainer}>
+              <Box sx={styles.controlGroup}>
                 <IconButton
                   sx={styles.iconButton}
-                  onClick={handleNoiseSuppressionToggle}
-                  title={isNoiseSuppressed ? "Disable noise suppression" : "Enable noise suppression"}
-                  disabled={!noiseSuppressionRef.current?.isInitialized()}
+                  onClick={handleMute}
+                  title={isMuted ? "Unmute" : "Mute"}
                 >
-                  {isNoiseSuppressed ? <NoiseAware /> : <NoiseControlOff />}
+                  {isMuted ? <MicOff /> : <Mic />}
                 </IconButton>
                 <IconButton
-                  size="small"
                   sx={styles.iconButton}
-                  onClick={handleNoiseSuppressionMenuOpen}
-                  disabled={!noiseSuppressionRef.current?.isInitialized()}
+                  onClick={isVideoEnabled ? stopVideo : startVideo}
+                  title={isVideoEnabled ? "Stop camera" : "Start camera"}
                 >
-                  <ExpandMore />
+                  {isVideoEnabled ? <VideocamOff /> : <Videocam />}
                 </IconButton>
-                <Menu
-                  anchorEl={noiseSuppressMenuAnchor}
-                  open={Boolean(noiseSuppressMenuAnchor)}
-                  onClose={handleNoiseSuppressionMenuClose}
+                <IconButton
+                  sx={styles.iconButton}
+                  onClick={toggleAudio}
+                  title={isAudioEnabled ? "Disable audio output" : "Enable audio output"}
                 >
-                  <MenuItem 
-                    onClick={() => handleNoiseSuppressionModeSelect('rnnoise')}
-                    selected={noiseSuppressionMode === 'rnnoise'}
+                  {isAudioEnabled ? <Headset /> : <HeadsetOff />}
+                </IconButton>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <IconButton
+                    sx={styles.iconButton}
+                    onClick={handleNoiseSuppressionToggle}
+                    title={isNoiseSuppressed ? "Disable noise suppression" : "Enable noise suppression"}
+                    disabled={!noiseSuppressionRef.current?.isInitialized()}
                   >
-                    RNNoise (AI-based)
-                  </MenuItem>
-                  <MenuItem 
-                    onClick={() => handleNoiseSuppressionModeSelect('speex')}
-                    selected={noiseSuppressionMode === 'speex'}
+                    {isNoiseSuppressed ? <NoiseAware /> : <NoiseControlOff />}
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    sx={styles.iconButton}
+                    onClick={handleNoiseSuppressionMenuOpen}
+                    disabled={!noiseSuppressionRef.current?.isInitialized()}
                   >
-                    Speex (Classic)
-                  </MenuItem>
-                  <MenuItem 
-                    onClick={() => handleNoiseSuppressionModeSelect('noisegate')}
-                    selected={noiseSuppressionMode === 'noisegate'}
+                    <ExpandMore />
+                  </IconButton>
+                  <Menu
+                    anchorEl={noiseSuppressMenuAnchor}
+                    open={Boolean(noiseSuppressMenuAnchor)}
+                    onClose={handleNoiseSuppressionMenuClose}
                   >
-                    Noise Gate
-                  </MenuItem>
-                </Menu>
+                    <MenuItem 
+                      onClick={() => handleNoiseSuppressionModeSelect('rnnoise')}
+                      selected={noiseSuppressionMode === 'rnnoise'}
+                    >
+                      RNNoise (AI-based)
+                    </MenuItem>
+                    <MenuItem 
+                      onClick={() => handleNoiseSuppressionModeSelect('speex')}
+                      selected={noiseSuppressionMode === 'speex'}
+                    >
+                      Speex (Classic)
+                    </MenuItem>
+                    <MenuItem 
+                      onClick={() => handleNoiseSuppressionModeSelect('noisegate')}
+                      selected={noiseSuppressionMode === 'noisegate'}
+                    >
+                      Noise Gate
+                    </MenuItem>
+                  </Menu>
+                </Box>
+              </Box>
+              <Box sx={styles.controlGroup}>
+                <IconButton
+                  sx={styles.iconButton}
+                  onClick={isScreenSharing ? stopScreenSharing : startScreenSharing}
+                  title={isScreenSharing ? "Stop sharing" : "Share screen"}
+                >
+                  {isScreenSharing ? <StopScreenShare /> : <ScreenShare />}
+                </IconButton>
+                {isMobile && (
+                  <IconButton
+                    sx={styles.iconButton}
+                    onClick={toggleSpeakerMode}
+                    title={useEarpiece ? "Switch to speaker" : "Switch to earpiece"}
+                  >
+                    {useEarpiece ? <Hearing /> : <VolumeUpRounded />}
+                  </IconButton>
+                )}
               </Box>
             </Box>
-            <Box sx={styles.controlGroup}>
-              <IconButton
-                sx={styles.iconButton}
-                onClick={isScreenSharing ? stopScreenSharing : startScreenSharing}
-                title={isScreenSharing ? "Stop sharing" : "Share screen"}
-              >
-                {isScreenSharing ? <StopScreenShare /> : <ScreenShare />}
-              </IconButton>
-              {isMobile && (
-                <IconButton
-                  sx={styles.iconButton}
-                  onClick={toggleSpeakerMode}
-                  title={useEarpiece ? "Switch to speaker" : "Switch to earpiece"}
-                >
-                  {useEarpiece ? <Hearing /> : <VolumeUpRounded />}
-                </IconButton>
-              )}
-            </Box>
+            <Button
+              variant="contained"
+              sx={styles.leaveButton}
+              onClick={handleLeaveCall}
+              startIcon={<PhoneDisabled />}
+            >
+              Leave
+            </Button>
           </Box>
-          <Button
-            variant="contained"
-            sx={styles.leaveButton}
-            onClick={handleLeaveCall}
-            startIcon={<PhoneDisabled />}
-          >
-            Leave
-          </Button>
         </Box>
       </Box>
     </MuteProvider>
