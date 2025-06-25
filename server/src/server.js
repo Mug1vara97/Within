@@ -3,8 +3,8 @@ const cors = require('cors');
 const compression = require('compression');
 const mediasoup = require('mediasoup');
 const config = require('./config');
-const { Room } = require('./Room');
-const createPeer = require('./Peer');
+const Room = require('./Room');
+const Peer = require('./Peer');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
@@ -86,32 +86,47 @@ io.on('connection', async (socket) => {
     // Add voice activity event handlers
     socket.on('speaking', ({ speaking }) => {
         const peer = peers.get(socket.id);
-        const room = rooms.get(socket.data?.roomId);
-        
-        if (peer && room) {
-            // Если пользователь замьючен, он не может говорить
-            if (!peer.isMuted) {
-                // Broadcast speaking state to all peers in the room
-                socket.to(room.id).emit('speakingStateChanged', {
-                    peerId: socket.id,
-                    speaking: speaking && !peer.isMuted
-                });
-            }
+        if (!peer || !socket.data?.roomId) return;
+
+        const room = rooms.get(socket.data.roomId);
+        if (!room) return;
+
+        // Only update speaking state if the peer is not muted
+        if (!peer.isMuted()) {
+            peer.setSpeaking(speaking);
+            // Broadcast speaking state to all peers in the room
+            socket.to(room.id).emit('speakingStateChanged', {
+                peerId: socket.id,
+                speaking: speaking && !peer.isMuted()
+            });
         }
     });
 
     socket.on('muteState', ({ isMuted }) => {
         const peer = peers.get(socket.id);
-        const room = rooms.get(socket.data?.roomId);
+        if (!peer || !socket.data?.roomId) return;
+
+        const room = rooms.get(socket.data.roomId);
+        if (!room) return;
+
+        peer.setMuted(isMuted);
         
-        if (peer && room) {
-            peer.isMuted = isMuted;
-            room.updatePeerState(socket.id, { isMuted });
-            
-            // Broadcast to all peers in the room
-            socket.to(room.id).emit('peerMuteStateChanged', {
+        // If muted, ensure speaking state is false
+        if (isMuted) {
+            peer.setSpeaking(false);
+        }
+
+        // Broadcast mute state to all peers in the room
+        socket.to(room.id).emit('peerMuteStateChanged', {
+            peerId: socket.id,
+            isMuted
+        });
+
+        // Also broadcast speaking state update if needed
+        if (isMuted) {
+            socket.to(room.id).emit('speakingStateChanged', {
                 peerId: socket.id,
-                isMuted: isMuted
+                speaking: false
             });
         }
     });
@@ -137,40 +152,74 @@ io.on('connection', async (socket) => {
         }
     });
 
-    socket.on('join', async ({ roomId, userName }) => {
+    socket.on('join', async ({ roomId, name }, callback) => {
         try {
-            socket.data = { roomId, userName };
-            
-            // Create or get the room
+            // Create room if it doesn't exist
             let room = rooms.get(roomId);
             if (!room) {
-                room = new Room(roomId);
+                const worker = getMediasoupWorker();
+                room = await createRoom(roomId, worker);
                 rooms.set(roomId, room);
             }
 
-            // Create a new peer
-            const peer = createPeer(socket, roomId, userName);
+            // Create peer
+            const peer = new Peer(socket, roomId, name);
+            peer.setMuted(false); // Ensure peer starts unmuted
+            peer.setAudioEnabled(true); // Ensure audio starts enabled
             peers.set(socket.id, peer);
-            
-            // Add peer to the room
-            room.addPeer(socket.id, peer);
+            room.addPeer(peer);
+
+            // Store room ID in socket data
+            socket.data.roomId = roomId;
             socket.join(roomId);
 
-            // Notify other peers
-            socket.to(roomId).emit('peerJoined', {
-                peerId: socket.id,
-                userName: userName,
-                isMuted: peer.isMuted
+            // Get existing peers
+            const existingPeers = [];
+            room.peers.forEach((existingPeer) => {
+                if (existingPeer.id !== socket.id) {
+                    existingPeers.push({
+                        id: existingPeer.id,
+                        name: existingPeer.name,
+                        isMuted: existingPeer.isMuted(),
+                        isAudioEnabled: existingPeer.isAudioEnabled()
+                    });
+                }
             });
 
-            callback({ peers: Array.from(room.getPeers().entries()).map(([peerId, peer]) => ({
-                peerId,
-                userName: peer?.data?.userName || peer?.userName || 'Unknown',
-                isMuted: peer?.isMuted || false
-            }))});
+            // Get existing producers
+            const existingProducers = [];
+            room.producers.forEach((producerData, producerId) => {
+                if (producerData.peerId !== socket.id) {
+                    existingProducers.push({
+                        producerId,
+                        producerSocketId: producerData.peerId,
+                        kind: producerData.producer.kind
+                    });
+                }
+            });
+
+            // Notify other peers about the new peer BEFORE sending callback
+            socket.to(roomId).emit('peerJoined', {
+                peerId: peer.id,
+                name: peer.name,
+                isMuted: peer.isMuted(),
+                isAudioEnabled: Boolean(peer.isAudioEnabled())
+            });
+
+            console.log(`Peer ${name} (${socket.id}) joined room ${roomId}`);
+            console.log('Existing peers:', existingPeers);
+            console.log('Existing producers:', existingProducers);
+
+            // Send router RTP capabilities and existing peers/producers
+            callback({
+                routerRtpCapabilities: room.router.rtpCapabilities,
+                existingPeers,
+                existingProducers
+            });
+
         } catch (error) {
-            console.error('Error in join handler:', error);
-            socket.emit('error', { message: error.message });
+            console.error('Error in join:', error);
+            callback({ error: error.message });
         }
     });
 
@@ -793,16 +842,14 @@ io.on('connection', async (socket) => {
     // Add audio state handling
     socket.on('audioState', ({ isEnabled }) => {
         const peer = peers.get(socket.id);
-        const room = rooms.get(socket.data?.roomId);
-        
-        if (peer && room) {
-            peer.isAudioEnabled = isEnabled;
-            room.updatePeerState(socket.id, { isAudioEnabled });
+        if (peer) {
+            // Update peer's audio state
+            peer.setAudioEnabled(isEnabled);
             
-            // Broadcast to all peers in the room
-            socket.to(room.id).emit('peerAudioStateChanged', {
+            // Broadcast to all peers in the room except sender
+            socket.to(peer.roomId).emit('peerAudioStateChanged', {
                 peerId: socket.id,
-                isEnabled: peer.isAudioEnabled
+                isEnabled
             });
         }
     });

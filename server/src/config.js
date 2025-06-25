@@ -4,9 +4,9 @@ module.exports = {
             port: 3000
         },
         ssl: {
-            enabled: true,
-            cert: '../ssl/certificate.crt',
-            key: '../ssl/private.key',
+            enabled: false,
+            cert: '../ssl/cert.pem',
+            key: '../ssl/key.pem',
         },
     },
     mediasoup: {
