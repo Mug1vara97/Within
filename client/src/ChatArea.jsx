@@ -11,28 +11,30 @@ const ChatArea = ({ selectedChat, leftVoiceChat, setLeftVoiceChat, username, use
     }, [selectedChat, leftVoiceChat]);
 
     if (selectedChat) {
-        if (selectedChat.typeId !== 3) {
+        // Если это текстовый чат (typeId === 3)
+        if (selectedChat.typeId === 3) {
             return (
-                <VoiceChat
-                    roomId={selectedChat.chatId.toString()}
-                    userName={username}
+                <GroupChat
+                    username={username}
                     userId={userId}
+                    chatId={selectedChat.chatId}
+                    groupName={selectedChat.groupName}
+                    isServerChat={true}
                     serverId={serverId}
-                    autoJoin={true}
-                    onLeave={() => setLeftVoiceChat(true)}
+                    userPermissions={userPermissions}
+                    isServerOwner={isServerOwner}
                 />
             );
         }
+        // Если это голосовой чат (typeId !== 3)
         return (
-            <GroupChat
-                username={username}
+            <VoiceChat
+                roomId={selectedChat.chatId.toString()}
+                userName={username}
                 userId={userId}
-                chatId={selectedChat.chatId}
-                groupName={selectedChat.groupName}
-                isServerChat={true}
                 serverId={serverId}
-                userPermissions={userPermissions}
-                isServerOwner={isServerOwner}
+                autoJoin={true}
+                onLeave={() => setLeftVoiceChat(true)}
             />
         );
     }
