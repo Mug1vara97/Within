@@ -1558,13 +1558,14 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
       }
 
       const socket = io(config.server.url, {
-        transports: ['websocket'],
-        upgrade: false,
+        transports: ['websocket', 'polling'],
+        secure: true,
+        rejectUnauthorized: false,
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
-        secure: true,
-        rejectUnauthorized: false
+        path: '/socket.io/',
+        withCredentials: true
       });
 
       socket.onAny((event, ...args) => {
