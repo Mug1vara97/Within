@@ -123,6 +123,7 @@ const styles = {
     color: '#dcddde',
     flex: 1,
     minHeight: '100%',
+    overflow: 'hidden', // Add to prevent overflow
     '@keyframes pulse': {
       '0%': {
         boxShadow: '0 0 0 2px rgba(59, 165, 92, 0.8)'
@@ -169,9 +170,10 @@ const styles = {
     overflow: 'hidden',
     height: '100%',
     width: '100%',
-    maxWidth: 'none',
+    maxWidth: '100%', // Ensure container doesn't exceed viewport
     margin: 0,
-    position: 'relative'
+    position: 'relative',
+    boxSizing: 'border-box' // Include padding in width calculation
   },
   videoGrid: {
     display: 'grid',
@@ -183,7 +185,8 @@ const styles = {
     margin: 0,
     overflow: 'auto',
     minHeight: 0,
-    marginBottom: '80px' // Add space for bottom bar
+    marginBottom: '80px',
+    boxSizing: 'border-box' // Include padding in width calculation
   },
   videoItem: {
     backgroundColor: '#2B2D31',
@@ -387,7 +390,8 @@ const styles = {
     right: 0,
     width: '100%',
     zIndex: 2,
-    height: '80px' // Fixed height for bottom bar
+    height: '80px',
+    boxSizing: 'border-box' // Include padding in width calculation
   },
   controlsGroup: {
     display: 'flex',
