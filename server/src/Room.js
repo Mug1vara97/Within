@@ -4,35 +4,30 @@ class Room {
         this.router = router;
         this.io = io;
         this.peers = new Map();
-        this.peerStates = new Map();
         this.producers = new Map();
         this.consumers = new Map();
         this.transports = new Map();
         this.screenProducers = new Map();
     }
 
-    addPeer(peerId, peer) {
-        this.peers.set(peerId, peer);
-        // Инициализируем состояние пира
-        this.peerStates.set(peerId, {
-            userName: peer.data?.userName || 'Unknown',
-            isMuted: peer.isMuted || false,
-            isAudioEnabled: peer.isAudioEnabled || true
-        });
-        
-        // Broadcast new peer's state to all peers in the room
-        this.io?.to(this.id).emit('peerMuteStateChanged', {
-            peerId: peerId,
-            isMuted: peer.isMuted || false
-        });
+    addPeer(peer) {
+        if (!this.peers.has(peer.id)) {
+            this.peers.set(peer.id, peer);
+            
+            // Broadcast new peer's state to all peers in the room
+            this.io.to(this.id).emit('peerMuteStateChanged', {
+                peerId: peer.id,
+                isMuted: Boolean(peer.isMuted())
+            });
 
-        // Also broadcast audio state
-        this.io?.to(this.id).emit('peerAudioStateChanged', {
-            peerId: peerId,
-            isEnabled: peer.isAudioEnabled || true
-        });
+            // Also broadcast audio state
+            this.io.to(this.id).emit('peerAudioStateChanged', {
+                peerId: peer.id,
+                isEnabled: Boolean(peer.isAudioEnabled())
+            });
 
-        console.log(`Peer ${peerId} added to room ${this.id}`);
+            console.log(`Peer ${peer.id} added to room ${this.id}`);
+        }
     }
 
     removePeer(peerId) {
@@ -65,47 +60,29 @@ class Room {
         });
 
         this.peers.delete(peerId);
-        this.peerStates.delete(peerId);
     }
 
     getPeers() {
-        return new Map(Array.from(this.peers.entries()).map(([peerId, peer]) => {
-            const state = this.peerStates.get(peerId) || {
-                userName: peer.data?.userName || 'Unknown',
-                isMuted: peer.isMuted || false,
-                isAudioEnabled: peer.isAudioEnabled || true
-            };
-            return [peerId, { ...peer, ...state }];
-        }));
+        return this.peers;
     }
 
-    getPeer(peerId) {
+    // Add method to get peer's mute state
+    getPeerMuteState(peerId) {
         const peer = this.peers.get(peerId);
-        const state = this.peerStates.get(peerId);
-        if (!peer) return null;
-        
-        const defaultState = {
-            userName: peer.data?.userName || 'Unknown',
-            isMuted: peer.isMuted || false,
-            isAudioEnabled: peer.isAudioEnabled || true
-        };
-        return { ...peer, ...(state || defaultState) };
+        return peer ? peer.muted || false : false;
     }
 
-    updatePeerState(peerId, update) {
+    // Add method to set peer's mute state
+    setPeerMuteState(peerId, isMuted) {
         const peer = this.peers.get(peerId);
-        if (!peer) return;
-
-        // Обновляем состояние в объекте peer
-        Object.assign(peer, update);
-
-        // Обновляем состояние в peerStates
-        const currentState = this.peerStates.get(peerId) || {
-            userName: peer.data?.userName || 'Unknown',
-            isMuted: peer.isMuted || false,
-            isAudioEnabled: peer.isAudioEnabled || true
-        };
-        this.peerStates.set(peerId, { ...currentState, ...update });
+        if (peer) {
+            peer.muted = isMuted;
+            // Broadcast mute state change to all peers
+            this.io.to(this.id).emit('peerMuteStateChanged', {
+                peerId,
+                isMuted
+            });
+        }
     }
 
     addProducer(peerId, producer) {
