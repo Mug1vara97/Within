@@ -28,6 +28,11 @@ services:
     volumes:
       - ./Messenger/Messenger/Uploads:/app/Uploads
       - ./ssl:/app/ssl
+      - uploads_data:/app/Uploads
+      - uploads_avatars:/app/Uploads/Avatars
+      - uploads_banners:/app/Uploads/Banners
+      - uploads_server_avatar:/app/Uploads/ServerAvatar
+      - uploads_server_banner:/app/Uploads/ServerBanner
     environment:
       - ASPNETCORE_URLS=http://+:8080
       - ASPNETCORE_ENVIRONMENT=Development
