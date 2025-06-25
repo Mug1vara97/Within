@@ -21,8 +21,11 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 
 # Создаем директории для загрузок
-RUN mkdir -p /app/Uploads/Avatars /app/Uploads/Banners /app/Uploads/ServerAvatar /app/Uploads/ServerBanner && \
-    chown -R 1000:1000 /app/Uploads && \
-    chmod -R 755 /app/Uploads
+RUN echo '#!/bin/bash\n\
+mkdir -p /app/Uploads/Avatars /app/Uploads/Banners /app/Uploads/ServerAvatar /app/Uploads/ServerBanner\n\
+chown -R 1000:1000 /app/Uploads\n\
+chmod -R 755 /app/Uploads\n\
+exec dotnet Messenger.dll' > /app/entrypoint.sh && \
+    chmod +x /app/entrypoint.sh
 
-ENTRYPOINT ["dotnet", "Messenger.dll"]
+ENTRYPOINT ["/app/entrypoint.sh"]

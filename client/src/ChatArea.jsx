@@ -4,14 +4,14 @@ import VoiceChat from './VoiceChat';
 
 const ChatArea = ({ selectedChat, leftVoiceChat, setLeftVoiceChat, username, userId, serverId, userPermissions, isServerOwner }) => {
     useEffect(() => {
-        if (selectedChat?.type === 'voice' && !leftVoiceChat) {
+        if (selectedChat?.typeId === 4 && !leftVoiceChat) {
             // Автоматически подключаемся к голосовому чату
             setLeftVoiceChat(false);
         }
     }, [selectedChat, leftVoiceChat]);
 
     if (selectedChat) {
-        if (selectedChat.typeId !== 3) {
+        if (selectedChat.typeId === 4) {
             return (
                 <VoiceChat
                     roomId={selectedChat.chatId.toString()}
