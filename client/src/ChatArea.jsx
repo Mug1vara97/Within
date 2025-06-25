@@ -5,13 +5,13 @@ import VoiceChat from './VoiceChat';
 const ChatArea = ({ selectedChat, leftVoiceChat, setLeftVoiceChat, username, userId, serverId, userPermissions, isServerOwner }) => {
     // Сбрасываем leftVoiceChat при смене чата
     useEffect(() => {
-        if (selectedChat?.typeId === 3) {
+        if (selectedChat?.chatType === 3) {
             setLeftVoiceChat(false);
         }
     }, [selectedChat, setLeftVoiceChat]);
 
     // Если пользователь покинул голосовой чат
-    if (leftVoiceChat && (!selectedChat || selectedChat.typeId !== 3)) {
+    if (leftVoiceChat && (!selectedChat || selectedChat.chatType !== 3)) {
         return (
             <div className="no-chat-selected">
                 <h3>Вы покинули голосовой чат</h3>
@@ -23,7 +23,7 @@ const ChatArea = ({ selectedChat, leftVoiceChat, setLeftVoiceChat, username, use
     }
 
     if (selectedChat) {
-        return selectedChat.typeId === 3 ? (
+        return selectedChat.chatType === 3 ? (
             <GroupChat
                 username={username}
                 userId={userId}
