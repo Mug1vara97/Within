@@ -1105,6 +1105,9 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
   const [audioStates, setAudioStates] = useState(new Map());
   const isMobile = useMemo(() => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent), []);
 
+  // Сохраняем состояние пиров в ref для сохранения между ремонтированиями
+  const persistentPeersRef = useRef(new Map());
+
   // Use userId and serverId in socket connection
   useEffect(() => {
     if (socketRef.current) {
@@ -1519,47 +1522,15 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
       });
 
       // Add handlers for peer events
-      socket.on('peerJoined', ({ peerId, name, isMuted, isAudioEnabled }) => {
-        console.log('New peer joined:', { peerId, name, isMuted, isAudioEnabled });
-        
-        // Update peers state
+      socket.on('peerJoined', ({ peerId, userName: peerName }) => {
+        console.log('Peer joined:', { peerId, peerName });
         setPeers(prev => {
           const newPeers = new Map(prev);
-          // Only add if peer doesn't exist
-          if (!newPeers.has(peerId)) {
-            newPeers.set(peerId, { 
-              id: peerId, 
-              name, 
-              isMuted: Boolean(isMuted) 
-            });
-            console.log('Added new peer to peers map:', { peerId, name });
-          }
+          newPeers.set(peerId, { userName: peerName, isMuted: false });
+          // Сохраняем в persistentPeersRef
+          persistentPeersRef.current = newPeers;
           return newPeers;
         });
-
-        // Update audio states
-        setAudioStates(prev => {
-          const newStates = new Map(prev);
-          newStates.set(peerId, Boolean(isAudioEnabled));
-          return newStates;
-        });
-
-        // Initialize volumes for the new peer
-        setVolumes(prev => {
-          const newVolumes = new Map(prev);
-          newVolumes.set(peerId, isMuted ? 0 : 100); // Set volume based on mute state
-          return newVolumes;
-        });
-
-        // Initialize speaking state for the new peer
-        setSpeakingStates(prev => {
-          const newStates = new Map(prev);
-          newStates.set(peerId, false); // Initially not speaking
-          return newStates;
-        });
-
-        // Initialize individual mute state
-        individualMutedPeersRef.current.set(peerId, Boolean(isMuted));
       });
 
       socket.on('peerLeft', ({ peerId }) => {
@@ -1567,8 +1538,24 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
         setPeers(prev => {
           const newPeers = new Map(prev);
           newPeers.delete(peerId);
+          // Сохраняем в persistentPeersRef
+          persistentPeersRef.current = newPeers;
           return newPeers;
         });
+        
+        // Очищаем все связанные состояния
+        setVolumes(prev => {
+          const newVolumes = new Map(prev);
+          newVolumes.delete(peerId);
+          return newVolumes;
+        });
+        
+        setSpeakingStates(prev => {
+          const newStates = new Map(prev);
+          newStates.delete(peerId);
+          return newStates;
+        });
+        
         setAudioStates(prev => {
           const newStates = new Map(prev);
           newStates.delete(peerId);
@@ -3196,6 +3183,86 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
       handleJoin();
     }
   }, [autoJoin, roomId, userName]);
+
+  // Восстанавливаем состояние пиров при переподключении
+  useEffect(() => {
+    if (isJoined && socketRef.current) {
+      // Запрашиваем актуальный список пиров при переподключении
+      socketRef.current.emit('getPeers', {}, (peers) => {
+        if (peers && Array.isArray(peers)) {
+          const newPeers = new Map();
+          peers.forEach(peer => {
+            newPeers.set(peer.peerId, {
+              userName: peer.userName,
+              isMuted: peer.isMuted || false
+            });
+          });
+          setPeers(newPeers);
+          persistentPeersRef.current = newPeers;
+
+          // Восстанавливаем состояния громкости и разговора
+          peers.forEach(peer => {
+            setVolumes(prev => {
+              const newVolumes = new Map(prev);
+              newVolumes.set(peer.peerId, peer.isMuted ? 0 : 100);
+              return newVolumes;
+            });
+
+            setSpeakingStates(prev => {
+              const newStates = new Map(prev);
+              newStates.set(peer.peerId, false); // Изначально не говорит
+              return newStates;
+            });
+
+            setAudioStates(prev => {
+              const newStates = new Map(prev);
+              newStates.set(peer.peerId, true); // Изначально звук включен
+              return newStates;
+            });
+          });
+        }
+      });
+    }
+  }, [isJoined]);
+
+  // Обработчик отключения
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    const handleDisconnect = () => {
+      console.log('Socket disconnected');
+      // Сохраняем текущее состояние пиров
+      persistentPeersRef.current = new Map(peers);
+      setIsJoined(false);
+    };
+
+    socket.on('disconnect', handleDisconnect);
+
+    return () => {
+      socket.off('disconnect', handleDisconnect);
+    };
+  }, [peers]);
+
+  // Обработчик переподключения
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    const handleReconnect = () => {
+      console.log('Socket reconnected');
+      // Восстанавливаем состояние из persistentPeersRef
+      if (persistentPeersRef.current.size > 0) {
+        setPeers(new Map(persistentPeersRef.current));
+      }
+    };
+
+    socket.on('connect', handleReconnect);
+
+    return () => {
+      socket.off('connect', handleReconnect);
+    };
+  }, []);
 
   return (
     <MuteProvider socket={socketRef.current}>

@@ -854,6 +854,27 @@ io.on('connection', async (socket) => {
         }
     });
 
+    socket.on('getPeers', (_, callback) => {
+        try {
+            const room = rooms.get(socket.data?.roomId);
+            if (!room) {
+                callback([]);
+                return;
+            }
+
+            const peersArray = Array.from(room.getPeers().entries()).map(([peerId, peer]) => ({
+                peerId,
+                userName: peer.userName,
+                isMuted: peer.isMuted || false
+            }));
+
+            callback(peersArray);
+        } catch (error) {
+            console.error('Error in getPeers:', error);
+            callback([]);
+        }
+    });
+
     socket.on('disconnect', () => {
         console.log('Client disconnected:', socket.id);
         
