@@ -152,73 +152,53 @@ io.on('connection', async (socket) => {
         }
     });
 
-    socket.on('join', async ({ roomId, name }, callback) => {
+    socket.on('join', async ({ roomId, userName }, callback) => {
         try {
-            // Create room if it doesn't exist
+            // Store roomId in socket data
+            socket.data.roomId = roomId;
+
+            // Get or create room
             let room = rooms.get(roomId);
             if (!room) {
-                const worker = getMediasoupWorker();
-                room = await createRoom(roomId, worker);
+                room = new Room(roomId);
                 rooms.set(roomId, room);
             }
 
             // Create peer
-            const peer = new Peer(socket, roomId, name);
-            peer.setMuted(false); // Ensure peer starts unmuted
-            peer.setAudioEnabled(true); // Ensure audio starts enabled
-            peers.set(socket.id, peer);
-            room.addPeer(peer);
+            const peer = {
+                id: socket.id,
+                data: {
+                    userName: userName
+                },
+                isMuted: false,
+                producers: new Map(),
+                consumers: new Map(),
+                close: function() {
+                    this.producers.forEach(producer => producer.close());
+                    this.consumers.forEach(consumer => consumer.close());
+                }
+            };
 
-            // Store room ID in socket data
-            socket.data.roomId = roomId;
+            // Add peer to room
+            room.addPeer(socket.id, peer);
+            peers.set(socket.id, peer);
+
+            // Join socket to room
             socket.join(roomId);
 
-            // Get existing peers
-            const existingPeers = [];
-            room.peers.forEach((existingPeer) => {
-                if (existingPeer.id !== socket.id) {
-                    existingPeers.push({
-                        id: existingPeer.id,
-                        name: existingPeer.name,
-                        isMuted: existingPeer.isMuted(),
-                        isAudioEnabled: existingPeer.isAudioEnabled()
-                    });
-                }
-            });
-
-            // Get existing producers
-            const existingProducers = [];
-            room.producers.forEach((producerData, producerId) => {
-                if (producerData.peerId !== socket.id) {
-                    existingProducers.push({
-                        producerId,
-                        producerSocketId: producerData.peerId,
-                        kind: producerData.producer.kind
-                    });
-                }
-            });
-
-            // Notify other peers about the new peer BEFORE sending callback
+            // Notify other peers
             socket.to(roomId).emit('peerJoined', {
-                peerId: peer.id,
-                name: peer.name,
-                isMuted: peer.isMuted(),
-                isAudioEnabled: Boolean(peer.isAudioEnabled())
+                peerId: socket.id,
+                userName: userName
             });
 
-            console.log(`Peer ${name} (${socket.id}) joined room ${roomId}`);
-            console.log('Existing peers:', existingPeers);
-            console.log('Existing producers:', existingProducers);
-
-            // Send router RTP capabilities and existing peers/producers
-            callback({
-                routerRtpCapabilities: room.router.rtpCapabilities,
-                existingPeers,
-                existingProducers
-            });
-
+            callback({ peers: Array.from(room.getPeers().entries()).map(([peerId, peer]) => ({
+                peerId,
+                userName: peer?.data?.userName || peer?.userName || 'Unknown',
+                isMuted: peer?.isMuted || false
+            }))});
         } catch (error) {
-            console.error('Error in join:', error);
+            console.error('Error joining room:', error);
             callback({ error: error.message });
         }
     });
@@ -862,11 +842,15 @@ io.on('connection', async (socket) => {
                 return;
             }
 
-            const peersArray = Array.from(room.getPeers().entries()).map(([peerId, peer]) => ({
-                peerId,
-                userName: peer.userName,
-                isMuted: peer.isMuted || false
-            }));
+            const peersArray = Array.from(room.getPeers().entries()).map(([peerId, peer]) => {
+                // Безопасное получение userName из peer или peer.data
+                const userName = peer?.data?.userName || peer?.userName || 'Unknown';
+                return {
+                    peerId,
+                    userName,
+                    isMuted: peer?.isMuted || false
+                };
+            });
 
             callback(peersArray);
         } catch (error) {

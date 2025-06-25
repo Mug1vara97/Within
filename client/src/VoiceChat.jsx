@@ -1454,6 +1454,80 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
     }
   };
 
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    socket.on('peerJoined', ({ peerId, userName }) => {
+      console.log('Peer joined:', { peerId, userName });
+      setPeers(prev => {
+        const newPeers = new Map(prev);
+        newPeers.set(peerId, { userName, isMuted: false });
+        // Сохраняем в persistentPeersRef
+        persistentPeersRef.current = newPeers;
+        return newPeers;
+      });
+
+      // Инициализируем состояния для нового пира
+      setVolumes(prev => {
+        const newVolumes = new Map(prev);
+        newVolumes.set(peerId, 100); // Изначально не замьючен
+        return newVolumes;
+      });
+
+      setSpeakingStates(prev => {
+        const newStates = new Map(prev);
+        newStates.set(peerId, false); // Изначально не говорит
+        return newStates;
+      });
+
+      setAudioStates(prev => {
+        const newStates = new Map(prev);
+        newStates.set(peerId, true); // Изначально звук включен
+        return newStates;
+      });
+    });
+
+    return () => {
+      socket.off('peerJoined');
+    };
+  }, []);
+
+  // Обработчик успешного подключения к комнате
+  const handleJoinSuccess = useCallback(({ peers }) => {
+    console.log('Successfully joined room, peers:', peers);
+    if (peers && Array.isArray(peers)) {
+      const newPeers = new Map();
+      peers.forEach(peer => {
+        newPeers.set(peer.peerId, {
+          userName: peer.userName,
+          isMuted: peer.isMuted || false
+        });
+
+        // Инициализируем состояния для каждого существующего пира
+        setVolumes(prev => {
+          const newVolumes = new Map(prev);
+          newVolumes.set(peer.peerId, peer.isMuted ? 0 : 100);
+          return newVolumes;
+        });
+
+        setSpeakingStates(prev => {
+          const newStates = new Map(prev);
+          newStates.set(peer.peerId, false);
+          return newStates;
+        });
+
+        setAudioStates(prev => {
+          const newStates = new Map(prev);
+          newStates.set(peer.peerId, true);
+          return newStates;
+        });
+      });
+      setPeers(newPeers);
+      persistentPeersRef.current = newPeers;
+    }
+  }, []);
+
   const handleJoin = async () => {
     if (!roomId || !userName) {
       setError('Please enter room ID and username');
@@ -1473,12 +1547,6 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
         socketRef.current = null;
       }
 
-      socketRef.current = io(config.socketUrl, {
-        transports: ['websocket'],
-        query: { roomId }
-      });
-
-      console.log('Connecting to server...');
       const socket = io(config.server.url, {
         transports: ['websocket'],
         upgrade: false,
@@ -1489,24 +1557,15 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
         rejectUnauthorized: false
       });
 
-      // Сразу добавляем временный логгер для отладки
       socket.onAny((event, ...args) => {
-        console.log('IMMEDIATE SOCKET EVENT:', event, args);
+        console.log('SOCKET EVENT:', event, args);
       });
       
-      // Сразу присваиваем сокет в ref
       socketRef.current = socket;
 
       socket.on('connect', () => {
         console.log('Socket connected successfully');
-        setIsJoined(true);
-        // Set initial states
-        socket.emit('muteState', { isMuted: false });
-        socket.emit('audioState', { isEnabled: isAudioEnabled });
-        // Вызываем callback после успешного подключения
-        if (onJoin) {
-          onJoin();
-        }
+        socket.emit('join', { roomId, userName }, handleJoinSuccess);
       });
 
       socket.on('connect_error', (error) => {
