@@ -1328,6 +1328,9 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
     isAudioEnabledRef.current = true;
     setUseEarpiece(true);
     setIsMuted(false); // Reset mute state
+    setIsJoined(false); // Явно сбрасываем состояние подключения
+    setIsConnected(false); // Сбрасываем состояние соединения
+    setPeers(new Map()); // Очищаем список пиров
     
     // Close all media streams
     if (localStreamRef.current) {
@@ -3198,10 +3201,19 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
   };
 
   useEffect(() => {
-    if (autoJoin && roomId && userName && !isJoined) {
+    if (autoJoin && roomId && userName && !isJoined && !socketRef.current) {
       handleJoin();
     }
-  }, [autoJoin, roomId, userName]);
+  }, [autoJoin, roomId, userName, isJoined]);
+
+  // Добавим эффект для очистки при размонтировании
+  useEffect(() => {
+    return () => {
+      if (socketRef.current) {
+        cleanup();
+      }
+    };
+  }, []);
 
   return (
     <MuteProvider socket={socketRef.current}>
