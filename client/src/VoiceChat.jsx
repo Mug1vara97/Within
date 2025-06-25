@@ -116,7 +116,7 @@ const config = {
 // Add Discord-like styles
 const styles = {
   root: {
-    height: '100vh',
+    height: '100%', // Changed from 100vh to 100%
     display: 'flex',
     flexDirection: 'column',
     backgroundColor: '#36393f',
@@ -136,7 +136,8 @@ const styles = {
   appBar: {
     backgroundColor: '#36393f',
     boxShadow: 'none',
-    borderBottom: '1px solid #202225'
+    borderBottom: '1px solid #202225',
+    position: 'relative' // Added to prevent fixed positioning
   },
   toolbar: {
     minHeight: '48px',
@@ -161,10 +162,11 @@ const styles = {
   },
   container: {
     flex: 1,
-    padding: '16px',
+    padding: '20px 30px 0 30px', // Match GroupChat padding
     backgroundColor: '#36393f',
     display: 'flex',
     flexDirection: 'column',
+    overflow: 'hidden', // Prevent scrolling issues
     '@media (max-width: 600px)': {
       padding: '8px',
     }
@@ -172,11 +174,12 @@ const styles = {
   videoGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-    gap: '8px',
+    gap: '16px',
     padding: '16px',
     width: '100%',
-    maxWidth: '1200px',
-    margin: '0 auto'
+    height: 'calc(100% - 48px)', // Subtract header height
+    margin: '0 auto',
+    overflow: 'auto' // Allow scrolling for many participants
   },
   videoItem: {
     backgroundColor: '#2B2D31',
@@ -188,7 +191,11 @@ const styles = {
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
-    transition: 'box-shadow 0.3s ease-in-out',
+    transition: 'all 0.2s ease-in-out',
+    '&:hover': {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+    },
     '&.speaking': {
       '&::after': {
         content: '""',
@@ -227,7 +234,11 @@ const styles = {
     color: '#ffffff',
     fontSize: '32px',
     fontWeight: 500,
-    marginBottom: '12px'
+    marginBottom: '12px',
+    transition: 'transform 0.2s ease',
+    '&:hover': {
+      transform: 'scale(1.05)'
+    }
   },
   userName: {
     color: '#ffffff',
@@ -235,7 +246,15 @@ const styles = {
     fontWeight: 500,
     display: 'flex',
     alignItems: 'center',
-    gap: '8px'
+    gap: '8px',
+    padding: '4px 8px',
+    borderRadius: '4px',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backdropFilter: 'blur(4px)',
+    transition: 'background-color 0.2s ease',
+    '&:hover': {
+      backgroundColor: 'rgba(0, 0, 0, 0.4)'
+    }
   },
   userStatus: {
     fontSize: '14px',
@@ -351,16 +370,16 @@ const styles = {
     margin: '8px 0'
   },
   bottomBar: {
-    backgroundColor: '#000000',
-    padding: '12px 16px',
+    backgroundColor: '#2B2D31',
+    padding: '16px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    position: 'fixed',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    zIndex: 1000
+    borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+    margin: '20px 30px 10px 30px',
+    borderRadius: '20px',
+    position: 'relative',
+    zIndex: 2
   },
   controlsGroup: {
     display: 'flex',
@@ -369,35 +388,37 @@ const styles = {
   },
   controlsContainer: {
     display: 'flex',
-    gap: '16px'
+    gap: '16px',
+    alignItems: 'center'
   },
   controlGroup: {
-    backgroundColor: '#212121',
-    borderRadius: '24px',
-    padding: '4px',
+    backgroundColor: '#383A40',
+    borderRadius: '8px',
+    padding: '8px',
     display: 'flex',
     alignItems: 'center',
-    gap: '4px'
+    gap: '8px',
+    transition: 'background-color 0.2s ease'
   },
   userInfo: {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    padding: '4px 8px',
-    borderRadius: '4px',
-    backgroundColor: '#202225',
+    padding: '8px 12px',
+    borderRadius: '8px',
+    backgroundColor: '#383A40',
     '@media (max-width: 600px)': {
       padding: '4px',
       gap: '4px',
     }
   },
   leaveButton: {
-    backgroundColor: '#dc3545',
+    backgroundColor: '#f04747',
     color: '#ffffff',
-    borderRadius: '24px',
+    borderRadius: '8px',
     padding: '8px 16px',
     '&:hover': {
-      backgroundColor: '#c82333'
+      backgroundColor: '#d84040'
     },
     minWidth: '120px'
   },
