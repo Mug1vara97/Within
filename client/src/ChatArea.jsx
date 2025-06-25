@@ -1,15 +1,8 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import GroupChat from './Chats/GroupChat';
 import VoiceChat from './VoiceChat';
 
 const ChatArea = ({ selectedChat, leftVoiceChat, setLeftVoiceChat, username, userId, serverId, userPermissions, isServerOwner }) => {
-    useEffect(() => {
-        if (selectedChat?.typeId !== 3 && !leftVoiceChat) {
-            // Автоматически подключаемся к голосовому чату
-            setLeftVoiceChat(false);
-        }
-    }, [selectedChat, leftVoiceChat]);
-
     if (selectedChat) {
         // Если это текстовый чат (typeId === 3)
         if (selectedChat.typeId === 3) {

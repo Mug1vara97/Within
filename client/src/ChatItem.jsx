@@ -15,6 +15,17 @@ const ChatItem = ({
 }) => {
     const isDragDisabled = !(isServerOwner || userPermissions?.manageChannels);
 
+    const handleClick = () => {
+        // Если это текстовый чат (typeId === 3)
+        if (chat.typeId === 3) {
+            handleGroupChatClick(chat.chatId, chat.name, chat.typeId);
+        } else {
+            // Если это голосовой чат, открываем его напрямую
+            props.setLeftVoiceChat(false);
+            props.handleVoiceChatClick(chat.chatId, chat.name);
+        }
+    };
+
     console.log('ChatItem render:', {
         chatId: chat.chatId,
         index,
@@ -44,7 +55,7 @@ const ChatItem = ({
                         {...provided.draggableProps}
                         {...provided.dragHandleProps}
                         className={`channel ${selectedChat?.chatId === chat.chatId ? 'active' : ''} ${snapshot.isDragging ? 'dragging' : ''} ${chat.isPrivate ? 'private' : ''}`}
-                        onClick={() => handleGroupChatClick(chat.chatId, chat.name, chat.typeId)}
+                        onClick={handleClick}
                         onContextMenu={(e) => onContextMenu(e, chat.chatId, chat.name, chat.typeId)}
                         style={{
                             ...provided.draggableProps.style,
