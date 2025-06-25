@@ -21,30 +21,29 @@ export const AudioProvider = ({ children }) => {
         setCurrentlyPlaying(wavesurfer);
     };
 
-    const joinVoiceChat = (roomId) => {
+    const joinVoiceChat = (roomId, socket) => {
         setActiveVoiceChat(roomId);
+        voiceChatSocketRef.current = socket;
     };
 
     const leaveVoiceChat = () => {
-        setActiveVoiceChat(null);
         if (voiceChatSocketRef.current) {
             voiceChatSocketRef.current.disconnect();
             voiceChatSocketRef.current = null;
         }
-    };
-
-    const value = {
-        currentlyPlaying,
-        setCurrentAudio,
-        stopCurrentAudio,
-        activeVoiceChat,
-        voiceChatSocketRef,
-        joinVoiceChat,
-        leaveVoiceChat
+        setActiveVoiceChat(null);
     };
 
     return (
-        <AudioContext.Provider value={value}>
+        <AudioContext.Provider value={{ 
+            currentlyPlaying, 
+            setCurrentAudio, 
+            stopCurrentAudio,
+            activeVoiceChat,
+            voiceChatSocketRef,
+            joinVoiceChat,
+            leaveVoiceChat
+        }}>
             {children}
         </AudioContext.Provider>
     );

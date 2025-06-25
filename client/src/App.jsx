@@ -5,7 +5,6 @@ import Home from './Home';
 import Register from './Authentication/Register';
 import "./UserProfile.css"
 import { AudioProvider } from './contexts/AudioContext';
-import { VoiceChatProvider } from './contexts/VoiceChatContext';
 
 const App = () => {
     const [user, setUser] = useState(() => {
@@ -25,17 +24,15 @@ const App = () => {
     };
 
     return (
-        <Router>
-            <VoiceChatProvider>
-                <AudioProvider>
-                    <Routes>
-                        <Route path="/*" element={user.username ? <Home user={user} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />} />
-                        <Route path="/login" element={<Login onLogin={handleLogin} />} />
-                        <Route path="/register" element={<Register />} />
-                    </Routes>
-                </AudioProvider>
-            </VoiceChatProvider>
-        </Router>
+        <AudioProvider>
+            <Router>
+                <Routes>
+                    <Route path="/*" element={user.username ? <Home user={user} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />} />
+                    <Route path="/login" element={<Login onLogin={handleLogin} />} />
+                    <Route path="/register" element={<Register />} />
+                </Routes>
+            </Router>
+        </AudioProvider>
     );
 };
 

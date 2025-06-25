@@ -48,7 +48,6 @@ import { NoiseSuppressionManager } from './utils/noiseSuppression';
 import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
 import { useAudio } from './contexts/AudioContext';
 
-
 const config = {
   server: {
     url: 'https://4931257-dv98943.twc1.net'
@@ -114,7 +113,6 @@ const config = {
   }
 };
 
-// Add Discord-like styles
 const styles = {
   root: {
     height: '100%',
@@ -1099,13 +1097,21 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
   const [isMuted, setIsMuted] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [useEarpiece, setUseEarpiece] = useState(true);
-  const [error, setError] = useState('');
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
   const [peers, setPeers] = useState(new Map());
+  const [error, setError] = useState('');
   const [volumes, setVolumes] = useState(new Map());
   const [speakingStates, setSpeakingStates] = useState(new Map());
   const [audioStates, setAudioStates] = useState(new Map());
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
+  const isMobile = useMemo(() => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent), []);
+
+  // Use userId and serverId in socket connection
+  useEffect(() => {
+    if (socketRef.current) {
+      socketRef.current.emit('setUserInfo', { userId, serverId });
+    }
+  }, [userId, serverId]);
   const [screenProducer, setScreenProducer] = useState(null);
   const [screenStream, setScreenStream] = useState(null);
   const [remoteScreens, setRemoteScreens] = useState(new Map());
@@ -1115,29 +1121,338 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
   const [isNoiseSuppressed, setIsNoiseSuppressed] = useState(false);
   const [noiseSuppressionMode, setNoiseSuppressionMode] = useState('rnnoise');
   const [noiseSuppressMenuAnchor, setNoiseSuppressMenuAnchor] = useState(null);
+  const noiseSuppressionRef = useRef(null);
+  const isAudioEnabledRef = useRef(isAudioEnabled);
+  const individualMutedPeersRef = useRef(new Map());
 
-  // Используем локальный socketRef для обратной совместимости
-  const socketRef = useRef(voiceChatSocketRef.current);
+  const socketRef = useRef();
+  const deviceRef = useRef();
+  const producerTransportRef = useRef();
+  const consumerTransportsRef = useRef(new Map());
+  const producersRef = useRef(new Map());
+  const consumersRef = useRef(new Map());
+  const localStreamRef = useRef();
+  const audioRef = useRef(new Map());
+  const audioContextRef = useRef();
+  const gainNodesRef = useRef(new Map());
+  const analyserNodesRef = useRef(new Map());
+  const animationFramesRef = useRef(new Map());
+
+  // Добавляем новый ref для хранения состояний mute
+  const mutedPeersRef = useRef(new Map());
+
+  const [fullscreenShare, setFullscreenShare] = useState(null);
 
   useEffect(() => {
-    // Обновляем локальный socketRef при изменении глобального
-    socketRef.current = voiceChatSocketRef.current;
-  }, [voiceChatSocketRef.current]);
+    const resumeAudioContext = async () => {
+      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        try {
+          await audioContextRef.current.resume();
+          console.log('AudioContext resumed successfully');
+        } catch (error) {
+          console.error('Failed to resume AudioContext:', error);
+        }
+      }
+    };
+
+    const handleInteraction = async () => {
+      await resumeAudioContext();
+      document.removeEventListener('click', handleInteraction);
+      document.removeEventListener('touchstart', handleInteraction);
+    };
+
+    if (socketRef.current) {
+      socketRef.current.on('speakingStateChanged', ({ peerId, speaking }) => {
+        setSpeakingStates(prev => {
+          const newStates = new Map(prev);
+          newStates.set(peerId, speaking);
+          return newStates;
+        });
+      });
+
+      socketRef.current.on('peerMuteStateChanged', ({ peerId, isMuted }) => {
+        setVolumes(prev => {
+          const newVolumes = new Map(prev);
+          newVolumes.set(peerId, isMuted ? 0 : 100);
+          return newVolumes;
+        });
+        
+        if (isMuted) {
+          setSpeakingStates(prev => {
+            const newStates = new Map(prev);
+            newStates.set(peerId, false);
+            return newStates;
+          });
+        }
+      });
+    }
+
+    document.addEventListener('click', handleInteraction);
+    document.addEventListener('touchstart', handleInteraction);
+
+    return () => {
+      document.removeEventListener('click', handleInteraction);
+      document.removeEventListener('touchstart', handleInteraction);
+    };
+  }, []);
 
   useEffect(() => {
-    // Если уже подключены к этой комнате, просто обновляем UI
-    if (activeVoiceChat === roomId && voiceChatSocketRef.current?.connected) {
-      console.log('Already connected to this voice chat room');
-      setIsJoined(true);
-      setIsConnected(true);
-      return;
-    }
+    const socket = socketRef.current;
+    if (!socket) return;
 
-    // Если autoJoin включен, подключаемся автоматически
-    if (autoJoin) {
-      handleJoin();
+    // Глобальный логгер всех событий сокета
+    socket.onAny((event, ...args) => {
+      console.log('Socket event received:', event, args);
+    });
+
+    // Обработчик закрытия producer
+    socket.on('producerClosed', ({ producerId, producerSocketId, mediaType }) => {
+      console.log('Producer closed event received:', { producerId, producerSocketId, mediaType });
+      
+      if (mediaType === 'screen') {
+        console.log('Processing screen sharing producer closure');
+        setRemoteScreens(prev => {
+          const newScreens = new Map(prev);
+          const screenEntry = [...newScreens.entries()].find(
+            ([id, data]) => data.producerId === producerId
+          );
+          
+          if (screenEntry) {
+            const [peerId] = screenEntry;
+            if (peerId === producerSocketId) {
+              console.log('Removing screen from remoteScreens:', peerId);
+              // Останавливаем треки перед удалением
+              const stream = screenEntry[1].stream;
+              if (stream) {
+                stream.getTracks().forEach(track => {
+                  track.stop();
+                });
+              }
+              newScreens.delete(peerId);
+            }
+          }
+          return newScreens;
+        });
+      } else if (mediaType === 'webcam') {
+        console.log('Processing webcam producer closure');
+        setRemoteVideos(prev => {
+          const newVideos = new Map(prev);
+          const videoEntry = [...newVideos.entries()].find(
+            ([id, data]) => data.producerId === producerId
+          );
+          
+          if (videoEntry) {
+            const [peerId] = videoEntry;
+            if (peerId === producerSocketId) {
+              console.log('Removing video from remoteVideos:', peerId);
+              // Останавливаем треки перед удалением
+              const stream = videoEntry[1].stream;
+              if (stream) {
+                stream.getTracks().forEach(track => {
+                  track.stop();
+                });
+              }
+              newVideos.delete(peerId);
+
+              // Находим и закрываем соответствующий consumer
+              const consumer = Array.from(consumersRef.current.entries()).find(
+                ([id, consumer]) => consumer.producerId === producerId
+              );
+              if (consumer) {
+                console.log('Found and closing associated consumer:', consumer[0]);
+                consumer[1].close();
+                consumersRef.current.delete(consumer[0]);
+              }
+            }
+          }
+          return newVideos;
+        });
+      }
+    });
+
+    // Обработчики состояния говорения и отключения звука
+    socket.on('speakingStateChanged', ({ peerId, speaking }) => {
+      setSpeakingStates(prev => {
+        const newStates = new Map(prev);
+        newStates.set(peerId, speaking);
+        return newStates;
+      });
+    });
+
+    socket.on('peerMuteStateChanged', ({ peerId, isMuted }) => {
+      setVolumes(prev => {
+        const newVolumes = new Map(prev);
+        newVolumes.set(peerId, isMuted ? 0 : 100);
+        return newVolumes;
+      });
+      
+      if (isMuted) {
+        setSpeakingStates(prev => {
+          const newStates = new Map(prev);
+          newStates.set(peerId, false);
+          return newStates;
+        });
+      }
+    });
+
+    // Очистка при размонтировании
+    return () => {
+      socket.offAny();
+      socket.off('producerClosed');
+      socket.off('speakingStateChanged');
+      socket.off('peerMuteStateChanged');
+    };
+  }, [socketRef.current]); // Зависим только от socketRef.current
+
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    // Add audio state change handler
+    socket.on('peerAudioStateChanged', ({ peerId, isEnabled }) => {
+      setAudioStates(prev => {
+        const newStates = new Map(prev);
+        newStates.set(peerId, isEnabled);
+        return newStates;
+      });
+    });
+
+    return () => {
+      socket.off('peerAudioStateChanged');
+    };
+  }, [socketRef.current]);
+
+  const cleanup = () => {
+    // Reset states to enabled
+    setIsAudioEnabled(true);
+    isAudioEnabledRef.current = true;
+    setUseEarpiece(true);
+    setIsMuted(false); // Reset mute state
+    
+    // Close all media streams
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
     }
-  }, [roomId, autoJoin, activeVoiceChat]);
+    
+    try {
+      // Stop screen sharing if active
+      if (screenProducer) {
+        screenProducer.close();
+        setScreenProducer(null);
+      }
+      
+      if (screenStream) {
+        screenStream.getTracks().forEach(track => track.stop());
+        setScreenStream(null);
+      }
+
+      setIsScreenSharing(false);
+      setRemoteScreens(new Map());
+
+      // Cleanup voice detection workers
+      audioRef.current.forEach((peerAudio, peerId) => {
+        if (peerAudio instanceof Map && peerAudio.has('voiceDetector')) {
+          const voiceDetector = peerAudio.get('voiceDetector');
+          if (voiceDetector) {
+            voiceDetector.port.close();
+            voiceDetector.disconnect();
+          }
+        }
+      });
+
+      // Cleanup analyzers
+      analyserNodesRef.current.forEach(analyser => {
+        if (analyser) {
+          analyser.disconnect();
+        }
+      });
+      analyserNodesRef.current.clear();
+
+      // Cancel all animation frames
+      animationFramesRef.current.forEach((frameId) => {
+        cancelAnimationFrame(frameId);
+      });
+      animationFramesRef.current.clear();
+
+      // Close socket and transports
+      if (socketRef.current) {
+        socketRef.current.close();
+        socketRef.current = null;
+      }
+
+      // Close producer transport
+      if (producerTransportRef.current) {
+        producerTransportRef.current.close();
+        producerTransportRef.current = null;
+      }
+
+      // Close consumer transports
+      consumerTransportsRef.current.forEach(transport => {
+        if (transport) {
+          transport.close();
+        }
+      });
+      consumerTransportsRef.current.clear();
+      
+      // Close producers
+      producersRef.current.forEach(producer => {
+        if (producer) {
+          producer.close();
+        }
+      });
+      producersRef.current.clear();
+      
+      // Close consumers
+      consumersRef.current.forEach(consumer => {
+        if (consumer) {
+          consumer.close();
+        }
+      });
+      consumersRef.current.clear();
+
+      // Cleanup local stream
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current = null;
+      }
+
+      // Cleanup audio elements
+      audioRef.current.forEach(audio => {
+        if (audio instanceof HTMLAudioElement) {
+          audio.pause();
+          audio.srcObject = null;
+          audio.remove();
+        }
+      });
+      audioRef.current.clear();
+
+      // Cleanup gain nodes
+      gainNodesRef.current.forEach(node => {
+        if (node) {
+          node.disconnect();
+        }
+      });
+      gainNodesRef.current.clear();
+
+      // Close audio context
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close();
+      }
+      audioContextRef.current = null;
+
+      deviceRef.current = null;
+      
+      // Cleanup noise suppression
+      if (noiseSuppressionRef.current) {
+        noiseSuppressionRef.current.cleanup();
+        noiseSuppressionRef.current = null;
+      }
+
+    } catch (error) {
+      console.error('Cleanup error:', error);
+    }
+  };
 
   const handleJoin = async () => {
     if (!roomId || !userName) {
@@ -1150,69 +1465,1954 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
       setIsAudioEnabled(true);
       isAudioEnabledRef.current = true;
       setUseEarpiece(true);
-      setIsMuted(false);
+      setIsMuted(false); // Reset mute state
 
-      // Если уже подключены к другой комнате, отключаемся
-      if (voiceChatSocketRef.current && activeVoiceChat !== roomId) {
-        voiceChatSocketRef.current.disconnect();
-        voiceChatSocketRef.current = null;
+      // Проверяем, есть ли уже активное подключение к этой комнате
+      if (activeVoiceChat === roomId && voiceChatSocketRef.current?.connected) {
+        console.log('Already connected to this room, reusing connection');
+        socketRef.current = voiceChatSocketRef.current;
+        setIsJoined(true);
+        setIsConnected(true);
+        return;
+      }
+
+      // Если есть активное подключение к другой комнате, отключаемся
+      if (voiceChatSocketRef.current) {
+        await cleanup();
+        leaveVoiceChat();
+      }
+
+      // Clean up old socket if exists
+      if (socketRef.current) {
+        socketRef.current.disconnect();
         socketRef.current = null;
       }
 
-      // Создаем новое подключение только если нет активного
-      if (!voiceChatSocketRef.current) {
-        const socket = io(config.server.url, {
-          transports: ['websocket'],
-          upgrade: false,
-          reconnection: true,
-          reconnectionAttempts: 5,
-          reconnectionDelay: 1000,
-          secure: true,
-          rejectUnauthorized: false
+      socketRef.current = io(config.socketUrl, {
+        transports: ['websocket'],
+        query: { roomId }
+      });
+
+      console.log('Connecting to server...');
+
+      // Сразу добавляем временный логгер для отладки
+      socketRef.current.onAny((event, ...args) => {
+        console.log('IMMEDIATE SOCKET EVENT:', event, args);
+      });
+
+      socketRef.current.on('connect', () => {
+        console.log('Socket connected successfully');
+        setIsConnected(true);
+        joinVoiceChat(roomId, socketRef.current);
+        // Set initial states
+        socketRef.current.emit('muteState', { isMuted: false });
+        socketRef.current.emit('audioState', { isEnabled: isAudioEnabled });
+      });
+
+      socketRef.current.on('connect_error', (error) => {
+  console.error('Socket connection error:', error);
+  setError('Failed to connect to server: ' + error.message);
+  cleanup();
+  leaveVoiceChat();
+});
+
+      socketRef.current.on('disconnect', () => {
+  console.log('Socket disconnected');
+  setIsConnected(false);
+  setIsJoined(false);
+  cleanup();
+  leaveVoiceChat();
+});
+
+      // Add handlers for peer events
+      socketRef.current.on('peerJoined', ({ peerId, name, isMuted, isAudioEnabled }) => {
+  console.log('New peer joined:', { peerId, name, isMuted, isAudioEnabled });
+        
+        // Update peers state
+        setPeers(prev => {
+          const newPeers = new Map(prev);
+          // Only add if peer doesn't exist
+          if (!newPeers.has(peerId)) {
+            newPeers.set(peerId, { 
+              id: peerId, 
+              name, 
+              isMuted: Boolean(isMuted) 
+            });
+            console.log('Added new peer to peers map:', { peerId, name });
+          }
+          return newPeers;
         });
 
-        voiceChatSocketRef.current = socket;
-        socketRef.current = socket;
-
-        socket.on('connect', () => {
-          console.log('Socket connected successfully');
-          setIsConnected(true);
-          setIsJoined(true);
-          joinVoiceChat(roomId);
+        // Update audio states
+        setAudioStates(prev => {
+          const newStates = new Map(prev);
+          newStates.set(peerId, Boolean(isAudioEnabled));
+          return newStates;
         });
 
-        socket.on('connect_error', (error) => {
-          console.error('Socket connection error:', error);
-          setError('Failed to connect to server: ' + error.message);
-          leaveVoiceChat();
+        // Initialize volumes for the new peer
+        setVolumes(prev => {
+          const newVolumes = new Map(prev);
+          newVolumes.set(peerId, isMuted ? 0 : 100); // Set volume based on mute state
+          return newVolumes;
         });
 
-        socket.on('disconnect', () => {
-          console.log('Socket disconnected');
-          setIsConnected(false);
-          setIsJoined(false);
-          setPeers(new Map());
-          leaveVoiceChat();
+        // Initialize speaking state for the new peer
+        setSpeakingStates(prev => {
+          const newStates = new Map(prev);
+          newStates.set(peerId, false); // Initially not speaking
+          return newStates;
         });
+
+        // Initialize individual mute state
+        individualMutedPeersRef.current.set(peerId, Boolean(isMuted));
+      });
+
+      socketRef.current.on('peerLeft', ({ peerId }) => {
+        console.log('Peer left:', peerId);
+        setPeers(prev => {
+          const newPeers = new Map(prev);
+          newPeers.delete(peerId);
+          return newPeers;
+        });
+        setAudioStates(prev => {
+          const newStates = new Map(prev);
+          newStates.delete(peerId);
+          return newStates;
+        });
+      });
+
+      socketRef.current.on('newProducer', async ({ producerId, producerSocketId, kind }) => {
+        console.log('New producer:', { producerId, producerSocketId, kind });
+        await handleExistingProducer({ producerId, producerSocketId, kind });
+      });
+
+      // Initialize device first
+      console.log('Initializing device...');
+      const device = new Device();
+      deviceRef.current = device;
+
+      socketRef.current.emit('createRoom', { roomId }, async ({ error: createError }) => {
+        console.log('Create room response:', createError ? `Error: ${createError}` : 'Success');
+        
+        socketRef.current.emit('join', { roomId, name: userName }, async ({ error: joinError, routerRtpCapabilities, existingPeers, existingProducers }) => {
+          if (joinError) {
+            console.error('Join error:', joinError);
+            setError(joinError);
+            return;
+          }
+
+          try {
+            console.log('Joined room, initializing connection...');
+            
+            // Update peers state with existing peers
+            if (existingPeers && existingPeers.length > 0) {
+              console.log('Setting existing peers:', existingPeers);
+              const peersMap = new Map();
+              const audioStatesMap = new Map();
+              existingPeers.forEach(peer => {
+                peersMap.set(peer.id, { 
+                  id: peer.id, 
+                  name: peer.name, 
+                  isMuted: peer.isMuted || false 
+                });
+                audioStatesMap.set(peer.id, peer.isAudioEnabled);
+              });
+              setPeers(peersMap);
+              setAudioStates(audioStatesMap);
+            }
+
+            // Initialize Web Audio API context
+            if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+              audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)({
+                sampleRate: 48000,
+                latencyHint: 'interactive'
+              });
+            }
+            
+            await audioContextRef.current.resume();
+
+            // Load device with router capabilities
+            console.log('Loading device with router capabilities...');
+            await device.load({ routerRtpCapabilities });
+            console.log('Device loaded successfully');
+
+            // Create send transport
+            console.log('Creating send transport...');
+            await createSendTransport();
+            console.log('Send transport created successfully');
+
+            // Create local stream
+            console.log('Creating local stream...');
+            await createLocalStream();
+            console.log('Local stream created successfully');
+
+            // Send initial states to server
+            socketRef.current.emit('audioState', { isEnabled: true });
+            socketRef.current.emit('muteState', { isMuted: false });
+
+            // Handle existing producers
+            if (existingProducers && existingProducers.length > 0) {
+              console.log('Processing existing producers:', existingProducers);
+              for (const producer of existingProducers) {
+                await handleExistingProducer(producer);
+              }
+            }
+
+            console.log('Setting joined state to true');
+            setIsJoined(true);
+
+          } catch (err) {
+            console.error('Failed to initialize:', err);
+            setError('Failed to initialize connection: ' + err.message);
+            cleanup();
+          }
+        });
+      });
+
+    } catch (err) {
+      console.error('Connection error:', err);
+      setError('Failed to connect to server: ' + err.message);
+      cleanup();
+      leaveVoiceChat();
+    }
+  };
+
+  const handleExistingProducer = async (producer) => {
+    try {
+      console.log('Handling existing producer:', producer);
+      
+      // Skip if this is our own producer
+      if (producer.producerSocketId === socketRef.current.id) {
+        console.log('Skipping own producer');
+        return;
+      }
+      
+      // Create consumer transport if not exists
+      const transport = await createConsumerTransport();
+      console.log('Consumer transport created:', transport.id);
+      
+      const { rtpCapabilities } = deviceRef.current;
+      
+      // Request consume
+      const { id, producerId, kind, rtpParameters, appData, error } = await new Promise((resolve, reject) => {
+        socketRef.current.emit('consume', {
+          rtpCapabilities,
+          remoteProducerId: producer.producerId,
+          transportId: transport.id
+        }, (response) => {
+          if (response.error) {
+            console.error('Consume request failed:', response.error);
+            reject(new Error(response.error));
+            return;
+          }
+          resolve(response);
+        });
+      });
+
+      if (error) {
+        throw new Error(error);
       }
 
-      // ... остальной код handleJoin ...
+      if (!id || !producerId || !kind || !rtpParameters) {
+        throw new Error('Invalid consumer data received from server');
+      }
+
+      // Create consumer
+      const consumer = await transport.consume({
+        id,
+        producerId,
+        kind,
+        rtpParameters,
+        appData
+      });
+
+      console.log('Consumer created:', consumer.id);
+      consumersRef.current.set(consumer.id, consumer);
+
+      // Create MediaStream from consumer's track
+      const stream = new MediaStream([consumer.track]);
+
+      // Handle based on kind and appData
+      if (appData?.mediaType === 'screen') {
+        console.log('Processing screen sharing stream:', { kind, appData });
+        
+        if (kind === 'video') {
+          console.log('Setting up screen sharing video');
+          setRemoteScreens(prev => {
+            const newScreens = new Map(prev);
+            newScreens.set(producer.producerSocketId, { 
+              producerId,
+              consumerId: consumer.id,
+              stream
+            });
+            return newScreens;
+          });
+        }
+      } else if (appData?.mediaType === 'webcam') {
+        console.log('Processing webcam stream:', { kind, appData });
+        
+        if (kind === 'video') {
+          console.log('Setting up webcam stream');
+          setRemoteVideos(prev => {
+            const newVideos = new Map(prev);
+            newVideos.set(producer.producerSocketId, {
+              producerId,
+              consumerId: consumer.id,
+              stream
+            });
+            return newVideos;
+          });
+        }
+      } else if (kind === 'audio') {
+        // Handle regular audio streams
+        try {
+          const audio = new Audio();
+          audio.srcObject = stream;
+          audio.id = `audio-${producer.producerSocketId}`;
+          audio.autoplay = true;
+          audio.muted = !isAudioEnabledRef.current; // Use ref for current state
+
+          if (isMobile) {
+            await setAudioOutput(audio, useEarpiece);
+          }
+          
+          // Create audio context and nodes only for audio streams
+          const audioContext = audioContextRef.current;
+          const source = audioContext.createMediaStreamSource(stream);
+          
+          // Add analyzer for voice activity detection
+          const analyser = createAudioAnalyser(audioContext);
+          
+          // Create gain node
+          const gainNode = audioContext.createGain();
+          gainNode.gain.value = isAudioEnabledRef.current ? 1.0 : 0.0; // Use ref for current state
+
+          // Connect nodes только для анализа голоса
+          source.connect(analyser);
+          analyser.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+
+          // Store references
+          analyserNodesRef.current.set(producer.producerSocketId, analyser);
+          gainNodesRef.current.set(producer.producerSocketId, gainNode);
+          audioRef.current.set(producer.producerSocketId, audio);
+          setVolumes(prev => new Map(prev).set(producer.producerSocketId, 100));
+
+          // Start voice detection
+          detectSpeaking(analyser, producer.producerSocketId, producer.producerId);
+        } catch (error) {
+          console.error('Error setting up audio:', error);
+        }
+      }
+
+      // Resume the consumer
+      await new Promise((resolve, reject) => {
+        socketRef.current.emit('resumeConsumer', { consumerId: consumer.id }, async (error) => {
+          if (error) {
+            console.error('Resume consumer failed:', error);
+            reject(new Error(error));
+            return;
+          }
+          try {
+            await consumer.resume();
+            console.log('Consumer resumed');
+            resolve();
+          } catch (err) {
+            console.error('Failed to resume consumer:', err);
+            reject(err);
+          }
+        });
+      });
+
+      // Monitor consumer state
+      consumer.on('transportclose', () => {
+        console.log('Consumer transport closed:', consumer.id);
+        removeConsumer(consumer.id);
+      });
+
+      consumer.on('producerclose', () => {
+        console.log('Consumer producer closed:', consumer.id);
+        removeConsumer(consumer.id);
+      });
+
+      consumer.on('producerpause', () => {
+        console.log('Consumer producer paused:', consumer.id);
+        // Очищаем видео при паузе producer'а
+        if (appData?.mediaType === 'webcam') {
+          setRemoteVideos(prev => {
+            const newVideos = new Map(prev);
+            for (const [peerId, videoData] of newVideos.entries()) {
+              if (videoData.consumerId === consumer.id) {
+                if (videoData.stream) {
+                  videoData.stream.getTracks().forEach(track => {
+                    track.stop();
+                  });
+                }
+                newVideos.delete(peerId);
+                break;
+              }
+            }
+            return newVideos;
+          });
+        }
+      });
+
+      // Monitor track state
+      consumer.track.onended = () => {
+        console.log('Consumer track ended:', consumer.id);
+        removeConsumer(consumer.id);
+      };
+
     } catch (error) {
-      console.error('Error joining room:', error);
-      setError('Failed to join room: ' + error.message);
-      leaveVoiceChat();
+      console.error('Error handling existing producer:', error);
+    }
+  };
+
+  // Получаем контекст мьюта на уровне компонента
+  const { setMuteState } = useContext(MuteContext);
+
+  // Обновляем handleMute
+  const handleMute = useCallback(() => {
+    if (localStreamRef.current) {
+      const audioTrack = localStreamRef.current.getAudioTracks()[0];
+      if (audioTrack) {
+        const newMuteState = !isMuted;
+        audioTrack.enabled = !newMuteState; // Инвертируем состояние трека
+        setIsMuted(newMuteState);
+        
+        // Если есть обработанный поток, обновляем его трек тоже
+        if (noiseSuppressionRef.current) {
+          const processedTrack = noiseSuppressionRef.current.getProcessedStream().getAudioTracks()[0];
+          if (processedTrack) {
+            processedTrack.enabled = !newMuteState;
+          }
+        }
+        
+        console.log('Sending mute state to server:', newMuteState);
+        if (socketRef.current) {
+          socketRef.current.emit('muteState', { isMuted: newMuteState });
+          
+          if (setMuteState) {
+            setMuteState(socketRef.current.id, newMuteState);
+          }
+          
+          if (newMuteState) {
+            socketRef.current.emit('speaking', { speaking: false });
+            setSpeakingStates(prev => {
+              const newStates = new Map(prev);
+              newStates.set(socketRef.current.id, false);
+              return newStates;
+            });
+          }
+        }
+      }
+    }
+  }, [isMuted, setMuteState]);
+
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    // Обработчик изменения состояния микрофона других пользователей
+    const handlePeerMuteStateChanged = ({ peerId, isMuted }) => {
+      console.log('Received peer mute state change:', { peerId, isMuted });
+      
+      // Обновляем состояние в peers
+      setPeers(prev => {
+        const newPeers = new Map(prev);
+        const peer = newPeers.get(peerId);
+        if (peer) {
+          newPeers.set(peerId, { ...peer, isMuted: Boolean(isMuted) });
+        }
+        return newPeers;
+      });
+
+      // Если пользователь замьючен, убираем состояние speaking
+      if (isMuted) {
+        setSpeakingStates(prev => {
+          const newStates = new Map(prev);
+          newStates.set(peerId, false);
+          return newStates;
+        });
+      }
+    };
+
+    socket.on('peerMuteStateChanged', handlePeerMuteStateChanged);
+
+    return () => {
+      socket.off('peerMuteStateChanged', handlePeerMuteStateChanged);
+    };
+  }, [socketRef.current]);
+
+  // Эффект для глобального управления звуком
+  useEffect(() => {
+    isAudioEnabledRef.current = isAudioEnabled;
+    
+    audioRef.current.forEach((audio, peerId) => {
+      const gainNode = gainNodesRef.current.get(peerId);
+      if (gainNode && audio) {
+        if (!isAudioEnabled) {
+          // При глобальном выключении просто мутим аудио элемент
+          audio.muted = true;
+        } else {
+          // При глобальном включении проверяем индивидуальное состояние
+          const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
+          audio.muted = isIndividuallyMuted;
+        }
+      }
+    });
+  }, [isAudioEnabled]);
+
+  const handleVolumeChange = (peerId) => {
+    console.log('Volume change requested for peer:', peerId);
+    const gainNode = gainNodesRef.current.get(peerId);
+    
+    // Даже если глобально звук выключен, мы все равно меняем индивидуальное состояние
+    const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
+    const newIsIndividuallyMuted = !isIndividuallyMuted;
+    const newVolume = newIsIndividuallyMuted ? 0 : 100;
+    
+    console.log('Peer:', peerId, 'Current individual mute:', isIndividuallyMuted, 'New individual mute:', newIsIndividuallyMuted);
+    console.log('GainNode exists:', !!gainNode);
+    
+    if (gainNode) {
+      // Обновляем состояние аудио элемента
+      const audio = audioRef.current.get(peerId);
+      console.log('Audio element exists:', !!audio);
+      
+      if (audio) {
+        if (!newIsIndividuallyMuted) {
+          // Размучиваем только если глобальный звук включен
+          if (isAudioEnabled) {
+            audio.muted = false;
+          }
+          gainNode.gain.setValueAtTime(1, audioContextRef.current.currentTime);
+          console.log('Set gain to 1 and unmuted audio for peer:', peerId);
+        } else {
+          gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
+          audio.muted = true;
+          console.log('Set gain to 0 and muted audio for peer:', peerId);
+        }
+      }
+
+      // Сохраняем новое индивидуальное состояние
+      individualMutedPeersRef.current.set(peerId, newIsIndividuallyMuted);
+      
+      // Обновляем UI состояние
+      setVolumes(prev => {
+        const newVolumes = new Map(prev);
+        newVolumes.set(peerId, newVolume);
+        return newVolumes;
+      });
+    }
+  };
+
+  // Обновляем обработчик подключения пира
+  const handlePeerJoined = useCallback(({ peerId }) => {
+    // Инициализируем состояние - не замучен индивидуально
+    individualMutedPeersRef.current.set(peerId, false);
+    setVolumes(prev => {
+      const newVolumes = new Map(prev);
+      newVolumes.set(peerId, 100);
+      return newVolumes;
+    });
+  }, []);
+
+  // Обновляем обработчик отключения пира
+  const handlePeerLeft = useCallback(({ peerId }) => {
+    individualMutedPeersRef.current.delete(peerId);
+    setVolumes(prev => {
+      const newVolumes = new Map(prev);
+      newVolumes.delete(peerId);
+      return newVolumes;
+    });
+  }, []);
+
+  const initializeDevice = async (routerRtpCapabilities) => {
+    try {
+      if (!deviceRef.current) {
+        const device = new Device();
+        if (routerRtpCapabilities) {
+          await device.load({ routerRtpCapabilities });
+        }
+        deviceRef.current = device;
+        console.log('Device initialized', routerRtpCapabilities ? 'with capabilities' : 'without capabilities');
+      } else if (routerRtpCapabilities) {
+        await deviceRef.current.load({ routerRtpCapabilities });
+        console.log('Device reinitialized with capabilities');
+      }
+    } catch (error) {
+      console.error('Failed to initialize device:', error);
+      throw error;
+    }
+  };
+
+  const createSendTransport = async () => {
+    return new Promise((resolve, reject) => {
+      console.log('Creating send transport...');
+      socketRef.current.emit('createWebRtcTransport', async ({ error, ...params }) => {
+        if (error) {
+          console.error('Create send transport error:', error);
+          setError(`Failed to create transport: ${error}`);
+          reject(error);
+          return;
+        }
+
+        try {
+          console.log('Send transport parameters:', params);
+          const transport = deviceRef.current.createSendTransport({
+            ...params,
+            iceServers: config.iceServers,
+            iceTransportPolicy: 'all',
+            iceCandidatePoolSize: 10
+          });
+
+          transport.on('connect', async ({ dtlsParameters }, callback, errback) => {
+            try {
+              console.log('Send transport connect event');
+              socketRef.current.emit('connectTransport', {
+                transportId: transport.id,
+                dtlsParameters,
+              }, (response) => {
+                if (response?.error) {
+                  console.error('Connect transport error:', response.error);
+                  errback(new Error(response.error));
+                  return;
+                }
+                console.log('Send transport connected successfully');
+                callback();
+              });
+            } catch (error) {
+              console.error('Transport connect error:', error);
+              errback(error);
+            }
+          });
+
+          transport.on('connectionstatechange', async (state) => {
+            console.log('Send transport connection state changed:', state);
+            if (state === 'connected') {
+              console.log('Send transport connected');
+            } else if (state === 'failed' || state === 'disconnected') {
+              console.error('Send transport failed or disconnected, attempting reconnection...');
+              try {
+                const { iceParameters, error } = await new Promise((resolve) => {
+                  socketRef.current.emit('restartIce', { transportId: transport.id }, resolve);
+                });
+
+                if (error) {
+                  throw new Error(error);
+                }
+
+                if (iceParameters) {
+                  await transport.restartIce({ iceParameters });
+                  console.log('Send transport ICE restarted successfully');
+                }
+              } catch (error) {
+                console.error('Failed to restart send transport ICE:', error);
+                setError('Connection failed. Please try rejoining the room.');
+              }
+            }
+          });
+
+          transport.on('produce', async ({ kind, rtpParameters, appData }, callback, errback) => {
+            try {
+              console.log('Send transport produce event:', { kind });
+              socketRef.current.emit('produce', {
+                transportId: transport.id,
+                kind,
+                rtpParameters,
+                appData
+              }, (response) => {
+                if (response?.error) {
+                  console.error('Produce error:', response.error);
+                  errback(new Error(response.error));
+                  return;
+                }
+                console.log('Producer created successfully:', response.id);
+                callback({ id: response.id });
+              });
+            } catch (error) {
+              console.error('Transport produce error:', error);
+              errback(error);
+            }
+          });
+
+          producerTransportRef.current = transport;
+          resolve(transport);
+        } catch (error) {
+          console.error('Failed to create send transport:', error);
+          setError(`Failed to create transport: ${error.message}`);
+          reject(error);
+        }
+      });
+    });
+  };
+
+  const createLocalStream = async () => {
+    try {
+      console.log('Creating local stream...');
+      
+      // Always start with audio enabled
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+          sampleRate: 48000,
+          sampleSize: 16,
+          latency: 0,
+          volume: 1.0,
+          enabled: true // Ensure audio starts enabled
+        },
+        video: false
+      });
+
+      localStreamRef.current = stream;
+      
+      // Initialize audio context and noise suppression
+      noiseSuppressionRef.current = new NoiseSuppressionManager();
+      
+      // Initialize noise suppression with the stream
+      await noiseSuppressionRef.current.initialize(stream, audioContextRef.current);
+      
+      // Get the processed stream for the producer
+      const processedStream = noiseSuppressionRef.current.getProcessedStream();
+      const track = processedStream.getAudioTracks()[0];
+      
+      if (!track) {
+        throw new Error('No audio track in processed stream');
+      }
+      
+      // Ensure track settings are applied
+      const settings = track.getSettings();
+      console.log('Final audio track settings:', settings);
+
+      // Ensure track is enabled and not muted
+      track.enabled = true; // Always enable the track initially
+      
+      if (isNoiseSuppressed) {
+        const enableResult = await noiseSuppressionRef.current.enable(noiseSuppressionMode);
+        if (!enableResult) {
+          console.warn('Failed to enable noise suppression, continuing without it');
+        }
+      }
+
+      if (!producerTransportRef.current) {
+        throw new Error('Producer transport not initialized');
+      }
+
+      // Add analyzer for voice activity detection
+      const source = audioContextRef.current.createMediaStreamSource(processedStream);
+      const analyser = createAudioAnalyser(audioContextRef.current);
+      source.connect(analyser);
+
+      // Store analyser reference
+      analyserNodesRef.current.set(socketRef.current.id, analyser);
+
+      // Start voice detection
+      detectSpeaking(analyser, socketRef.current.id);
+      
+      console.log('Creating audio producer...');
+      const producer = await producerTransportRef.current.produce({ 
+        track,
+        codecOptions: {
+          opusStereo: true,
+          opusDtx: true,
+          opusFec: true,
+          opusNack: true
+        },
+        appData: {
+          streamId: processedStream.id
+        }
+      });
+      
+      console.log('Audio producer created:', producer.id);
+      producersRef.current.set(producer.id, producer);
+
+      // Set producer in noise suppression manager
+      if (noiseSuppressionRef.current) {
+        noiseSuppressionRef.current.setProducer(producer);
+      }
+
+      // Monitor producer state
+      producer.on('transportclose', () => {
+        console.log('Producer transport closed');
+        producer.close();
+        producersRef.current.delete(producer.id);
+      });
+
+      producer.on('trackended', () => {
+        console.log('Local track ended');
+        producer.close();
+        producersRef.current.delete(producer.id);
+      });
+
+      return producer;
+    } catch (error) {
+      console.error('Failed to create local stream:', error);
+      throw error;
+    }
+  };
+
+  const createConsumerTransport = async () => {
+    console.log('Creating consumer transport...');
+    const { error, ...params } = await new Promise((resolve) => {
+      socketRef.current.emit('createWebRtcTransport', resolve);
+    });
+
+    if (error) {
+      console.error('Failed to create consumer transport:', error);
+      throw new Error('Failed to create consumer transport');
+    }
+
+    console.log('Consumer transport parameters:', params);
+
+    const transport = deviceRef.current.createRecvTransport({
+      ...params,
+      iceServers: config.iceServers,
+      iceTransportPolicy: 'all',
+      iceCandidatePoolSize: 10
+    });
+
+    transport.on('connect', ({ dtlsParameters }, callback, errback) => {
+      console.log('Consumer transport connect event');
+      socketRef.current.emit('connectTransport', {
+        transportId: transport.id,
+        dtlsParameters,
+      }, (error) => {
+        if (error) {
+          console.error('Consumer transport connect error:', error);
+          errback(error);
+          return;
+        }
+        console.log('Consumer transport connected successfully');
+        callback();
+      });
+    });
+
+    transport.on('connectionstatechange', async (state) => {
+      console.log('Consumer transport connection state changed:', state);
+      if (state === 'connected') {
+        console.log('Consumer transport connected');
+      } else if (state === 'failed' || state === 'disconnected') {
+        console.error('Consumer transport failed or disconnected, attempting reconnection...');
+        try {
+          const { iceParameters, error } = await new Promise((resolve) => {
+            socketRef.current.emit('restartIce', { transportId: transport.id }, resolve);
+          });
+
+          if (error) {
+            throw new Error(error);
+          }
+
+          if (iceParameters) {
+            await transport.restartIce({ iceParameters });
+            console.log('Consumer transport ICE restarted successfully');
+          }
+        } catch (error) {
+          console.error('Failed to restart consumer transport ICE:', error);
+          setError('Connection failed. Please try rejoining the room.');
+        }
+      }
+    });
+
+    consumerTransportsRef.current.set(transport.id, transport);
+    return transport;
+  };
+
+  const removeConsumer = (consumerId) => {
+    try {
+      console.log('Removing consumer:', consumerId);
+      const consumer = consumersRef.current.get(consumerId);
+      if (consumer) {
+        // Закрываем consumer
+        consumer.close();
+        consumersRef.current.delete(consumerId);
+        
+        // Находим и удаляем соответствующее видео
+        setRemoteVideos(prev => {
+          const newVideos = new Map(prev);
+          for (const [peerId, videoData] of newVideos.entries()) {
+            if (videoData.consumerId === consumerId) {
+              console.log('Found and removing video for consumer:', consumerId);
+              // Останавливаем треки
+              if (videoData.stream) {
+                videoData.stream.getTracks().forEach(track => {
+                  track.stop();
+                });
+              }
+              newVideos.delete(peerId);
+              break;
+            }
+          }
+          return newVideos;
+        });
+
+        // Очищаем аудио элементы
+        const producerSocketId = Array.from(audioRef.current.keys()).find(
+          key => audioRef.current.get(key).srcObject?.getTracks()[0].id === consumer.track.id
+        );
+        
+        if (producerSocketId) {
+          const audio = audioRef.current.get(producerSocketId);
+          if (audio) {
+            audio.pause();
+            audio.srcObject = null;
+            audioRef.current.delete(producerSocketId);
+          }
+
+          const gainNode = gainNodesRef.current.get(producerSocketId);
+          if (gainNode) {
+            gainNode.disconnect();
+            gainNodesRef.current.delete(producerSocketId);
+          }
+
+          setVolumes(prev => {
+            const newVolumes = new Map(prev);
+            newVolumes.delete(producerSocketId);
+            return newVolumes;
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error removing consumer:', error);
     }
   };
 
   const handleLeaveCall = () => {
     cleanup();
     leaveVoiceChat();
+    setPeers(new Map());
+    setVolumes(new Map());
+    setError('');
+    setIsJoined(false);
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
     if (onLeave) {
       onLeave();
     }
   };
 
-  // ... остальной код компонента ...
+  const startScreenSharing = async () => {
+    try {
+      if (!producerTransportRef.current) {
+        throw new Error('Transport not ready');
+      }
+
+      // Stop any existing screen sharing first
+      if (isScreenSharing) {
+        await stopScreenSharing();
+      }
+
+      console.log('Requesting screen sharing access...');
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: {
+          cursor: 'always',
+          frameRate: { ideal: 60, max: 60 },
+          width: { ideal: 1920, max: 1920 },
+          height: { ideal: 1080, max: 1080 },
+          aspectRatio: 16/9,
+          displaySurface: 'monitor',
+          resizeMode: 'crop-and-scale'
+        },
+        audio: false
+      });
+
+      console.log('Screen sharing access granted');
+
+      // Handle stream stop
+      screenStream.getVideoTracks()[0].onended = () => {
+        console.log('Screen sharing stopped by user');
+        stopScreenSharing();
+      };
+
+      // Set stream first
+      setScreenStream(screenStream);
+
+      const videoTrack = screenStream.getVideoTracks()[0];
+      if (!videoTrack) {
+        throw new Error('No video track available');
+      }
+
+      console.log('Creating screen sharing producer...');
+      const videoProducer = await producerTransportRef.current.produce({
+        track: videoTrack,
+        encodings: [
+          {
+            // Используем полное разрешение 1080p
+            scaleResolutionDownBy: 1,
+            maxBitrate: 5000000, // 5 Mbps для Full HD
+            maxFramerate: 60
+          }
+        ],
+        codecOptions: {
+          videoGoogleStartBitrate: 3000, // Начальный битрейт 3 Mbps
+          videoGoogleMaxBitrate: 5000 // Максимальный битрейт 5 Mbps
+        },
+        appData: {
+          mediaType: 'screen',
+          width: videoTrack.getSettings().width,
+          height: videoTrack.getSettings().height,
+          frameRate: videoTrack.getSettings().frameRate
+        }
+      });
+
+      console.log('Screen sharing producer created:', videoProducer.id);
+
+      // Set producer after successful creation
+      setScreenProducer(videoProducer);
+      setIsScreenSharing(true);
+
+      // Handle producer events
+      videoProducer.on('transportclose', () => {
+        console.log('Screen sharing transport closed');
+        stopScreenSharing();
+      });
+
+      videoProducer.on('trackended', () => {
+        console.log('Screen sharing track ended');
+        stopScreenSharing();
+      });
+
+    } catch (error) {
+      console.error('Error starting screen share:', error);
+      // Make sure to clean up if there's an error
+      if (screenStream) {
+        screenStream.getTracks().forEach(track => track.stop());
+      }
+      setScreenStream(null);
+      setScreenProducer(null);
+      setIsScreenSharing(false);
+      setError('Failed to start screen sharing: ' + error.message);
+    }
+  };
+
+  const stopScreenSharing = async () => {
+    console.log('Stopping screen sharing...');
+
+    try {
+      // Сначала уведомляем сервер для обработки удаления на удаленной стороне
+      if (screenProducer && socketRef.current) {
+        socketRef.current.emit('stopScreenSharing', {
+          producerId: screenProducer.id
+        });
+      }
+
+      // Удаляем только свой локальный экран
+      setRemoteScreens(prev => {
+        const newScreens = new Map(prev);
+        if (socketRef.current) {
+          newScreens.delete(socketRef.current.id);
+        }
+        return newScreens;
+      });
+
+      // Закрываем producer
+      if (screenProducer) {
+        screenProducer.close();
+        setScreenProducer(null);
+      }
+
+      // Останавливаем все треки в потоке экрана
+      if (screenStream) {
+        const tracks = screenStream.getTracks();
+        tracks.forEach(track => {
+          track.stop();
+          screenStream.removeTrack(track);
+        });
+        setScreenStream(null);
+      }
+
+      setIsScreenSharing(false);
+    } catch (error) {
+      console.error('Error stopping screen share:', error);
+      // Принудительная очистка даже при ошибке
+      setScreenProducer(null);
+      setScreenStream(null);
+      setIsScreenSharing(false);
+    }
+  };
+
+  const startVideo = async () => {
+    try {
+      if (!producerTransportRef.current) {
+        throw new Error('Transport not ready');
+      }
+
+      // Остановить текущее видео если есть
+      if (isVideoEnabled) {
+        await stopVideo();
+      }
+
+      console.log('Requesting camera access...');
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1280, max: 1280 },
+          height: { ideal: 720, max: 720 },
+          frameRate: { ideal: 60, max: 60 },
+          facingMode: 'user',
+          aspectRatio: { ideal: 16/9 }
+        }
+      });
+
+      console.log('Camera access granted');
+
+      // Обработка остановки трека
+      stream.getVideoTracks()[0].onended = () => {
+        console.log('Camera track ended');
+        stopVideo();
+      };
+
+      // Сохраняем поток
+      setVideoStream(stream);
+
+      const videoTrack = stream.getVideoTracks()[0];
+      if (!videoTrack) {
+        throw new Error('No video track available');
+      }
+
+      console.log('Creating video producer...');
+      const producer = await producerTransportRef.current.produce({
+        track: videoTrack,
+        encodings: [
+          { maxBitrate: 1500000, scaleResolutionDownBy: 1, maxFramerate: 60 }
+        ],
+        codecOptions: {
+          videoGoogleStartBitrate: 1500,
+          videoGoogleMaxBitrate: 3000
+        },
+        appData: {
+          mediaType: 'webcam'
+        }
+      });
+
+      console.log('Video producer created:', producer.id);
+
+      // Сохраняем producer
+      setVideoProducer(producer);
+      setIsVideoEnabled(true);
+
+      // Обработчики событий producer
+      producer.on('transportclose', () => {
+        console.log('Video transport closed');
+        stopVideo();
+      });
+
+      producer.on('trackended', () => {
+        console.log('Video track ended');
+        stopVideo();
+      });
+
+    } catch (error) {
+      console.error('Error starting video:', error);
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+      }
+      setVideoStream(null);
+      setVideoProducer(null);
+      setIsVideoEnabled(false);
+      setError('Failed to start video: ' + error.message);
+    }
+  };
+
+  const stopVideo = async () => {
+    console.log('Stopping video...');
+
+    try {
+      // Сначала закрываем producer
+      if (videoProducer) {
+        console.log('Closing video producer:', videoProducer.id);
+        videoProducer.close();
+        
+        // Уведомляем сервер о закрытии producer'а
+        if (socketRef.current) {
+          console.log('Notifying server about video producer closure');
+          socketRef.current.emit('producerClosed', {
+            producerId: videoProducer.id,
+            producerSocketId: socketRef.current.id,
+            mediaType: 'webcam'
+          });
+        }
+        setVideoProducer(null);
+      }
+
+      // Останавливаем треки
+      if (videoStream) {
+        console.log('Stopping video tracks');
+        videoStream.getTracks().forEach(track => {
+          track.stop();
+        });
+        setVideoStream(null);
+      }
+
+      setIsVideoEnabled(false);
+    } catch (error) {
+      console.error('Error stopping video:', error);
+      setVideoProducer(null);
+      setVideoStream(null);
+      setIsVideoEnabled(false);
+    }
+  };
+
+  const detectSpeaking = async (analyser, peerId, producerId = null) => {
+    try {
+      console.log('Initializing voice detection for peer:', peerId, 'producerId:', producerId);
+      
+      if (!audioContextRef.current) {
+        console.error('AudioContext not initialized');
+        return;
+      }
+
+      if (!audioContextRef.current.audioWorklet) {
+        console.error('AudioWorklet not supported');
+        return;
+      }
+
+      // Загружаем воркер если еще не загружен
+      try {
+        await audioContextRef.current.audioWorklet.addModule(voiceDetectorWorklet);
+        console.log('Voice detector worklet loaded successfully');
+      } catch (error) {
+        console.error('Failed to load voice detector worklet:', error);
+        return;
+      }
+
+      // Создаем узел воркера
+      const voiceDetectorNode = new AudioWorkletNode(audioContextRef.current, 'voice-detector', {
+        numberOfInputs: 1,
+        numberOfOutputs: 1,
+        channelCount: 1
+      });
+      
+      console.log('Voice detector node created');
+
+      // Получаем поток для обработки
+      let stream;
+      if (peerId === socketRef.current?.id) {
+        stream = noiseSuppressionRef.current?.getProcessedStream() || localStreamRef.current;
+        console.log('Using local stream for voice detection');
+      } else {
+        // Добавляем механизм повторных попыток для получения consumer'а
+        let retries = 0;
+        const maxRetries = 5;
+        const retryDelay = 1000; // 1 секунда между попытками
+
+        while (retries < maxRetries) {
+          // Сначала пытаемся найти по producerId если он есть
+          let consumer;
+          if (producerId) {
+            consumer = [...consumersRef.current.values()].find(c => c.producerId === producerId);
+            console.log('Searching consumer by producerId:', producerId, 'found:', !!consumer);
+          }
+          
+          // Если не нашли по producerId, пробуем по peerId
+          if (!consumer) {
+            consumer = [...consumersRef.current.values()].find(c => 
+              c.appData?.peerId === peerId && c.kind === 'audio'
+            );
+            console.log('Searching consumer by peerId:', peerId, 'found:', !!consumer);
+          }
+          
+          if (consumer) {
+            stream = new MediaStream([consumer.track]);
+            console.log('Found consumer and created stream for peer:', peerId);
+            break;
+          }
+
+          console.log(`Attempt ${retries + 1}/${maxRetries} to get consumer for peer:`, peerId);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          retries++;
+        }
+
+        if (!stream) {
+          console.error(`Failed to get consumer for peer ${peerId} after ${maxRetries} attempts`);
+          return;
+        }
+      }
+
+      if (!stream) {
+        console.error('No stream available for voice detection');
+        return;
+      }
+
+      // Отключаем старые соединения
+      analyser.disconnect();
+      console.log('Disconnected old analyzer');
+
+      // Создаем новый источник из потока
+      const source = audioContextRef.current.createMediaStreamSource(stream);
+      console.log('Created media stream source');
+
+      // Подключаем узлы
+      source.connect(voiceDetectorNode);
+      console.log('Connected source to voice detector');
+
+      // Обработчик сообщений от воркера
+      voiceDetectorNode.port.onmessage = (event) => {
+        const { speaking } = event.data;
+        console.log('Voice detection event:', { peerId, speaking });
+        
+        // Проверяем состояние мьюта
+        if ((peerId === socketRef.current?.id && isMuted) || 
+            (peerId !== socketRef.current?.id && (volumes.get(peerId) || 100) === 0)) {
+          if (speakingStates.get(peerId)) {
+            setSpeakingStates(prev => {
+              const newStates = new Map(prev);
+              newStates.set(peerId, false);
+              return newStates;
+            });
+            if (socketRef.current && peerId === socketRef.current.id) {
+              socketRef.current.emit('speaking', { speaking: false });
+            }
+          }
+          return;
+        }
+
+        // Обновляем состояние говорения
+        setSpeakingStates(prev => {
+          const newStates = new Map(prev);
+          newStates.set(peerId, speaking);
+          return newStates;
+        });
+        
+        // Отправляем состояние на сервер только для локального пользователя
+        if (socketRef.current && peerId === socketRef.current.id) {
+          socketRef.current.emit('speaking', { speaking });
+        }
+      };
+
+      // Сохраняем ссылку на узел для очистки
+      if (!audioRef.current.has(peerId)) {
+        audioRef.current.set(peerId, new Map());
+      }
+      audioRef.current.get(peerId).set('voiceDetector', voiceDetectorNode);
+
+      console.log('Voice detection setup completed for peer:', peerId);
+    } catch (error) {
+      console.error('Error in voice detection setup:', error);
+    }
+  };
+
+  // Update analyzer settings when creating audio nodes
+  const createAudioAnalyser = (audioContext) => {
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 2048;  // Higher FFT size for better frequency resolution
+    analyser.smoothingTimeConstant = 0.2;  // Reduced for faster response
+    analyser.minDecibels = -90;
+    analyser.maxDecibels = -10;
+    return analyser;
+  };
+
+  // Обновляем renderScreenShares
+  const renderScreenShares = useMemo(() => {
+    // If we're in fullscreen mode, render only the fullscreen share
+    if (fullscreenShare !== null) {
+      const screenData = fullscreenShare === socketRef.current?.id ? 
+        { stream: screenStream, name: userName } : 
+        { 
+          stream: remoteScreens.get(fullscreenShare)?.stream,
+          name: peers.get(fullscreenShare)?.name
+        };
+
+      if (!screenData.stream) {
+        setFullscreenShare(null);
+        return null;
+      }
+
+      return (
+        <Box sx={styles.fullscreenOverlay}>
+          <Box sx={styles.fullscreenVideoContainer}>
+            <VideoPlayer 
+              stream={screenData.stream}
+              style={styles.fullscreenVideo}
+            />
+            <Box sx={styles.fullscreenControls}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ScreenShare sx={{ color: '#fff', fontSize: 24 }} />
+                <Typography sx={{ color: '#fff', fontWeight: 500 }}>
+                  {screenData.name}
+                </Typography>
+              </Box>
+              <IconButton
+                onClick={() => handleFullscreenToggle(fullscreenShare)}
+                sx={styles.fullscreenButton}
+              >
+                <FullscreenExit sx={{ fontSize: 28 }} />
+              </IconButton>
+            </Box>
+          </Box>
+        </Box>
+      );
+    }
+
+    // If not in fullscreen mode, don't render anything if there are no screen shares
+    if (!isScreenSharing && remoteScreens.size === 0) {
+      return null;
+    }
+
+    // Regular grid view
+    return (
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+        gap: '8px',
+        width: '100%',
+        maxWidth: '1200px',
+        margin: '0 auto'
+      }}>
+        {isScreenSharing && screenStream && (
+          <Box sx={styles.videoItem}>
+            <Box sx={styles.screenShareItem}>
+              <VideoPlayer stream={screenStream} />
+              <Box sx={styles.screenShareControls}>
+                <IconButton
+                  onClick={() => handleFullscreenToggle(socketRef.current?.id)}
+                  sx={styles.fullscreenButton}
+                >
+                  <Fullscreen />
+                </IconButton>
+              </Box>
+              <Box sx={styles.screenShareUserName}>
+                <ScreenShare sx={{ fontSize: 16 }} />
+                {userName}
+              </Box>
+            </Box>
+          </Box>
+        )}
+        {Array.from(remoteScreens.entries()).map(([peerId, screenData]) => {
+          const peer = peers.get(peerId);
+          if (!peer) return null;
+
+          return (
+            <Box key={peerId} sx={styles.videoItem}>
+              <Box sx={styles.screenShareItem}>
+                <VideoPlayer stream={screenData?.stream || null} />
+                <Box sx={styles.screenShareControls}>
+                  <IconButton
+                    onClick={() => handleFullscreenToggle(peerId)}
+                    sx={styles.fullscreenButton}
+                  >
+                    <Fullscreen />
+                  </IconButton>
+                </Box>
+                <Box sx={styles.screenShareUserName}>
+                  <ScreenShare sx={{ fontSize: 16 }} />
+                  {peer.name}
+                </Box>
+              </Box>
+            </Box>
+          );
+        })}
+      </Box>
+    );
+  }, [isScreenSharing, screenStream, remoteScreens, peers, userName, fullscreenShare, socketRef.current?.id]);
+
+  // Добавляем функцию переключения режима динамика
+  const toggleSpeakerMode = async () => {
+    const newMode = !useEarpiece;
+    setUseEarpiece(newMode);
+    
+    // Применяем новый режим ко всем аудио элементам
+    for (const [_, audio] of audioRef.current.entries()) {
+      await setAudioOutput(audio, newMode);
+    }
+  };
+
+  // Add noise suppression toggle handler
+  const handleNoiseSuppressionToggle = async () => {
+    try {
+      if (!noiseSuppressionRef.current || !localStreamRef.current) {
+        console.error('Noise suppression or stream not initialized');
+        return;
+      }
+
+      const newState = !isNoiseSuppressed;
+      let success = false;
+
+      if (newState) {
+        success = await noiseSuppressionRef.current.enable(noiseSuppressionMode);
+      } else {
+        success = await noiseSuppressionRef.current.disable();
+      }
+
+      if (success) {
+        setIsNoiseSuppressed(newState);
+        console.log('Noise suppression ' + (newState ? 'enabled' : 'disabled'));
+      }
+    } catch (error) {
+      console.error('Error toggling noise suppression:', error);
+    }
+  };
+
+  // Add noise suppression menu handlers
+  const handleNoiseSuppressionMenuOpen = (event) => {
+    setNoiseSuppressMenuAnchor(event.currentTarget);
+  };
+
+  const handleNoiseSuppressionMenuClose = () => {
+    setNoiseSuppressMenuAnchor(null);
+  };
+
+  const handleNoiseSuppressionModeSelect = async (mode) => {
+    try {
+      if (!noiseSuppressionRef.current || !localStreamRef.current) {
+        console.error('Noise suppression or stream not initialized');
+        return;
+      }
+
+      let success = false;
+
+      if (!isNoiseSuppressed) {
+        success = await noiseSuppressionRef.current.enable(mode);
+      } else if (mode !== noiseSuppressionMode) {
+        // Если меняем режим при включенном шумоподавлении
+        success = await noiseSuppressionRef.current.enable(mode);
+      }
+
+      if (success) {
+        setNoiseSuppressionMode(mode);
+        setIsNoiseSuppressed(true);
+        console.log('Noise suppression mode changed to:', mode);
+      }
+    } catch (error) {
+      console.error('Error changing noise suppression mode:', error);
+    }
+    handleNoiseSuppressionMenuClose();
+  };
+
+  const handleConsume = async (producer) => {
+    try {
+      console.log('Handling producer:', producer);
+      
+      if (producer.producerSocketId === socketRef.current.id) {
+        console.log('Skipping own producer');
+        return;
+      }
+      
+      const transport = await createConsumerTransport();
+      console.log('Consumer transport created:', transport.id);
+      
+      const { rtpCapabilities } = deviceRef.current;
+      
+      const { id, producerId, kind, rtpParameters, appData } = await new Promise((resolve, reject) => {
+        socketRef.current.emit('consume', {
+          rtpCapabilities,
+          remoteProducerId: producer.producerId,
+          transportId: transport.id
+        }, (response) => {
+          if (response.error) {
+            console.error('Consume request failed:', response.error);
+            reject(new Error(response.error));
+            return;
+          }
+          resolve(response);
+        });
+      });
+
+      if (!id || !producerId || !kind || !rtpParameters) {
+        throw new Error('Invalid consumer data received from server');
+      }
+
+      const consumer = await transport.consume({
+        id,
+        producerId,
+        kind,
+        rtpParameters,
+        appData
+      });
+
+      console.log('Consumer created:', consumer.id);
+      consumersRef.current.set(consumer.id, consumer);
+
+      const stream = new MediaStream([consumer.track]);
+
+      if (appData?.mediaType === 'screen') {
+        console.log('Processing screen sharing stream:', { kind, appData });
+        
+        if (kind === 'video') {
+          console.log('Setting up screen sharing video');
+          setRemoteScreens(prev => {
+            const newScreens = new Map(prev);
+            newScreens.set(producer.producerSocketId, { 
+              producerId,
+              consumerId: consumer.id,
+              stream
+            });
+            return newScreens;
+          });
+        }
+      } else if (appData?.mediaType === 'webcam') {
+        console.log('Processing webcam stream:', { kind, appData });
+        
+        if (kind === 'video') {
+          console.log('Setting up webcam stream');
+          setRemoteVideos(prev => {
+            const newVideos = new Map(prev);
+            newVideos.set(producer.producerSocketId, {
+              producerId,
+              consumerId: consumer.id,
+              stream
+            });
+            return newVideos;
+          });
+        }
+      } else if (kind === 'audio') {
+        try {
+          const audio = new Audio();
+          audio.srcObject = stream;
+          audio.id = `audio-${producer.producerSocketId}`;
+          audio.autoplay = true;
+          audio.muted = !isAudioEnabledRef.current; // Use ref for current state
+
+          if (isMobile) {
+            await setAudioOutput(audio, useEarpiece);
+          }
+          
+          const audioContext = audioContextRef.current;
+          const source = audioContext.createMediaStreamSource(stream);
+          
+          const analyser = createAudioAnalyser(audioContext);
+          
+          const gainNode = audioContext.createGain();
+          gainNode.gain.value = isAudioEnabledRef.current ? 1.0 : 0.0; // Use ref for current state
+
+          source.connect(analyser);
+          analyser.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+
+          analyserNodesRef.current.set(producer.producerSocketId, analyser);
+          gainNodesRef.current.set(producer.producerSocketId, gainNode);
+          audioRef.current.set(producer.producerSocketId, audio);
+          setVolumes(prev => new Map(prev).set(producer.producerSocketId, 100));
+
+          // Start voice detection with producerId
+          detectSpeaking(analyser, producer.producerSocketId, producer.producerId);
+        } catch (error) {
+          console.error('Error setting up audio:', error);
+        }
+      }
+
+      consumer.on('transportclose', () => {
+        console.log('Consumer transport closed');
+        consumer.close();
+        consumersRef.current.delete(consumer.id);
+      });
+
+      consumer.on('producerclose', () => {
+        console.log('Producer closed');
+        consumer.close();
+        consumersRef.current.delete(consumer.id);
+      });
+
+      consumer.on('trackended', () => {
+        console.log('Track ended');
+        consumer.close();
+        consumersRef.current.delete(consumer.id);
+      });
+
+      return consumer;
+    } catch (error) {
+      console.error('Error consuming producer:', error);
+      throw error;
+    }
+  };
+
+  // Update toggleAudio function
+  const toggleAudio = useCallback(() => {
+    const newState = !isAudioEnabled;
+    setIsAudioEnabled(newState);
+    isAudioEnabledRef.current = newState; // Update ref immediately
+
+    // Emit audio state change
+    if (socketRef.current) {
+      socketRef.current.emit('audioState', { isEnabled: newState });
+    }
+
+    // Mute/unmute all audio elements
+    audioRef.current.forEach((audio) => {
+      if (audio instanceof HTMLAudioElement) {
+        audio.muted = !newState;
+      }
+    });
+
+    // Mute/unmute all gain nodes
+    gainNodesRef.current.forEach((gainNode) => {
+      if (gainNode) {
+        gainNode.gain.value = newState ? 1.0 : 0.0;
+      }
+    });
+  }, [isAudioEnabled]);
+
+  // Add initial audio state when joining
+  useEffect(() => {
+    if (isJoined && socketRef.current) {
+      socketRef.current.emit('audioState', { isEnabled: isAudioEnabled });
+    }
+  }, [isJoined, isAudioEnabled]);
+
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    // Add audio state change handler
+    socket.on('peerAudioStateChanged', ({ peerId, isEnabled }) => {
+      setAudioStates(prev => {
+        const newStates = new Map(prev);
+        newStates.set(peerId, isEnabled);
+        return newStates;
+      });
+    });
+
+    return () => {
+      socket.off('peerAudioStateChanged');
+    };
+  }, [socketRef.current]);
+
+  // Add effect to update isAudioEnabledRef
+  useEffect(() => {
+    isAudioEnabledRef.current = isAudioEnabled;
+  }, [isAudioEnabled]);
+
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (socket) {
+      socket.on('peerJoined', handlePeerJoined);
+      socket.on('peerLeft', handlePeerLeft);
+    }
+    return () => {
+      if (socket) {
+        socket.off('peerJoined', handlePeerJoined);
+        socket.off('peerLeft', handlePeerLeft);
+      }
+    };
+  }, [handlePeerJoined, handlePeerLeft]);
+
+  // Add fullscreen handlers
+  const handleFullscreenToggle = (peerId) => {
+    if (fullscreenShare === peerId) {
+      setFullscreenShare(null);
+    } else {
+      setFullscreenShare(peerId);
+    }
+  };
+
+  useEffect(() => {
+    if (autoJoin && roomId && userName && !isJoined) {
+      handleJoin();
+    }
+  }, [autoJoin, roomId, userName]);
+
+  return (
+    <MuteProvider socket={socketRef.current}>
+      <Box sx={styles.root}>
+        <AppBar position="static" sx={styles.appBar}>
+          <Toolbar sx={styles.toolbar}>
+            <Box sx={styles.channelName}>
+              <Tag />
+              <Typography variant="subtitle1">
+                {roomId}
+              </Typography>
+            </Box>
+          </Toolbar>
+        </AppBar>
+        {error && (
+          <Typography color="error" sx={{ p: 2 }}>
+            {error}
+          </Typography>
+        )}
+        <Box sx={styles.container}>
+          <Box sx={styles.videoGrid}>
+            {/* Only render video grid when not in fullscreen mode */}
+            {fullscreenShare === null && (
+              <>
+                {/* Local user */}
+                <Box sx={styles.videoItem} className={speakingStates.get(socketRef.current?.id) ? 'speaking' : ''}>
+                  {isVideoEnabled && videoStream ? (
+                    <VideoView 
+                      stream={videoStream} 
+                      peerName={userName}
+                      isMuted={isMuted}
+                      isSpeaking={speakingStates.get(socketRef.current?.id)}
+                      isAudioEnabled={isAudioEnabled}
+                      isLocal={true}
+                      isAudioMuted={isMuted}
+                    />
+                  ) : (
+                    <div style={{ 
+                      position: 'relative', 
+                      width: '100%', 
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      alignItems: 'center'
+                    }}>
+                      <Box sx={styles.userAvatar}>
+                        {userName[0].toUpperCase()}
+                      </Box>
+                      <VideoOverlay
+                        peerName={userName}
+                        isMuted={isMuted}
+                        isSpeaking={speakingStates.get(socketRef.current?.id)}
+                        isAudioEnabled={isAudioEnabled}
+                        isLocal={true}
+                        isAudioMuted={isMuted}
+                      />
+                    </div>
+                  )}
+                </Box>
+
+                {/* Remote users */}
+                {Array.from(peers.values()).map((peer) => (
+                  <Box key={peer.id} sx={styles.videoItem} className={speakingStates.get(peer.id) ? 'speaking' : ''}>
+                    {remoteVideos.get(peer.id)?.stream ? (
+                      <VideoView
+                        stream={remoteVideos.get(peer.id).stream}
+                        peerName={peer.name}
+                        isMuted={peer.isMuted}
+                        isSpeaking={speakingStates.get(peer.id)}
+                        isAudioEnabled={audioStates.get(peer.id)}
+                        isLocal={false}
+                        onVolumeClick={() => handleVolumeChange(peer.id)}
+                        volume={volumes.get(peer.id) || 100}
+                        isAudioMuted={individualMutedPeersRef.current.get(peer.id) || false}
+                      />
+                    ) : (
+                      <div style={{ 
+                        position: 'relative', 
+                        width: '100%', 
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                      }}>
+                        <Box sx={styles.userAvatar}>
+                          {peer.name[0].toUpperCase()}
+                        </Box>
+                        <VideoOverlay
+                          peerName={peer.name}
+                          isMuted={peer.isMuted}
+                          isSpeaking={speakingStates.get(peer.id)}
+                          isAudioEnabled={audioStates.get(peer.id)}
+                          isLocal={false}
+                          onVolumeClick={() => handleVolumeChange(peer.id)}
+                          volume={volumes.get(peer.id) || 100}
+                          isAudioMuted={individualMutedPeersRef.current.get(peer.id) || false}
+                        />
+                      </div>
+                    )}
+                  </Box>
+                ))}
+              </>
+            )}
+
+            {/* Screen sharing */}
+            {renderScreenShares}
+          </Box>
+          <Box sx={styles.bottomBar}>
+            <Box sx={styles.controlsContainer}>
+              <Box sx={styles.controlGroup}>
+                <IconButton
+                  sx={styles.iconButton}
+                  onClick={handleMute}
+                  title={isMuted ? "Unmute" : "Mute"}
+                >
+                  {isMuted ? <MicOff /> : <Mic />}
+                </IconButton>
+                <IconButton
+                  sx={styles.iconButton}
+                  onClick={isVideoEnabled ? stopVideo : startVideo}
+                  title={isVideoEnabled ? "Stop camera" : "Start camera"}
+                >
+                  {isVideoEnabled ? <VideocamOff /> : <Videocam />}
+                </IconButton>
+                <IconButton
+                  sx={styles.iconButton}
+                  onClick={toggleAudio}
+                  title={isAudioEnabled ? "Disable audio output" : "Enable audio output"}
+                >
+                  {isAudioEnabled ? <Headset /> : <HeadsetOff />}
+                </IconButton>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <IconButton
+                    sx={styles.iconButton}
+                    onClick={handleNoiseSuppressionToggle}
+                    title={isNoiseSuppressed ? "Disable noise suppression" : "Enable noise suppression"}
+                    disabled={!noiseSuppressionRef.current?.isInitialized()}
+                  >
+                    {isNoiseSuppressed ? <NoiseAware /> : <NoiseControlOff />}
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    sx={styles.iconButton}
+                    onClick={handleNoiseSuppressionMenuOpen}
+                    disabled={!noiseSuppressionRef.current?.isInitialized()}
+                  >
+                    <ExpandMore />
+                  </IconButton>
+                  <Menu
+                    anchorEl={noiseSuppressMenuAnchor}
+                    open={Boolean(noiseSuppressMenuAnchor)}
+                    onClose={handleNoiseSuppressionMenuClose}
+                  >
+                    <MenuItem 
+                      onClick={() => handleNoiseSuppressionModeSelect('rnnoise')}
+                      selected={noiseSuppressionMode === 'rnnoise'}
+                    >
+                      RNNoise (AI-based)
+                    </MenuItem>
+                    <MenuItem 
+                      onClick={() => handleNoiseSuppressionModeSelect('speex')}
+                      selected={noiseSuppressionMode === 'speex'}
+                    >
+                      Speex (Classic)
+                    </MenuItem>
+                    <MenuItem 
+                      onClick={() => handleNoiseSuppressionModeSelect('noisegate')}
+                      selected={noiseSuppressionMode === 'noisegate'}
+                    >
+                      Noise Gate
+                    </MenuItem>
+                  </Menu>
+                </Box>
+              </Box>
+              <Box sx={styles.controlGroup}>
+                <IconButton
+                  sx={styles.iconButton}
+                  onClick={isScreenSharing ? stopScreenSharing : startScreenSharing}
+                  title={isScreenSharing ? "Stop sharing" : "Share screen"}
+                >
+                  {isScreenSharing ? <StopScreenShare /> : <ScreenShare />}
+                </IconButton>
+                {isMobile && (
+                  <IconButton
+                    sx={styles.iconButton}
+                    onClick={toggleSpeakerMode}
+                    title={useEarpiece ? "Switch to speaker" : "Switch to earpiece"}
+                  >
+                    {useEarpiece ? <Hearing /> : <VolumeUpRounded />}
+                  </IconButton>
+                )}
+              </Box>
+            </Box>
+            <Button
+              variant="contained"
+              sx={styles.leaveButton}
+              onClick={handleLeaveCall}
+              startIcon={<PhoneDisabled />}
+            >
+              Leave
+            </Button>
+          </Box>
+        </Box>
+      </Box>
+    </MuteProvider>
+  );
 }
 
 export default VoiceChat;
