@@ -4,48 +4,39 @@ import { useVoiceChat } from './contexts/VoiceChatContext';
 // import VoiceChat from './VoiceChat';
 
 const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, isServerOwner }) => {
-    const { joinVoiceRoom, isVoiceChatActive, voiceRoom, setShowVoiceUI, leaveVoiceRoom } = useVoiceChat();
+    const { joinVoiceRoom, isVoiceChatActive, voiceRoom, setShowVoiceUI } = useVoiceChat();
 
     useEffect(() => {
         if (selectedChat?.chatType === 4) {
-            // Входим в голосовой канал
             joinVoiceRoom({
                 roomId: selectedChat.chatId,
                 userName: username,
                 userId: userId,
-                serverId: serverId,
-                leaveVoiceRoom: () => {
-                    // Функция для выхода из голосового канала
-                    leaveVoiceRoom();
-                }
+                serverId: serverId
             });
             setShowVoiceUI(true);
         } else {
-            // Если переключились на не-голосовой канал, очищаем состояние
-            if (isVoiceChatActive) {
-                console.log('Switching to non-voice channel, leaving voice room...');
-                leaveVoiceRoom();
-            }
             setShowVoiceUI(false);
         }
-    }, [selectedChat, username, userId, serverId, joinVoiceRoom, setShowVoiceUI, isVoiceChatActive, leaveVoiceRoom]);
+    }, [selectedChat, username, userId, serverId, joinVoiceRoom, setShowVoiceUI]);
 
+    // Показываем VoiceChat всегда, если звонок активен (фон или foreground)
+    if (isVoiceChatActive && voiceRoom) {
+        return (
+            <div 
+              id="voicechat-root" 
+              style={{
+                width: '100%',
+                height: '100%',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            />
+        );
+    }
+
+    // Для остальных чатов
     if (selectedChat) {
-        // Если это голосовой канал (chatType === 4) и голосовой чат активен
-        if (selectedChat.chatType === 4 && isVoiceChatActive && voiceRoom) {
-            return (
-                <div 
-                  id="voicechat-root" 
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    position: 'relative',
-                    overflow: 'hidden'
-                  }}
-                />
-            );
-        }
-        // Для остальных чатов
         return (
             <GroupChat
                 username={username}
