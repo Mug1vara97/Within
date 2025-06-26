@@ -1042,7 +1042,6 @@ const VideoOverlay = React.memo(({
     prevProps.children === nextProps.children
   );
 });
-export { VideoOverlay };
 
 // Оптимизированный компонент для отображения видео
 const VideoView = React.memo(({ 
@@ -1093,7 +1092,6 @@ const VideoView = React.memo(({
     prevProps.children === nextProps.children
   );
 });
-export { VideoView };
 
 function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave, onManualLeave }) {
   const { leaveVoiceRoom } = useVoiceChat();
