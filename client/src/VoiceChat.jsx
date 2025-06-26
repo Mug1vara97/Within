@@ -1093,6 +1093,8 @@ const VideoView = React.memo(({
   );
 });
 
+export { VideoOverlay, VideoView };
+
 function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave, onManualLeave }) {
   const { leaveVoiceRoom } = useVoiceChat();
   const [isJoined, setIsJoined] = useState(false);
