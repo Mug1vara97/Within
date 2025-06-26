@@ -3,40 +3,41 @@ import GroupChat from './Chats/GroupChat';
 import VoiceChat from './VoiceChat';
 
 const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, isServerOwner, onJoinVoiceChannel, onLeaveVoiceChannel }) => {
-    // Локальное состояние для управления звонком
     const [isVoiceActive, setIsVoiceActive] = useState(false);
     const [voiceRoomData, setVoiceRoomData] = useState(null);
     const [leftVoiceChannel, setLeftVoiceChannel] = useState(false);
     const [userLeftVoiceManually, setUserLeftVoiceManually] = useState(false);
-    const prevServerId = useRef(serverId);
     const prevChatId = useRef(selectedChat?.chatId);
 
-    // Сброс флага, если пользователь сменил сервер или чат
+    // Сброс флага только при смене чата, но не при смене сервера
     useEffect(() => {
-        if (
-            prevServerId.current !== serverId ||
-            prevChatId.current !== selectedChat?.chatId
-        ) {
-            setUserLeftVoiceManually(false);
+        if (prevChatId.current !== selectedChat?.chatId) {
+            // Сбрасываем флаг только если новый чат - это голосовой канал
+            if (selectedChat?.chatType === 4) {
+                setUserLeftVoiceManually(false);
+            }
         }
-        prevServerId.current = serverId;
         prevChatId.current = selectedChat?.chatId;
-    }, [serverId, selectedChat?.chatId]);
+    }, [selectedChat?.chatId]);
 
+    // Подключение к голосовому чату
     useEffect(() => {
         if (selectedChat?.chatType === 4 && !userLeftVoiceManually) {
-            const data = {
-                roomId: selectedChat.chatId,
-                userName: username,
-                userId: userId,
-                serverId: serverId
-            };
-            setVoiceRoomData(data);
-            setIsVoiceActive(true);
-            setLeftVoiceChannel(false);
-            if (onJoinVoiceChannel) onJoinVoiceChannel(data);
+            // Проверяем, что это новый голосовой канал или первое подключение
+            if (!voiceRoomData || voiceRoomData.roomId !== selectedChat.chatId) {
+                const data = {
+                    roomId: selectedChat.chatId,
+                    userName: username,
+                    userId: userId,
+                    serverId: serverId
+                };
+                setVoiceRoomData(data);
+                setIsVoiceActive(true);
+                setLeftVoiceChannel(false);
+                if (onJoinVoiceChannel) onJoinVoiceChannel(data);
+            }
         }
-    }, [selectedChat, username, userId, serverId, userLeftVoiceManually, onJoinVoiceChannel]);
+    }, [selectedChat?.chatType, selectedChat?.chatId, username, userId, userLeftVoiceManually, onJoinVoiceChannel]);
 
     // Обработчик выхода из голосового чата вручную
     const handleManualLeave = () => {
