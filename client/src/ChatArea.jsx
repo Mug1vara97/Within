@@ -35,6 +35,46 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
         if (onLeaveVoiceChannel) onLeaveVoiceChannel();
     };
 
+    // Если это голосовой канал и пользователь не вышел вручную,
+    // показываем специальный UI для голосового чата
+    if (selectedChat?.chatType === 4 && !userLeftVoiceManually) {
+        return (
+            <div className="voice-chat-container" style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                backgroundColor: '#36393f',
+                color: '#dcddde'
+            }}>
+                <h2 style={{ marginBottom: '20px' }}>{selectedChat.groupName}</h2>
+                <div style={{ 
+                    fontSize: '16px',
+                    marginBottom: '20px',
+                    textAlign: 'center'
+                }}>
+                    Вы находитесь в голосовом канале
+                </div>
+                <button
+                    onClick={handleManualLeave}
+                    style={{
+                        backgroundColor: '#ed4245',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                    }}
+                >
+                    Отключиться
+                </button>
+            </div>
+        );
+    }
+
     if (selectedChat) {
         return (
             <GroupChat
