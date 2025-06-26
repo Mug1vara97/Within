@@ -69,17 +69,7 @@ button:focus-visible {
 
 /* Глобальный голосовой чат */
 .voice-chat-global {
-  position: fixed;
-  bottom: 0;
-  right: 20px;
-  width: 300px;
-  height: 200px;
-  background: #36393f;
-  border: 1px solid #202225;
-  border-radius: 8px 8px 0 0;
-  z-index: 1000;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
-  overflow: hidden;
+
 }
 
 .voice-chat-active-placeholder {
