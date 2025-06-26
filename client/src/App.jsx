@@ -8,20 +8,18 @@ import { AudioProvider } from './contexts/AudioContext';
 import { VoiceChatProvider, useVoiceChat } from './contexts/VoiceChatContext';
 import VoiceChat from './VoiceChat';
 
-function VoiceChatWrapper() {
-    const { voiceRoom, isVoiceChatActive } = useVoiceChat();
-    
-    if (!isVoiceChatActive || !voiceRoom) return null;
-    
-    return (
+function VoiceChatGlobalWrapper() {
+    const { voiceRoom, isVoiceChatActive, showVoiceUI } = useVoiceChat();
+    return isVoiceChatActive && voiceRoom ? (
         <VoiceChat
             roomId={voiceRoom.roomId}
             userName={voiceRoom.userName}
             userId={voiceRoom.userId}
             serverId={voiceRoom.serverId}
             autoJoin={true}
+            showUI={showVoiceUI}
         />
-    );
+    ) : null;
 }
 
 const App = () => {
@@ -44,12 +42,12 @@ const App = () => {
     return (
         <AudioProvider>
             <VoiceChatProvider>
-                <VoiceChatWrapper />
+                <VoiceChatGlobalWrapper />
                 <Router>
                     <Routes>
+                        <Route path="/*" element={user.username ? <Home user={user} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />} />
                         <Route path="/login" element={<Login onLogin={handleLogin} />} />
                         <Route path="/register" element={<Register />} />
-                        <Route path="/*" element={user.username ? <Home user={user} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />} />
                     </Routes>
                 </Router>
             </VoiceChatProvider>

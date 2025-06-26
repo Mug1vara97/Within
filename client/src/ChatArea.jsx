@@ -4,7 +4,7 @@ import { useVoiceChat } from './contexts/VoiceChatContext';
 // import VoiceChat from './VoiceChat';
 
 const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, isServerOwner }) => {
-    const { joinVoiceRoom, isVoiceChatActive, voiceRoom, setShowVoiceUI, leaveVoiceRoom } = useVoiceChat();
+    const { joinVoiceRoom, isVoiceChatActive, voiceRoom, setShowVoiceUI } = useVoiceChat();
 
     useEffect(() => {
         if (selectedChat?.chatType === 4) {
@@ -17,21 +17,23 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
             });
             setShowVoiceUI(true);
         } else {
-            // Если переключились на не-голосовой канал, очищаем состояние
-            if (isVoiceChatActive) {
-                leaveVoiceRoom();
-            }
             setShowVoiceUI(false);
         }
-    }, [selectedChat, username, userId, serverId, joinVoiceRoom, setShowVoiceUI, isVoiceChatActive, leaveVoiceRoom]);
+    }, [selectedChat, username, userId, serverId, joinVoiceRoom, setShowVoiceUI]);
 
     if (selectedChat) {
         // Если это голосовой канал (chatType === 4) и голосовой чат активен
         if (selectedChat.chatType === 4 && isVoiceChatActive && voiceRoom) {
             return (
-                <>
-                  <div id="voicechat-root" />
-                </>
+                <div 
+                  id="voicechat-root" 
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                />
             );
         }
         // Для остальных чатов

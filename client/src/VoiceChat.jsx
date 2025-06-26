@@ -47,7 +47,6 @@ import { io } from 'socket.io-client';
 import { NoiseSuppressionManager } from './utils/noiseSuppression';
 import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
 import ReactDOM from 'react-dom';
-import { useVoiceChat } from './contexts/VoiceChatContext';
 
 
 const config = {
@@ -118,14 +117,14 @@ const config = {
 // Add Discord-like styles
 const styles = {
   root: {
-    height: '100%',
+    height: '100vh', // Занимает всю высоту viewport
     display: 'flex',
     flexDirection: 'column',
     backgroundColor: '#36393f',
     color: '#dcddde',
-    flex: 1,
-    minHeight: '100%',
-    overflow: 'hidden', // Add to prevent overflow
+    width: '100%',
+    overflow: 'hidden',
+    position: 'relative',
     '@keyframes pulse': {
       '0%': {
         boxShadow: '0 0 0 2px rgba(59, 165, 92, 0.8)'
@@ -145,7 +144,7 @@ const styles = {
     position: 'relative',
     width: '100%',
     flexShrink: 0,
-    height: '52px' // Fixed header height
+    height: '52px'
   },
   toolbar: {
     height: '52px',
@@ -161,13 +160,13 @@ const styles = {
     alignItems: 'center',
     gap: '8px',
     color: '#ffffff',
-    height: '100%', // Take full height
+    height: '100%',
     '& .MuiSvgIcon-root': {
       color: '#72767d',
-      fontSize: '20px' // Adjust icon size
+      fontSize: '20px'
     },
     '& .MuiTypography-root': {
-      fontSize: '16px', // Adjust text size
+      fontSize: '16px',
       fontWeight: 500
     },
     '@media (max-width: 600px)': {
@@ -179,18 +178,17 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
-    height: '100%',
+    height: 'calc(100vh - 52px)', // Высота минус header
     width: '100%',
-    maxWidth: '100%', // Ensure container doesn't exceed viewport
     margin: 0,
     position: 'relative',
-    boxSizing: 'border-box' // Include padding in width calculation
+    boxSizing: 'border-box'
   },
   videoGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
     gap: '16px',
-    padding: '20px 100px', // Increased side padding
+    padding: '20px',
     width: '100%',
     flex: 1,
     margin: 0,
@@ -1094,7 +1092,6 @@ const VideoView = React.memo(({
 });
 
 function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave }) {
-  const { leaveVoiceRoom } = useVoiceChat();
   const [isJoined, setIsJoined] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -2403,8 +2400,6 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
     if (socketRef.current) {
       socketRef.current.disconnect();
     }
-    // Очищаем состояние в контексте
-    leaveVoiceRoom();
     if (onLeave) {
       onLeave();
     }
