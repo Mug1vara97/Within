@@ -31,25 +31,38 @@ const App = () => {
 
     // Функции для управления звонком, которые будут прокидываться в Home/ServerPage
     const handleJoinVoiceChannel = (data) => {
-        setVoiceRoomData(data);
+        // Сохраняем предыдущий serverId если переходим в ChatList
+        setVoiceRoomData(prev => ({
+            ...data,
+            serverId: data.serverId || prev?.serverId
+        }));
         setShowVoiceUI(true);
     };
+
     const handleLeaveVoiceChannel = () => {
+        setShowVoiceUI(false);
+    };
+
+    // Полный выход из звонка
+    const handleLeaveVoiceRoom = () => {
+        setVoiceRoomData(null);
         setShowVoiceUI(false);
     };
 
     return (
         <AudioProvider>
             {/* VoiceChat всегда работает в фоне, UI показывается по showVoiceUI */}
-            <VoiceChat
-                roomId={voiceRoomData?.roomId}
-                userName={voiceRoomData?.userName}
-                userId={voiceRoomData?.userId}
-                serverId={voiceRoomData?.serverId}
-                autoJoin={!!voiceRoomData}
-                showUI={showVoiceUI}
-                onLeave={() => setVoiceRoomData(null)}
-            />
+            {voiceRoomData && (
+                <VoiceChat
+                    roomId={voiceRoomData.roomId}
+                    userName={voiceRoomData.userName}
+                    userId={voiceRoomData.userId}
+                    serverId={voiceRoomData.serverId}
+                    autoJoin={true}
+                    showUI={showVoiceUI}
+                    onLeave={handleLeaveVoiceRoom}
+                />
+            )}
             {/* <VoiceChatProvider> */}  {/* закомментировано, чтобы не было конфликта контекстов */}
                 <Router>
                     <Routes>
