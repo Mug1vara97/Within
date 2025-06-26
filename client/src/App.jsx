@@ -5,6 +5,7 @@ import Home from './Home';
 import Register from './Authentication/Register';
 import "./UserProfile.css"
 import { AudioProvider } from './contexts/AudioContext';
+import VoiceChat from './VoiceChat';
 // import { VoiceChatProvider } from './contexts/VoiceChatContext'; // закомментировано, чтобы не было конфликта контекстов
 
 const App = () => {
@@ -12,6 +13,10 @@ const App = () => {
         const savedUser = localStorage.getItem('user');
         return savedUser ? JSON.parse(savedUser) : { username: null, userId: null };
     });
+
+    // Глобальное состояние для голосового звонка
+    const [voiceRoomData, setVoiceRoomData] = useState(null);
+    const [showVoiceUI, setShowVoiceUI] = useState(false);
 
     const handleLogin = (username, userId) => {
         const userData = { username, userId };
@@ -24,12 +29,31 @@ const App = () => {
         localStorage.removeItem('user');
     };
 
+    // Функции для управления звонком, которые будут прокидываться в Home/ServerPage
+    const handleJoinVoiceChannel = (data) => {
+        setVoiceRoomData(data);
+        setShowVoiceUI(true);
+    };
+    const handleLeaveVoiceChannel = () => {
+        setShowVoiceUI(false);
+    };
+
     return (
         <AudioProvider>
+            {/* VoiceChat всегда работает в фоне, UI показывается по showVoiceUI */}
+            <VoiceChat
+                roomId={voiceRoomData?.roomId}
+                userName={voiceRoomData?.userName}
+                userId={voiceRoomData?.userId}
+                serverId={voiceRoomData?.serverId}
+                autoJoin={!!voiceRoomData}
+                showUI={showVoiceUI}
+                onLeave={() => setVoiceRoomData(null)}
+            />
             {/* <VoiceChatProvider> */}  {/* закомментировано, чтобы не было конфликта контекстов */}
                 <Router>
                     <Routes>
-                        <Route path="/*" element={user.username ? <Home user={user} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />} />
+                        <Route path="/*" element={user.username ? <Home user={user} onLogout={handleLogout} onJoinVoiceChannel={handleJoinVoiceChannel} onLeaveVoiceChannel={handleLeaveVoiceChannel} /> : <Login onLogin={handleLogin} />} />
                         <Route path="/login" element={<Login onLogin={handleLogin} />} />
                         <Route path="/register" element={<Register />} />
                     </Routes>
