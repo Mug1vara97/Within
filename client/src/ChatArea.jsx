@@ -46,8 +46,8 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
         if (onLeaveVoiceChannel) onLeaveVoiceChannel();
     };
 
-    // Render voice chat if active, regardless of current selected chat
-    if (isVoiceActive && voiceRoomData && !userLeftVoiceManually) {
+    // Показываем VoiceChat только если мы находимся в голосовом канале
+    if (selectedChat?.chatType === 4 && isVoiceActive && voiceRoomData && !userLeftVoiceManually) {
         return (
             <VoiceChat
                 roomId={voiceRoomData.roomId}
@@ -56,6 +56,7 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
                 serverId={voiceRoomData.serverId}
                 autoJoin={true}
                 onLeave={handleManualLeave}
+                showUI={true}
             />
         );
     }
@@ -68,26 +69,46 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
         );
     }
 
+    // Если есть активный звонок, но мы не в голосовом канале,
+    // добавляем VoiceChat с showUI={false} для работы в фоне
+    const backgroundVoiceChat = isVoiceActive && voiceRoomData && !userLeftVoiceManually ? (
+        <VoiceChat
+            roomId={voiceRoomData.roomId}
+            userName={voiceRoomData.userName}
+            userId={voiceRoomData.userId}
+            serverId={voiceRoomData.serverId}
+            autoJoin={true}
+            onLeave={handleManualLeave}
+            showUI={false}
+        />
+    ) : null;
+
     if (selectedChat) {
         return (
-            <GroupChat
-                username={username}
-                userId={userId}
-                chatId={selectedChat.chatId}
-                groupName={selectedChat.groupName}
-                isServerChat={true}
-                serverId={serverId}
-                userPermissions={userPermissions}
-                isServerOwner={isServerOwner}
-                onLeaveVoiceChat={handleManualLeave}
-            />
+            <>
+                {backgroundVoiceChat}
+                <GroupChat
+                    username={username}
+                    userId={userId}
+                    chatId={selectedChat.chatId}
+                    groupName={selectedChat.groupName}
+                    isServerChat={true}
+                    serverId={serverId}
+                    userPermissions={userPermissions}
+                    isServerOwner={isServerOwner}
+                    onLeaveVoiceChat={handleManualLeave}
+                />
+            </>
         );
     }
 
     return (
-        <div className="no-chat-selected">
-            <h3>Select a chat to start messaging</h3>
-        </div>
+        <>
+            {backgroundVoiceChat}
+            <div className="no-chat-selected">
+                <h3>Select a chat to start messaging</h3>
+            </div>
+        </>
     );
 };
 
