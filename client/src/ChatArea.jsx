@@ -11,7 +11,13 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
     const prevServerId = useRef(serverId);
     const prevChatId = useRef(selectedChat?.chatId);
 
-    // Сброс флага, если пользователь сменил сервер или чат
+    // Сброс флагов при смене сервера или чата
+    useEffect(() => {
+        setUserLeftVoiceManually(false);
+        setLeftVoiceChannel(false);
+    }, [serverId, selectedChat?.chatId]);
+
+    // Сброс флага, если пользователь сменил сервер или чат (оставляем для совместимости)
     useEffect(() => {
         if (
             prevServerId.current !== serverId ||
