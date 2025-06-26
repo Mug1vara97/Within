@@ -48,8 +48,8 @@ const ChatArea = ({ selectedChat, leftVoiceChat, setLeftVoiceChat, username, use
                 />
             )}
 
-            {/* Голосовой чат - всегда рендерится, но скрывается/показывается */}
-            {currentVoiceChatId && (
+            {/* Голосовой чат - рендерится когда есть voiceChatId или когда выбран голосовой канал */}
+            {(currentVoiceChatId || voiceChatId) && (
                 <div style={{ 
                     display: shouldShowVoiceChat ? 'block' : 'none',
                     position: 'absolute',
@@ -60,7 +60,7 @@ const ChatArea = ({ selectedChat, leftVoiceChat, setLeftVoiceChat, username, use
                     zIndex: shouldShowVoiceChat ? 1 : -1
                 }}>
                     <VoiceChat
-                        roomId={currentVoiceChatId}
+                        roomId={currentVoiceChatId || voiceChatId}
                         userName={username}
                         userId={userId}
                         serverId={serverId}
