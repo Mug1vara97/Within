@@ -48,6 +48,7 @@ import { NoiseSuppressionManager } from './utils/noiseSuppression';
 import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
 import ReactDOM from 'react-dom';
 import { useVoiceChat } from './contexts/VoiceChatContext';
+import VoiceChatUI from './components/VoiceChatUI';
 
 
 const config = {
@@ -1092,7 +1093,16 @@ const VideoView = React.memo(({
   );
 });
 
-function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave, onManualLeave }) {
+function VoiceChat({ 
+  roomId, 
+  userName, 
+  userId, 
+  serverId, 
+  autoJoin = true,
+  onLeave,
+  onManualLeave,
+  showUI = false // Новый проп для контроля отображения UI
+}) {
   const { leaveVoiceRoom } = useVoiceChat();
   const [isJoined, setIsJoined] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
@@ -3238,221 +3248,56 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
     };
   }, [isJoined]);
 
-  // Подготовка всех нужных пропсов для UI
-  const ui = (
+  // Если showUI false, рендерим только невидимый контейнер для аудио
+  if (!showUI) {
+    return <div style={{ display: 'none' }} />;
+  }
+
+  // Рендерим UI напрямую, без портала
+  return (
     <MuteProvider socket={socketRef.current}>
-      <Box sx={styles.root}>
-        <AppBar position="static" sx={styles.appBar}>
-          <Toolbar sx={styles.toolbar}>
-            <Box sx={styles.channelName}>
-              <Tag />
-              <Typography variant="subtitle1">
-                {roomId}
-              </Typography>
-            </Box>
-          </Toolbar>
-        </AppBar>
-        {error && (
-          <Typography color="error" sx={{ p: 2 }}>
-            {error}
-          </Typography>
-        )}
-        <Box sx={styles.container}>
-          <Box sx={styles.videoGrid}>
-            {/* Only render video grid when not in fullscreen mode */}
-            {fullscreenShare === null && (
-              <>
-                {/* Local user */}
-                <Box sx={styles.videoItem} className={speakingStates.get(socketRef.current?.id) ? 'speaking' : ''}>
-                  {isVideoEnabled && videoStream ? (
-                    <VideoView 
-                      stream={videoStream} 
-                      peerName={userName}
-                      isMuted={isMuted}
-                      isSpeaking={speakingStates.get(socketRef.current?.id)}
-                      isAudioEnabled={isAudioEnabled}
-                      isLocal={true}
-                      isAudioMuted={isMuted}
-                    />
-                  ) : (
-                    <div style={{ 
-                      position: 'relative', 
-                      width: '100%', 
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
-                      alignItems: 'center'
-                    }}>
-                      <Box sx={styles.userAvatar}>
-                        {userName[0].toUpperCase()}
-                      </Box>
-                      <VideoOverlay
-                        peerName={userName}
-                        isMuted={isMuted}
-                        isSpeaking={speakingStates.get(socketRef.current?.id)}
-                        isAudioEnabled={isAudioEnabled}
-                        isLocal={true}
-                        isAudioMuted={isMuted}
-                      />
-                    </div>
-                  )}
-                </Box>
-
-                {/* Remote users */}
-                {Array.from(peers.values()).map((peer) => (
-                  <Box key={peer.id} sx={styles.videoItem} className={speakingStates.get(peer.id) ? 'speaking' : ''}>
-                    {remoteVideos.get(peer.id)?.stream ? (
-                      <VideoView
-                        stream={remoteVideos.get(peer.id).stream}
-                        peerName={peer.name}
-                        isMuted={peer.isMuted}
-                        isSpeaking={speakingStates.get(peer.id)}
-                        isAudioEnabled={audioStates.get(peer.id)}
-                        isLocal={false}
-                        onVolumeClick={() => handleVolumeChange(peer.id)}
-                        volume={volumes.get(peer.id) || 100}
-                        isAudioMuted={individualMutedPeersRef.current.get(peer.id) || false}
-                      />
-                    ) : (
-                      <div style={{ 
-                        position: 'relative', 
-                        width: '100%', 
-                        height: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        alignItems: 'center'
-                      }}>
-                        <Box sx={styles.userAvatar}>
-                          {peer.name[0].toUpperCase()}
-                        </Box>
-                        <VideoOverlay
-                          peerName={peer.name}
-                          isMuted={peer.isMuted}
-                          isSpeaking={speakingStates.get(peer.id)}
-                          isAudioEnabled={audioStates.get(peer.id)}
-                          isLocal={false}
-                          onVolumeClick={() => handleVolumeChange(peer.id)}
-                          volume={volumes.get(peer.id) || 100}
-                          isAudioMuted={individualMutedPeersRef.current.get(peer.id) || false}
-                        />
-                      </div>
-                    )}
-                  </Box>
-                ))}
-              </>
-            )}
-
-            {/* Screen sharing */}
-            {renderScreenShares}
-          </Box>
-          <Box sx={styles.bottomBar}>
-            <Box sx={styles.controlsContainer}>
-              <Box sx={styles.controlGroup}>
-                <IconButton
-                  sx={styles.iconButton}
-                  onClick={handleMute}
-                  title={isMuted ? "Unmute" : "Mute"}
-                >
-                  {isMuted ? <MicOff /> : <Mic />}
-                </IconButton>
-                <IconButton
-                  sx={styles.iconButton}
-                  onClick={isVideoEnabled ? stopVideo : startVideo}
-                  title={isVideoEnabled ? "Stop camera" : "Start camera"}
-                >
-                  {isVideoEnabled ? <VideocamOff /> : <Videocam />}
-                </IconButton>
-                <IconButton
-                  sx={styles.iconButton}
-                  onClick={toggleAudio}
-                  title={isAudioEnabled ? "Disable audio output" : "Enable audio output"}
-                >
-                  {isAudioEnabled ? <Headset /> : <HeadsetOff />}
-                </IconButton>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <IconButton
-                    sx={styles.iconButton}
-                    onClick={handleNoiseSuppressionToggle}
-                    title={isNoiseSuppressed ? "Disable noise suppression" : "Enable noise suppression"}
-                    disabled={!noiseSuppressionRef.current?.isInitialized()}
-                  >
-                    {isNoiseSuppressed ? <NoiseAware /> : <NoiseControlOff />}
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    sx={styles.iconButton}
-                    onClick={handleNoiseSuppressionMenuOpen}
-                    disabled={!noiseSuppressionRef.current?.isInitialized()}
-                  >
-                    <ExpandMore />
-                  </IconButton>
-                  <Menu
-                    anchorEl={noiseSuppressMenuAnchor}
-                    open={Boolean(noiseSuppressMenuAnchor)}
-                    onClose={handleNoiseSuppressionMenuClose}
-                  >
-                    <MenuItem 
-                      onClick={() => handleNoiseSuppressionModeSelect('rnnoise')}
-                      selected={noiseSuppressionMode === 'rnnoise'}
-                    >
-                      RNNoise (AI-based)
-                    </MenuItem>
-                    <MenuItem 
-                      onClick={() => handleNoiseSuppressionModeSelect('speex')}
-                      selected={noiseSuppressionMode === 'speex'}
-                    >
-                      Speex (Classic)
-                    </MenuItem>
-                    <MenuItem 
-                      onClick={() => handleNoiseSuppressionModeSelect('noisegate')}
-                      selected={noiseSuppressionMode === 'noisegate'}
-                    >
-                      Noise Gate
-                    </MenuItem>
-                  </Menu>
-                </Box>
-              </Box>
-              <Box sx={styles.controlGroup}>
-                <IconButton
-                  sx={styles.iconButton}
-                  onClick={isScreenSharing ? stopScreenSharing : startScreenSharing}
-                  title={isScreenSharing ? "Stop sharing" : "Share screen"}
-                >
-                  {isScreenSharing ? <StopScreenShare /> : <ScreenShare />}
-                </IconButton>
-                {isMobile && (
-                  <IconButton
-                    sx={styles.iconButton}
-                    onClick={toggleSpeakerMode}
-                    title={useEarpiece ? "Switch to speaker" : "Switch to earpiece"}
-                  >
-                    {useEarpiece ? <Hearing /> : <VolumeUpRounded />}
-                  </IconButton>
-                )}
-              </Box>
-            </Box>
-            <Button
-              variant="contained"
-              sx={styles.leaveButton}
-              onClick={handleLeaveCall}
-              startIcon={<PhoneDisabled />}
-            >
-              Leave
-            </Button>
-          </Box>
-        </Box>
-      </Box>
+      <VoiceChatUI
+        roomId={roomId}
+        error={error}
+        isMuted={isMuted}
+        isAudioEnabled={isAudioEnabled}
+        isVideoEnabled={isVideoEnabled}
+        isScreenSharing={isScreenSharing}
+        useEarpiece={useEarpiece}
+        isNoiseSuppressed={isNoiseSuppressed}
+        noiseSuppressionMode={noiseSuppressionMode}
+        noiseSuppressMenuAnchor={noiseSuppressMenuAnchor}
+        handleMute={handleMute}
+        toggleAudio={toggleAudio}
+        startVideo={startVideo}
+        stopVideo={stopVideo}
+        startScreenSharing={startScreenSharing}
+        stopScreenSharing={stopScreenSharing}
+        toggleSpeakerMode={toggleSpeakerMode}
+        handleLeaveCall={handleLeaveCall}
+        handleNoiseSuppressionToggle={handleNoiseSuppressionToggle}
+        handleNoiseSuppressionMenuOpen={handleNoiseSuppressionMenuOpen}
+        handleNoiseSuppressionMenuClose={handleNoiseSuppressionMenuClose}
+        handleNoiseSuppressionModeSelect={handleNoiseSuppressionModeSelect}
+        peers={peers}
+        userName={userName}
+        speakingStates={speakingStates}
+        volumes={volumes}
+        audioStates={audioStates}
+        handleVolumeChange={handleVolumeChange}
+        isMobile={isMobile}
+        videoStream={videoStream}
+        remoteVideos={remoteVideos}
+        remoteScreens={remoteScreens}
+        fullscreenShare={fullscreenShare}
+        handleFullscreenToggle={handleFullscreenToggle}
+        socketId={socketRef.current?.id}
+        noiseSuppressionRef={noiseSuppressionRef}
+        individualMutedPeersRef={individualMutedPeersRef}
+        renderScreenShares={renderScreenShares}
+      />
     </MuteProvider>
   );
-
-  // Рендер через портал
-  const root = typeof window !== 'undefined' ? document.getElementById('voicechat-root') : null;
-  if (root) {
-    return ReactDOM.createPortal(ui, root);
-  }
-  return null;
 }
 
 export default VoiceChat;

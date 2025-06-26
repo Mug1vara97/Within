@@ -59,7 +59,8 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
                 width: '100%',
                 height: '100%',
                 position: 'relative',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                backgroundColor: '#36393f'
             }}>
                 <VoiceChat
                     roomId={voiceRoom.roomId}
@@ -77,7 +78,14 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
     // Показываем сообщение, если пользователь только что покинул голосовой канал
     if (leftVoiceChannel) {
         return (
-            <div className="left-voice-channel-message" style={{textAlign: 'center', marginTop: '40px', color: '#888'}}>
+            <div className="left-voice-channel-message" style={{
+                textAlign: 'center',
+                marginTop: '40px',
+                color: '#888',
+                backgroundColor: '#36393f',
+                padding: '20px',
+                borderRadius: '8px'
+            }}>
                 <h3>Вы покинули голосовой канал</h3>
             </div>
         );
