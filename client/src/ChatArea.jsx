@@ -39,15 +39,15 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
             }
         } else {
             setIsVoiceActive(false);
-            if (onLeaveVoiceChannel) onLeaveVoiceChannel();
         }
-    }, [selectedChat, username, userId, serverId, userLeftVoiceManually, onJoinVoiceChannel, onLeaveVoiceChannel]);
+    }, [selectedChat, username, userId, serverId, userLeftVoiceManually, onJoinVoiceChannel]);
 
     // Обработчик выхода из голосового чата вручную
     const handleManualLeave = () => {
         setUserLeftVoiceManually(true);
         setIsVoiceActive(false);
         setVoiceRoomData(null);
+        if (onLeaveVoiceChannel) onLeaveVoiceChannel();
     };
 
     if (selectedChat?.chatType === 4 && isVoiceActive && voiceRoomData && !userLeftVoiceManually) {
