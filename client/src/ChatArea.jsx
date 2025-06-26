@@ -7,7 +7,7 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
 
     // Подключаемся к голосовому чату при выборе голосового канала
     useEffect(() => {
-        if (selectedChat?.chatType === 3) {
+        if (selectedChat?.chatType === 4) {
             joinVoiceRoom({
                 roomId: selectedChat.chatId,
                 userName: username,
@@ -19,8 +19,8 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
     }, [selectedChat, username, userId, serverId, joinVoiceRoom]);
 
     if (selectedChat) {
-        // Если это голосовой канал (chatType === 3)
-        if (selectedChat.chatType === 3) {
+        // Если это голосовой канал (chatType === 4)
+        if (selectedChat.chatType === 4) {
             // Если голосовой чат активен, показываем заглушку
             if (isVoiceChatActive) {
                 return (
