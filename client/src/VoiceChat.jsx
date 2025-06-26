@@ -3214,7 +3214,29 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
     }
   }, [autoJoin, roomId, userName]);
 
-  if (!showUI) return null;
+  if (!showUI) {
+    return (
+      <div className="voice-chat-active-placeholder" style={{
+        position: 'fixed',
+        bottom: 24,
+        right: 24,
+        zIndex: 1000,
+        background: '#2B2D31',
+        color: '#fff',
+        borderRadius: 12,
+        boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
+        padding: '20px 32px',
+        minWidth: 280,
+        textAlign: 'center',
+        pointerEvents: 'auto',
+      }}>
+        <h3 style={{ margin: 0, fontSize: 18 }}>Голосовой чат активен в фоновом режиме</h3>
+        <p style={{ margin: '8px 0 0 0', fontSize: 14, color: '#b5bac1' }}>
+          Вы можете продолжать общение, переключаясь между каналами
+        </p>
+      </div>
+    );
+  }
 
   return (
     <MuteProvider socket={socketRef.current}>
