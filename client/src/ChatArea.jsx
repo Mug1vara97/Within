@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
 import GroupChat from './Chats/GroupChat';
+import VoiceChat from './VoiceChat';
 import { useVoiceChat } from './contexts/VoiceChatContext';
 
 const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, isServerOwner }) => {
-    const { joinVoiceRoom, isVoiceChatActive } = useVoiceChat();
+    const { joinVoiceRoom, isVoiceChatActive, voiceRoom } = useVoiceChat();
 
     // Подключаемся к голосовому чату при выборе голосового канала
     useEffect(() => {
@@ -19,17 +20,18 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
     }, [selectedChat, username, userId, serverId, joinVoiceRoom]);
 
     if (selectedChat) {
-        // Если это голосовой канал (chatType === 4)
-        if (selectedChat.chatType === 4) {
-            // Если голосовой чат активен, показываем заглушку
-            if (isVoiceChatActive) {
-                return (
-                    <div className="voice-chat-active-placeholder">
-                        <h3>Голосовой чат активен в фоновом режиме</h3>
-                        <p>Вы можете продолжать общение, переключаясь между каналами</p>
-                    </div>
-                );
-            }
+        // Если это голосовой канал (chatType === 4) и голосовой чат активен
+        if (selectedChat.chatType === 4 && isVoiceChatActive && voiceRoom) {
+            return (
+                <VoiceChat
+                    roomId={voiceRoom.roomId}
+                    userName={voiceRoom.userName}
+                    userId={voiceRoom.userId}
+                    serverId={voiceRoom.serverId}
+                    autoJoin={true}
+                    onLeave={() => {/* функция для выхода */}}
+                />
+            );
         }
         
         // Для всех остальных чатов (текстовых) показываем GroupChat
