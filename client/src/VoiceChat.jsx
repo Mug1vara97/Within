@@ -3224,11 +3224,11 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
         padding: '20px 32px',
         minWidth: 280,
         textAlign: 'center',
-        margin: '0 auto',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
+        width: '100%',
         height: '100%'
       }}>
         <h3 style={{ margin: 0, fontSize: 18 }}>Голосовой чат активен в фоновом режиме</h3>
