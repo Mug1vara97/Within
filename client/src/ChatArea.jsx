@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import GroupChat from './Chats/GroupChat';
 import { useVoiceChat } from './contexts/VoiceChatContext';
 import VoiceChatUI from './components/VoiceChatUI';
+import { styles as voiceChatStyles } from './VoiceChat';
 
 const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, isServerOwner }) => {
     const { joinVoiceRoom, isVoiceChatActive, voiceRoom, setShowVoiceUI, leaveVoiceRoom } = useVoiceChat();
@@ -58,6 +59,7 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
     if (selectedChat?.chatType === 4 && isVoiceChatActive && voiceRoom && !userLeftVoiceManually) {
         return (
             <VoiceChatUI
+                styles={voiceChatStyles}
                 {...voiceRoom}
                 onLeave={handleManualLeave}
             />
