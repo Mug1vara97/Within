@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 import GroupChat from './Chats/GroupChat';
 import { useVoiceChat } from './contexts/VoiceChatContext';
-import VoiceChat from './VoiceChat';
+// import VoiceChat from './VoiceChat';
 
 const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, isServerOwner }) => {
-    const { joinVoiceRoom, isVoiceChatActive, voiceRoom, setShowVoiceUI, showVoiceUI } = useVoiceChat();
+    const { joinVoiceRoom, isVoiceChatActive, voiceRoom, setShowVoiceUI } = useVoiceChat();
 
     useEffect(() => {
         if (selectedChat?.chatType === 4) {
@@ -25,14 +25,9 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
         // Если это голосовой канал (chatType === 4) и голосовой чат активен
         if (selectedChat.chatType === 4 && isVoiceChatActive && voiceRoom) {
             return (
-                <VoiceChat
-                  showUI={showVoiceUI}
-                  roomId={selectedChat.chatId}
-                  userName={username}
-                  userId={userId}
-                  serverId={serverId}
-                  autoJoin={true}
-                />
+                <>
+                  <div id="voicechat-root" />
+                </>
             );
         }
         // Для остальных чатов

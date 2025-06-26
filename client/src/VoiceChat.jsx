@@ -46,6 +46,7 @@ import { Device } from 'mediasoup-client';
 import { io } from 'socket.io-client';
 import { NoiseSuppressionManager } from './utils/noiseSuppression';
 import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
+import ReactDOM from 'react-dom';
 
 
 const config = {
@@ -1091,7 +1092,7 @@ const VideoView = React.memo(({
   );
 });
 
-function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI = true, onLeave }) {
+function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave }) {
   const [isJoined, setIsJoined] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -3214,32 +3215,8 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
     }
   }, [autoJoin, roomId, userName]);
 
-  if (!showUI) {
-    return (
-      <div className="voice-chat-active-placeholder" style={{
-        background: '#2B2D31',
-        color: '#fff',
-        borderRadius: 12,
-        boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
-        padding: '20px 32px',
-        minWidth: 280,
-        textAlign: 'center',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '100%',
-        height: '100%'
-      }}>
-        <h3 style={{ margin: 0, fontSize: 18 }}>Голосовой чат активен в фоновом режиме</h3>
-        <p style={{ margin: '8px 0 0 0', fontSize: 14, color: '#b5bac1' }}>
-          Вы можете продолжать общение, переключаясь между каналами
-        </p>
-      </div>
-    );
-  }
-
-  return (
+  // Подготовка всех нужных пропсов для UI
+  const ui = (
     <MuteProvider socket={socketRef.current}>
       <Box sx={styles.root}>
         <AppBar position="static" sx={styles.appBar}>
@@ -3446,6 +3423,13 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
       </Box>
     </MuteProvider>
   );
+
+  // Рендер через портал
+  const root = typeof window !== 'undefined' ? document.getElementById('voicechat-root') : null;
+  if (root) {
+    return ReactDOM.createPortal(ui, root);
+  }
+  return null;
 }
 
 export default VoiceChat;

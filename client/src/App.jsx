@@ -5,7 +5,22 @@ import Home from './Home';
 import Register from './Authentication/Register';
 import "./UserProfile.css"
 import { AudioProvider } from './contexts/AudioContext';
-import { VoiceChatProvider } from './contexts/VoiceChatContext';
+import { VoiceChatProvider, useVoiceChat } from './contexts/VoiceChatContext';
+import VoiceChat from './VoiceChat';
+
+function VoiceChatGlobalWrapper() {
+    const { voiceRoom, isVoiceChatActive, showVoiceUI } = useVoiceChat();
+    return isVoiceChatActive && voiceRoom ? (
+        <VoiceChat
+            roomId={voiceRoom.roomId}
+            userName={voiceRoom.userName}
+            userId={voiceRoom.userId}
+            serverId={voiceRoom.serverId}
+            autoJoin={true}
+            showUI={showVoiceUI}
+        />
+    ) : null;
+}
 
 const App = () => {
     const [user, setUser] = useState(() => {
@@ -27,6 +42,7 @@ const App = () => {
     return (
         <AudioProvider>
             <VoiceChatProvider>
+                <VoiceChatGlobalWrapper />
                 <Router>
                     <Routes>
                         <Route path="/*" element={user.username ? <Home user={user} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />} />
