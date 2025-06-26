@@ -10,7 +10,6 @@ const ServerPage = ({ username, userId, serverId }) => {
     const [server, setServer] = useState(null);
     const [selectedChat, setSelectedChat] = useState(null);
     const [users, setUsers] = useState([]);
-    const [leftVoiceChat, setLeftVoiceChat] = useState(false);
     const contextMenuRef = useRef(null);
     const [userPermissions, setUserPermissions] = useState({});
     const [isServerOwner, setIsServerOwner] = useState(false);
@@ -743,17 +742,10 @@ return (
                 isServerOwner={isServerOwner}
                 connection={connection}
                 userRoles={userRoles}
-                handleGroupChatClick={(chatId, groupName, chatType) => {
-                    setLeftVoiceChat(false);
-                    setSelectedChat({ chatId, groupName, chatType });
-                    
-                }}
             />
             
             <ChatArea 
                 selectedChat={selectedChat}
-                leftVoiceChat={leftVoiceChat}
-                setLeftVoiceChat={setLeftVoiceChat}
                 username={username}
                 userId={userId}
                 userPermissions={userPermissions}

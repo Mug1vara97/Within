@@ -1091,7 +1091,7 @@ const VideoView = React.memo(({
   );
 });
 
-function VoiceChat({ roomId, userName, userId, serverId, isInVoiceChat, setIsInVoiceChat, onLeave }) {
+function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave }) {
   const [isJoined, setIsJoined] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -1105,6 +1105,7 @@ function VoiceChat({ roomId, userName, userId, serverId, isInVoiceChat, setIsInV
   const [speakingStates, setSpeakingStates] = useState(new Map());
   const [audioStates, setAudioStates] = useState(new Map());
   const isMobile = useMemo(() => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent), []);
+  const prevRoomIdRef = useRef(roomId);
 
   // Use userId and serverId in socket connection
   useEffect(() => {
@@ -1112,6 +1113,22 @@ function VoiceChat({ roomId, userName, userId, serverId, isInVoiceChat, setIsInV
       socketRef.current.emit('setUserInfo', { userId, serverId });
     }
   }, [userId, serverId]);
+
+  // Обработка изменения roomId
+  useEffect(() => {
+    if (prevRoomIdRef.current && prevRoomIdRef.current !== roomId) {
+      console.log('Room ID changed, reconnecting to new room:', roomId);
+      handleLeaveCall();
+      // Небольшая задержка перед подключением к новому каналу
+      setTimeout(() => {
+        if (autoJoin) {
+          handleJoin();
+        }
+      }, 100);
+    }
+    prevRoomIdRef.current = roomId;
+  }, [roomId, autoJoin]);
+
   const [screenProducer, setScreenProducer] = useState(null);
   const [screenStream, setScreenStream] = useState(null);
   const [remoteScreens, setRemoteScreens] = useState(new Map());
@@ -2380,7 +2397,6 @@ function VoiceChat({ roomId, userName, userId, serverId, isInVoiceChat, setIsInV
     setPeers(new Map());
     setVolumes(new Map());
     setError('');
-    setIsInVoiceChat(false);
     if (socketRef.current) {
       socketRef.current.disconnect();
     }
@@ -3193,14 +3209,10 @@ function VoiceChat({ roomId, userName, userId, serverId, isInVoiceChat, setIsInV
   };
 
   useEffect(() => {
-    if (!roomId || !userName) return;
-
-    // Если не в звонке, то подключаемся
-    if (!isInVoiceChat) {
+    if (autoJoin && roomId && userName && !isJoined) {
       handleJoin();
-      setIsInVoiceChat(true);
     }
-  }, [roomId, userName, isInVoiceChat]);
+  }, [autoJoin, roomId, userName]);
 
   return (
     <MuteProvider socket={socketRef.current}>

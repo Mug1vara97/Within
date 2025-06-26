@@ -1,85 +1,51 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import GroupChat from './Chats/GroupChat';
-import VoiceChat from './VoiceChat';
+import { useVoiceChat } from './contexts/VoiceChatContext';
 
-const ChatArea = ({ selectedChat, leftVoiceChat, setLeftVoiceChat, username, userId, serverId, userPermissions, isServerOwner }) => {
-    const [isInVoiceChat, setIsInVoiceChat] = useState(false);
-    const [currentVoiceChatId, setCurrentVoiceChatId] = useState(null);
+const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, isServerOwner }) => {
+    const { joinVoiceRoom, isVoiceChatActive } = useVoiceChat();
 
-    // Сбрасываем leftVoiceChat при смене чата
+    // Подключаемся к голосовому чату при выборе
     useEffect(() => {
         if (selectedChat?.chatType === 3) {
-            setLeftVoiceChat(false);
+            joinVoiceRoom({
+                roomId: selectedChat.chatId,
+                userName: username,
+                userId: userId,
+                serverId: serverId,
+                leaveVoiceRoom: () => {/* функция для выхода */}
+            });
         }
-    }, [selectedChat, setLeftVoiceChat]);
+    }, [selectedChat, username, userId, serverId, joinVoiceRoom]);
 
-    // Если пользователь покинул голосовой чат
-    if (leftVoiceChat && (!selectedChat || selectedChat.chatType !== 3)) {
+    // Если выбран голосовой канал и мы подключены
+    if (selectedChat?.chatType === 3 && isVoiceChatActive) {
         return (
-            <div className="no-chat-selected">
-                <h3>Вы покинули голосовой чат</h3>
+            <div className="voice-chat-active-placeholder">
+                <h3>Голосовой чат активен в фоновом режиме</h3>
+                <p>Вы можете продолжать общение, переключаясь между каналами</p>
             </div>
         );
     }
 
-    // Определяем, нужно ли показывать голосовой чат
-    const shouldShowVoiceChat = selectedChat && selectedChat.chatType !== 3;
-    const voiceChatId = shouldShowVoiceChat ? selectedChat.chatId.toString() : null;
-
-    // Если это новый голосовой чат, сбрасываем состояние
-    if (voiceChatId && voiceChatId !== currentVoiceChatId) {
-        setCurrentVoiceChatId(voiceChatId);
-        setIsInVoiceChat(false);
+    if (selectedChat) {
+        return (
+            <GroupChat
+                username={username}
+                userId={userId}
+                chatId={selectedChat.chatId}
+                groupName={selectedChat.groupName}
+                isServerChat={true}
+                serverId={serverId}
+                userPermissions={userPermissions}
+                isServerOwner={isServerOwner}
+            />
+        );
     }
 
     return (
-        <div style={{ position: 'relative', height: '100%' }}>
-            {/* Групповой чат */}
-            {selectedChat && selectedChat.chatType === 3 && (
-                <GroupChat
-                    username={username}
-                    userId={userId}
-                    chatId={selectedChat.chatId}
-                    groupName={selectedChat.groupName}
-                    isServerChat={true}
-                    serverId={serverId}
-                    userPermissions={userPermissions}
-                    isServerOwner={isServerOwner}
-                />
-            )}
-
-            {/* Голосовой чат - рендерится когда есть voiceChatId или когда выбран голосовой канал */}
-            {(currentVoiceChatId || voiceChatId) && (
-                <div style={{ 
-                    display: shouldShowVoiceChat ? 'block' : 'none',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    zIndex: shouldShowVoiceChat ? 1 : -1
-                }}>
-                    <VoiceChat
-                        roomId={currentVoiceChatId || voiceChatId}
-                        userName={username}
-                        userId={userId}
-                        serverId={serverId}
-                        isInVoiceChat={isInVoiceChat}
-                        setIsInVoiceChat={setIsInVoiceChat}
-                        onLeave={() => {
-                            setLeftVoiceChat(true);
-                            setIsInVoiceChat(false);
-                        }}
-                    />
-                </div>
-            )}
-
-            {/* Сообщение о выборе чата */}
-            {!selectedChat && (
-                <div className="no-chat-selected">
-                    <h3>Select a chat to start messaging</h3>
-                </div>
-            )}
+        <div className="no-chat-selected">
+            <h3>Select a chat to start messaging</h3>
         </div>
     );
 };

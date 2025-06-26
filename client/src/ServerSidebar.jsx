@@ -99,7 +99,7 @@ const ServerSidebar = ({
     };
 
     const handleChatClick = (chatId, groupName, chatType) => {
-        props.handleGroupChatClick(chatId, groupName, chatType);
+        props.setSelectedChat({ chatId, groupName, chatType });
         navigate(`/channels/${props.serverId}/${chatId}`);
     };
 
