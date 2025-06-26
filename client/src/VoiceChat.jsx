@@ -3217,10 +3217,6 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
   if (!showUI) {
     return (
       <div className="voice-chat-active-placeholder" style={{
-        position: 'fixed',
-        bottom: 24,
-        right: 24,
-        zIndex: 1000,
         background: '#2B2D31',
         color: '#fff',
         borderRadius: 12,
@@ -3228,7 +3224,12 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
         padding: '20px 32px',
         minWidth: 280,
         textAlign: 'center',
-        pointerEvents: 'auto',
+        margin: '0 auto',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%'
       }}>
         <h3 style={{ margin: 0, fontSize: 18 }}>Голосовой чат активен в фоновом режиме</h3>
         <p style={{ margin: '8px 0 0 0', fontSize: 14, color: '#b5bac1' }}>
