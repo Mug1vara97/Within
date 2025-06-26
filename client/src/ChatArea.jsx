@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import GroupChat from './Chats/GroupChat';
-import VoiceChat from './components/VoiceChat';
+import VoiceChat from './VoiceChat';
 
 const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, isServerOwner }) => {
     // Локальное состояние для управления звонком
