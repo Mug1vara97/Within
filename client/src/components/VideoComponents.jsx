@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Box, IconButton } from '@mui/material';
-import { VolumeUp, VolumeOff } from '@mui/icons-material';
+import { VolumeUp, VolumeOff, Fullscreen, FullscreenExit } from '@mui/icons-material';
 
 const styles = {
   videoContainer: {
@@ -58,6 +58,55 @@ const styles = {
         color: '#B5BAC1'
       }
     }
+  },
+  fullscreenOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#000',
+    zIndex: 9999,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  fullscreenVideoContainer: {
+    width: '100vw',
+    height: '100vh',
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#000',
+    overflow: 'hidden'
+  },
+  fullscreenVideo: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'contain'
+  },
+  fullscreenControls: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    padding: '16px',
+    background: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 10000
+  },
+  fullscreenButton: {
+    color: '#ffffff',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    '&:hover': {
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      transform: 'scale(1.1)'
+    },
+    transition: 'all 0.2s ease'
   }
 };
 
@@ -69,7 +118,9 @@ export const VideoView = ({
   isAudioEnabled, 
   isLocal, 
   onVolumeClick, 
-  isAudioMuted 
+  isAudioMuted,
+  isFullscreen,
+  onFullscreenToggle
 }) => {
   const videoRef = useRef();
 
@@ -78,6 +129,46 @@ export const VideoView = ({
       videoRef.current.srcObject = stream;
     }
   }, [stream]);
+
+  if (isFullscreen) {
+    return (
+      <div style={styles.fullscreenOverlay}>
+        <div style={styles.fullscreenVideoContainer}>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted={isLocal || isAudioMuted}
+            style={styles.fullscreenVideo}
+          />
+          <div style={styles.fullscreenControls}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {peerName}
+              {isMuted && <span style={{ color: '#ed4245' }}>(Микрофон выключен)</span>}
+              {!isAudioEnabled && <span style={{ color: '#ed4245' }}>(Звук выключен)</span>}
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {!isLocal && onVolumeClick && (
+                <IconButton
+                  onClick={onVolumeClick}
+                  sx={styles.volumeIcon}
+                  className={isAudioMuted ? 'muted' : (isSpeaking ? 'speaking' : 'silent')}
+                >
+                  {isAudioMuted ? <VolumeOff /> : <VolumeUp />}
+                </IconButton>
+              )}
+              <IconButton
+                onClick={onFullscreenToggle}
+                sx={styles.fullscreenButton}
+              >
+                <FullscreenExit />
+              </IconButton>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.videoContainer}>
@@ -96,6 +187,7 @@ export const VideoView = ({
         isLocal={isLocal}
         onVolumeClick={onVolumeClick}
         isAudioMuted={isAudioMuted}
+        onFullscreenToggle={onFullscreenToggle}
       />
     </div>
   );
@@ -108,7 +200,8 @@ export const VideoOverlay = ({
   isAudioEnabled, 
   isLocal, 
   onVolumeClick, 
-  isAudioMuted 
+  isAudioMuted,
+  onFullscreenToggle
 }) => {
   return (
     <div style={styles.overlay}>
@@ -117,15 +210,23 @@ export const VideoOverlay = ({
         {isMuted && <span style={{ color: '#ed4245' }}>(Микрофон выключен)</span>}
         {!isAudioEnabled && <span style={{ color: '#ed4245' }}>(Звук выключен)</span>}
       </div>
-      {!isLocal && onVolumeClick && (
+      <div style={{ display: 'flex', gap: '8px' }}>
+        {!isLocal && onVolumeClick && (
+          <IconButton
+            onClick={onVolumeClick}
+            sx={styles.volumeIcon}
+            className={isAudioMuted ? 'muted' : (isSpeaking ? 'speaking' : 'silent')}
+          >
+            {isAudioMuted ? <VolumeOff /> : <VolumeUp />}
+          </IconButton>
+        )}
         <IconButton
-          onClick={onVolumeClick}
-          sx={styles.volumeIcon}
-          className={isAudioMuted ? 'muted' : (isSpeaking ? 'speaking' : 'silent')}
+          onClick={onFullscreenToggle}
+          sx={styles.fullscreenButton}
         >
-          {isAudioMuted ? <VolumeOff /> : <VolumeUp />}
+          <Fullscreen />
         </IconButton>
-      )}
+      </div>
     </div>
   );
 }; 
