@@ -4,10 +4,16 @@ import { useVoiceChat } from './contexts/VoiceChatContext';
 // import VoiceChat from './VoiceChat';
 
 const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, isServerOwner }) => {
-    const { joinVoiceRoom, isVoiceChatActive, voiceRoom, setShowVoiceUI } = useVoiceChat();
+    const { joinVoiceRoom, isVoiceChatActive, voiceRoom, setShowVoiceUI, leaveVoiceRoom } = useVoiceChat();
 
     useEffect(() => {
-        if (selectedChat?.chatType === 4) {
+        // Если пользователь переключился на другой сервер, но находится в голосовом звонке
+        if (isVoiceChatActive && voiceRoom && voiceRoom.serverId !== serverId) {
+            // Не покидаем звонок, но скрываем UI для текущего сервера
+            setShowVoiceUI(false);
+        }
+        // Если пользователь находится в голосовом канале текущего сервера
+        else if (selectedChat?.chatType === 4) {
             joinVoiceRoom({
                 roomId: selectedChat.chatId,
                 userName: username,
@@ -18,10 +24,10 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
         } else {
             setShowVoiceUI(false);
         }
-    }, [selectedChat, username, userId, serverId, joinVoiceRoom, setShowVoiceUI]);
+    }, [selectedChat, username, userId, serverId, joinVoiceRoom, setShowVoiceUI, isVoiceChatActive, voiceRoom, leaveVoiceRoom]);
 
-    // Показываем VoiceChat только когда пользователь находится в голосовом канале
-    if (selectedChat?.chatType === 4 && isVoiceChatActive && voiceRoom) {
+    // Показываем VoiceChat только когда пользователь находится в голосовом канале текущего сервера
+    if (selectedChat?.chatType === 4 && isVoiceChatActive && voiceRoom && voiceRoom.serverId === serverId) {
         return (
             <div 
               id="voicechat-root" 
