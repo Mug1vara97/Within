@@ -1,26 +1,42 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import GroupChat from './Chats/GroupChat';
 import { useVoiceChat } from './contexts/VoiceChatContext';
 // import VoiceChat from './VoiceChat';
 
 const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, isServerOwner }) => {
     const { joinVoiceRoom, isVoiceChatActive, voiceRoom, setShowVoiceUI } = useVoiceChat();
+    const [voiceCallLeftManually, setVoiceCallLeftManually] = useState(false);
 
+    // Сброс флага при смене канала
+    useEffect(() => {
+        if (selectedChat?.chatType !== 4) {
+            setVoiceCallLeftManually(false);
+        }
+    }, [selectedChat]);
+
+    // Автоматический join только если звонок неактивен и не был покинут вручную
     useEffect(() => {
         if (selectedChat?.chatType === 4) {
-            joinVoiceRoom({
-                roomId: selectedChat.chatId,
-                userName: username,
-                userId: userId,
-                serverId: serverId
-            });
-            setShowVoiceUI(true);
+            if (!isVoiceChatActive && !voiceCallLeftManually) {
+                joinVoiceRoom({
+                    roomId: selectedChat.chatId,
+                    userName: username,
+                    userId: userId,
+                    serverId: serverId
+                });
+                setShowVoiceUI(true);
+            }
         } else {
             setShowVoiceUI(false);
         }
-    }, [selectedChat, username, userId, serverId, joinVoiceRoom, setShowVoiceUI]);
+    }, [selectedChat, username, userId, serverId, joinVoiceRoom, setShowVoiceUI, isVoiceChatActive, voiceCallLeftManually]);
 
-    // Показываем VoiceChat всегда, если звонок активен (фон или foreground)
+    // Callback для VoiceChat чтобы отметить ручной выход
+    const handleVoiceChatLeave = useCallback(() => {
+        setVoiceCallLeftManually(true);
+    }, []);
+
+    // Рендерим VoiceChat только если звонок активен
     if (isVoiceChatActive && voiceRoom) {
         return (
             <div 
@@ -35,7 +51,7 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
         );
     }
 
-    // Для остальных чатов
+    // Для любого неактивного звонка (или текстового канала) показываем GroupChat
     if (selectedChat) {
         return (
             <GroupChat
@@ -47,6 +63,7 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
                 serverId={serverId}
                 userPermissions={userPermissions}
                 isServerOwner={isServerOwner}
+                onVoiceChatLeave={handleVoiceChatLeave}
             />
         );
     }
