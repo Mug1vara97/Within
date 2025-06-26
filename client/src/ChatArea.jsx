@@ -1,12 +1,17 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import GroupChat from './Chats/GroupChat';
 import VoiceChat from './VoiceChat';
 
 const ChatArea = ({ selectedChat, leftVoiceChat, setLeftVoiceChat, username, userId, serverId, userPermissions, isServerOwner }) => {
-    // Сбрасываем leftVoiceChat при смене чата
+    const [isInVoiceChat, setIsInVoiceChat] = useState(false);
+
+    // Сбрасываем leftVoiceChat и isInVoiceChat при смене чата
     useEffect(() => {
         if (selectedChat?.chatType === 3) {
             setLeftVoiceChat(false);
+        }
+        if (!selectedChat || selectedChat.chatType === 3) {
+            setIsInVoiceChat(false);
         }
     }, [selectedChat, setLeftVoiceChat]);
 
@@ -37,8 +42,12 @@ const ChatArea = ({ selectedChat, leftVoiceChat, setLeftVoiceChat, username, use
                 userName={username}
                 userId={userId}
                 serverId={serverId}
-                autoJoin={true}
-                onLeave={() => setLeftVoiceChat(true)}
+                isInVoiceChat={isInVoiceChat}
+                setIsInVoiceChat={setIsInVoiceChat}
+                onLeave={() => {
+                    setLeftVoiceChat(true);
+                    setIsInVoiceChat(false);
+                }}
             />
         );
     }

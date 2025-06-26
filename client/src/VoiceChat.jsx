@@ -1091,36 +1091,40 @@ const VideoView = React.memo(({
   );
 });
 
-function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave }) {
+function VoiceChat({ roomId, userName, userId, serverId, isInVoiceChat, setIsInVoiceChat, onLeave }) {
   const [isJoined, setIsJoined] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
+  const [error, setError] = useState('');
+  const [peers, setPeers] = useState(new Map());
+  const [volumes, setVolumes] = useState(new Map());
   const [isMuted, setIsMuted] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [useEarpiece, setUseEarpiece] = useState(true);
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
-  const [peers, setPeers] = useState(new Map());
-  const [error, setError] = useState('');
-  const [volumes, setVolumes] = useState(new Map());
   const [speakingStates, setSpeakingStates] = useState(new Map());
   const [audioStates, setAudioStates] = useState(new Map());
+  const [useEarpiece, setUseEarpiece] = useState(false);
+  const [isNoiseSuppressed, setIsNoiseSuppressed] = useState(false);
+  const [noiseSuppressionMode, setNoiseSuppressionMode] = useState('moderate');
+  const [noiseSuppressMenuAnchor, setNoiseSuppressMenuAnchor] = useState(null);
+  const [remoteVideos, setRemoteVideos] = useState(new Map());
+  const [remoteScreens, setRemoteScreens] = useState(new Map());
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [screenStream, setScreenStream] = useState(null);
+  const [screenProducer, setScreenProducer] = useState(null);
+  const [videoProducer, setVideoProducer] = useState(null);
+  const [videoStream, setVideoStream] = useState(null);
   const isMobile = useMemo(() => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent), []);
 
   // Use userId and serverId in socket connection
   useEffect(() => {
-    if (socketRef.current) {
-      socketRef.current.emit('setUserInfo', { userId, serverId });
+    if (userId && serverId) {
+      socketRef.current = io(SOCKET_SERVER_URL, {
+        query: {
+          userId,
+          serverId
+        }
+      });
     }
   }, [userId, serverId]);
-  const [screenProducer, setScreenProducer] = useState(null);
-  const [screenStream, setScreenStream] = useState(null);
-  const [remoteScreens, setRemoteScreens] = useState(new Map());
-  const [videoProducer, setVideoProducer] = useState(null);
-  const [videoStream, setVideoStream] = useState(null);
-  const [remoteVideos, setRemoteVideos] = useState(new Map());
-  const [isNoiseSuppressed, setIsNoiseSuppressed] = useState(false);
-  const [noiseSuppressionMode, setNoiseSuppressionMode] = useState('rnnoise');
-  const [noiseSuppressMenuAnchor, setNoiseSuppressMenuAnchor] = useState(null);
+
   const noiseSuppressionRef = useRef(null);
   const isAudioEnabledRef = useRef(isAudioEnabled);
   const individualMutedPeersRef = useRef(new Map());
@@ -2376,13 +2380,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
 
   const handleLeaveCall = () => {
     cleanup();
-    setIsJoined(false);
-    setPeers(new Map());
-    setVolumes(new Map());
-    setError('');
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-    }
+    setIsInVoiceChat(false);
     if (onLeave) {
       onLeave();
     }
@@ -3192,10 +3190,18 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
   };
 
   useEffect(() => {
-    if (autoJoin && roomId && userName && !isJoined) {
+    if (!roomId || !userName) return;
+
+    if (!isInVoiceChat) {
+      // Если мы не в звонке, то присоединяемся
       handleJoin();
+      setIsInVoiceChat(true);
     }
-  }, [autoJoin, roomId, userName]);
+
+    return () => {
+      cleanup();
+    };
+  }, [roomId, userName, isInVoiceChat]);
 
   return (
     <MuteProvider socket={socketRef.current}>
