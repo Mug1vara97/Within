@@ -1,23 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
 
+// Создаем контекст для состояния мьюта
+const MuteContext = React.createContext({
+  isMuted: false,
+  setIsMuted: () => {},
+  socketRef: { current: null }
+});
+
 // MuteProvider component
 const MuteProvider = ({ children }) => {
   const [isMuted, setIsMuted] = useState(false);
   const socketRef = useRef(null);
 
   useEffect(() => {
-    if (!socketRef.current) return;
+    const socket = socketRef.current;
+    if (!socket) return;
 
-    socketRef.current.on('mute_state_changed', (newState) => {
+    socket.on('mute_state_changed', (newState) => {
       setIsMuted(newState.isMuted);
     });
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.off('mute_state_changed');
+      if (socket) {
+        socket.off('mute_state_changed');
       }
     };
-  }, [socketRef.current]);
+  }, []);
 
   return (
     <MuteContext.Provider value={{ isMuted, setIsMuted, socketRef }}>
@@ -25,12 +33,5 @@ const MuteProvider = ({ children }) => {
     </MuteContext.Provider>
   );
 };
-
-// Создаем контекст для состояния мьюта
-const MuteContext = React.createContext({
-  isMuted: false,
-  setIsMuted: () => {},
-  socketRef: { current: null }
-});
 
 export { MuteContext, MuteProvider }; 

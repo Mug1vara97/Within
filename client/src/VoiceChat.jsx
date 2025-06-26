@@ -72,7 +72,7 @@ function VoiceChat({
   onManualLeave,
   showUI = false
 }) {
-  const socketRef = useRef();
+  const localSocketRef = useRef();
   const deviceRef = useRef();
   const producerRef = useRef();
   const consumerRefs = useRef(new Map());
@@ -95,23 +95,27 @@ function VoiceChat({
   useEffect(() => {
     if (!roomId || !userName || !userId) return;
 
-    socketRef.current = io(config.server.url, {
+    const socket = io(config.server.url, {
       query: { roomId, userName, userId }
     });
-    muteSocketRef.current = socketRef.current;
+    
+    localSocketRef.current = socket;
+    if (muteSocketRef) {
+      muteSocketRef.current = socket;
+    }
 
-    socketRef.current.on('connect', () => {
+    socket.on('connect', () => {
       console.log('Connected to signaling server');
     });
 
-    socketRef.current.on('disconnect', () => {
+    socket.on('disconnect', () => {
       console.log('Disconnected from signaling server');
       cleanup();
     });
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
+      if (socket) {
+        socket.disconnect();
       }
     };
   }, [roomId, userName, userId]);
@@ -194,6 +198,11 @@ function VoiceChat({
     if (noiseSuppressionRef.current) {
       noiseSuppressionRef.current.dispose();
       noiseSuppressionRef.current = null;
+    }
+
+    if (localSocketRef.current) {
+      localSocketRef.current.disconnect();
+      localSocketRef.current = null;
     }
 
     voiceDetectorRef.current = null;
