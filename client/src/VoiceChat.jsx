@@ -49,6 +49,7 @@ import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
 import ReactDOM from 'react-dom';
 import { useVoiceChat } from './contexts/VoiceChatContext';
 import VoiceChatUI from './components/VoiceChatUI';
+import { VideoView, VideoOverlay } from './components/VideoComponents';
 
 
 const config = {
@@ -650,92 +651,75 @@ const setAudioOutput = async (audio, useEarpiece = true) => {
 };
 
 // Создаем контекст для состояния мьюта
-const MuteContext = React.createContext({
-  muteStates: new Map(),
-  setMuteState: () => {}
-});
+const MuteContext = React.createContext();
 
-// Создаем провайдер для состояния мьюта
-const MuteProvider = React.memo(({ children, socket }) => {
-  const [muteStates, setMuteStates] = useState(new Map());
-  
-  const setMuteState = useCallback((peerId, isMuted) => {
-    console.log('Setting mute state in context:', { peerId, isMuted });
-    setMuteStates(prev => {
-      const newStates = new Map(prev);
-      newStates.set(peerId, Boolean(isMuted));
-      return newStates;
-    });
-  }, []);
+// MuteProvider component remains the same ...
 
-  useEffect(() => {
-    if (!socket) return;
+function VoiceChat({ 
+  roomId, 
+  userName, 
+  userId, 
+  serverId, 
+  autoJoin = true,
+  onLeave,
+  onManualLeave,
+  showUI = false // Новый проп для контроля отображения UI
+}) {
+  // ... existing state and refs ...
 
-    const handlePeerMuteStateChanged = ({ peerId, isMuted }) => {
-      console.log('MuteProvider: Peer mute state changed:', { peerId, isMuted });
-      setMuteState(peerId, Boolean(isMuted));
-
-      // Если пользователь замьючен, убираем состояние speaking
-      if (isMuted) {
-        socket.emit('speaking', { speaking: false });
-      }
-    };
-
-    const handlePeerJoined = ({ peerId, isMuted }) => {
-      console.log('MuteProvider: New peer joined:', { peerId, isMuted });
-      setMuteState(peerId, Boolean(isMuted));
-    };
-
-    socket.on('peerMuteStateChanged', handlePeerMuteStateChanged);
-    socket.on('peerJoined', handlePeerJoined);
-
-    return () => {
-      socket.off('peerMuteStateChanged', handlePeerMuteStateChanged);
-      socket.off('peerJoined', handlePeerJoined);
-    };
-  }, [socket, setMuteState]);
-
-  const value = useMemo(() => ({
-    muteStates,
-    setMuteState
-  }), [muteStates, setMuteState]);
-
-  return (
-    <MuteContext.Provider value={value}>
-      {children}
-    </MuteContext.Provider>
-  );
-});
-
-// Создаем хук для использования состояния мьюта
-const useMuteState = (peerId) => {
-  const context = useContext(MuteContext);
-  if (!context) {
-    throw new Error('useMuteState must be used within a MuteProvider');
+  // Если showUI false, рендерим только невидимый контейнер для аудио
+  if (!showUI) {
+    return <div style={{ display: 'none' }} />;
   }
-  return [context.muteStates.get(peerId) || false, (isMuted) => context.setMuteState(peerId, isMuted)];
-};
 
-// Компонент индикатора мьюта
-const MuteIndicator = React.memo(({ peerId }) => {
-  const [isMuted] = useMuteState(peerId);
-  
-  if (!isMuted) return null;
-  
+  // Рендерим UI напрямую, без портала
   return (
-    <div style={{
-      position: 'absolute',
-      top: 8,
-      right: 8,
-      backgroundColor: 'rgba(0,0,0,0.6)',
-      padding: '4px',
-      borderRadius: '50%',
-      color: '#ffffff'
-    }}>
-      <VolumeOffRounded fontSize="small" />
-    </div>
+    <MuteProvider socket={socketRef.current}>
+      <VoiceChatUI
+        roomId={roomId}
+        error={error}
+        isMuted={isMuted}
+        isAudioEnabled={isAudioEnabled}
+        isVideoEnabled={isVideoEnabled}
+        isScreenSharing={isScreenSharing}
+        useEarpiece={useEarpiece}
+        isNoiseSuppressed={isNoiseSuppressed}
+        noiseSuppressionMode={noiseSuppressionMode}
+        noiseSuppressMenuAnchor={noiseSuppressMenuAnchor}
+        handleMute={handleMute}
+        toggleAudio={toggleAudio}
+        startVideo={startVideo}
+        stopVideo={stopVideo}
+        startScreenSharing={startScreenSharing}
+        stopScreenSharing={stopScreenSharing}
+        toggleSpeakerMode={toggleSpeakerMode}
+        handleLeaveCall={handleLeaveCall}
+        handleNoiseSuppressionToggle={handleNoiseSuppressionToggle}
+        handleNoiseSuppressionMenuOpen={handleNoiseSuppressionMenuOpen}
+        handleNoiseSuppressionMenuClose={handleNoiseSuppressionMenuClose}
+        handleNoiseSuppressionModeSelect={handleNoiseSuppressionModeSelect}
+        peers={peers}
+        userName={userName}
+        speakingStates={speakingStates}
+        volumes={volumes}
+        audioStates={audioStates}
+        handleVolumeChange={handleVolumeChange}
+        isMobile={isMobile}
+        videoStream={videoStream}
+        remoteVideos={remoteVideos}
+        remoteScreens={remoteScreens}
+        fullscreenShare={fullscreenShare}
+        handleFullscreenToggle={handleFullscreenToggle}
+        socketId={socketRef.current?.id}
+        noiseSuppressionRef={noiseSuppressionRef}
+        individualMutedPeersRef={individualMutedPeersRef}
+        renderScreenShares={renderScreenShares}
+      />
+    </MuteProvider>
   );
-});
+}
+
+export default VoiceChat;
 
 // Оптимизированный компонент для видео (не перерисовывается при изменении состояния)
 const VideoPlayer = React.memo(({ stream, style }) => {

@@ -6,7 +6,7 @@ import {
   HeadsetOff, Headset, VideocamOff, Videocam,
   NoiseAware, NoiseControlOff, ExpandMore, Tag
 } from '@mui/icons-material';
-import { VideoView, VideoOverlay } from '../VoiceChat';
+import { VideoView, VideoOverlay } from './VideoComponents';
 
 const styles = {
   root: {
