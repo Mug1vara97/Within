@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback, useContext } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, useContext, createContext } from 'react';
 import {
   Container,
   Paper,
@@ -47,7 +47,7 @@ import { io } from 'socket.io-client';
 import { NoiseSuppressionManager } from './utils/noiseSuppression';
 import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
 import ReactDOM from 'react-dom';
-import { useVoiceChat } from './contexts/VoiceChatContext';
+// import { useVoiceChat } from './contexts/VoiceChatContext'; // <-- закомментировано, чтобы не было конфликта
 import VoiceChatUI from './components/VoiceChatUI';
 
 
@@ -1095,8 +1095,25 @@ const VideoView = React.memo(({
 
 export { VideoOverlay, VideoView };
 
+export const VoiceChatContext = createContext();
+export const useVoiceChat = () => useContext(VoiceChatContext); // <-- основной экспорт
+
+export const VoiceChatProvider = ({ children }) => {
+  // --- ВСЯ ВАША ЛОГИКА ИЗ VoiceChat.jsx ---
+  // (useState, useRef, useEffect, useCallback, utility-функции, обработчики, всё, что было в VoiceChat)
+  // ...
+  // Вместо return UI, возвращаем провайдер:
+  return (
+    <VoiceChatContext.Provider value={{
+      // ...все состояния и обработчики, которые нужны в UI
+    }}>
+      {children}
+    </VoiceChatContext.Provider>
+  );
+};
+
 function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave, onManualLeave }) {
-  const { leaveVoiceRoom } = useVoiceChat();
+  // const { leaveVoiceRoom } = useVoiceChat();
   const [isJoined, setIsJoined] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
@@ -1160,7 +1177,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
   const animationFramesRef = useRef(new Map());
 
   // Добавляем новый ref для хранения состояний mute
-  const mutedPeersRef = useRef(new Map());
+  // const mutedPeersRef = useRef(new Map());
 
   const [fullscreenShare, setFullscreenShare] = useState(null);
 
@@ -2042,24 +2059,24 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
     });
   }, []);
 
-  const initializeDevice = async (routerRtpCapabilities) => {
-    try {
-      if (!deviceRef.current) {
-        const device = new Device();
-        if (routerRtpCapabilities) {
-          await device.load({ routerRtpCapabilities });
-        }
-        deviceRef.current = device;
-        console.log('Device initialized', routerRtpCapabilities ? 'with capabilities' : 'without capabilities');
-      } else if (routerRtpCapabilities) {
-        await deviceRef.current.load({ routerRtpCapabilities });
-        console.log('Device reinitialized with capabilities');
-      }
-    } catch (error) {
-      console.error('Failed to initialize device:', error);
-      throw error;
-    }
-  };
+  // const initializeDevice = async (routerRtpCapabilities) => {
+  //   try {
+  //     if (!deviceRef.current) {
+  //       const device = new Device();
+  //       if (routerRtpCapabilities) {
+  //         await device.load({ routerRtpCapabilities });
+  //       }
+  //       deviceRef.current = device;
+  //       console.log('Device initialized', routerRtpCapabilities ? 'with capabilities' : 'without capabilities');
+  //     } else if (routerRtpCapabilities) {
+  //       await deviceRef.current.load({ routerRtpCapabilities });
+  //       console.log('Device reinitialized with capabilities');
+  //     }
+  //   } catch (error) {
+  //     console.error('Failed to initialize device:', error);
+  //     throw error;
+  //   }
+  // };
 
   const createSendTransport = async () => {
     return new Promise((resolve, reject) => {
@@ -2411,7 +2428,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
     if (onManualLeave) {
       onManualLeave();
     } else {
-      leaveVoiceRoom();
+      // leaveVoiceRoom();
     }
     // Вызываем callback если есть
     if (onLeave) {
@@ -3007,143 +3024,6 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
     handleNoiseSuppressionMenuClose();
   };
 
-  const handleConsume = async (producer) => {
-    try {
-      console.log('Handling producer:', producer);
-      
-      if (producer.producerSocketId === socketRef.current.id) {
-        console.log('Skipping own producer');
-        return;
-      }
-      
-      const transport = await createConsumerTransport();
-      console.log('Consumer transport created:', transport.id);
-      
-      const { rtpCapabilities } = deviceRef.current;
-      
-      const { id, producerId, kind, rtpParameters, appData } = await new Promise((resolve, reject) => {
-        socketRef.current.emit('consume', {
-          rtpCapabilities,
-          remoteProducerId: producer.producerId,
-          transportId: transport.id
-        }, (response) => {
-          if (response.error) {
-            console.error('Consume request failed:', response.error);
-            reject(new Error(response.error));
-            return;
-          }
-          resolve(response);
-        });
-      });
-
-      if (!id || !producerId || !kind || !rtpParameters) {
-        throw new Error('Invalid consumer data received from server');
-      }
-
-      const consumer = await transport.consume({
-        id,
-        producerId,
-        kind,
-        rtpParameters,
-        appData
-      });
-
-      console.log('Consumer created:', consumer.id);
-      consumersRef.current.set(consumer.id, consumer);
-
-      const stream = new MediaStream([consumer.track]);
-
-      if (appData?.mediaType === 'screen') {
-        console.log('Processing screen sharing stream:', { kind, appData });
-        
-        if (kind === 'video') {
-          console.log('Setting up screen sharing video');
-          setRemoteScreens(prev => {
-            const newScreens = new Map(prev);
-            newScreens.set(producer.producerSocketId, { 
-              producerId,
-              consumerId: consumer.id,
-              stream
-            });
-            return newScreens;
-          });
-        }
-      } else if (appData?.mediaType === 'webcam') {
-        console.log('Processing webcam stream:', { kind, appData });
-        
-        if (kind === 'video') {
-          console.log('Setting up webcam stream');
-          setRemoteVideos(prev => {
-            const newVideos = new Map(prev);
-            newVideos.set(producer.producerSocketId, {
-              producerId,
-              consumerId: consumer.id,
-              stream
-            });
-            return newVideos;
-          });
-        }
-      } else if (kind === 'audio') {
-        try {
-          const audio = new Audio();
-          audio.srcObject = stream;
-          audio.id = `audio-${producer.producerSocketId}`;
-          audio.autoplay = true;
-          audio.muted = !isAudioEnabledRef.current; // Use ref for current state
-
-          if (isMobile) {
-            await setAudioOutput(audio, useEarpiece);
-          }
-          
-          const audioContext = audioContextRef.current;
-          const source = audioContext.createMediaStreamSource(stream);
-          
-          const analyser = createAudioAnalyser(audioContext);
-          
-          const gainNode = audioContext.createGain();
-          gainNode.gain.value = isAudioEnabledRef.current ? 1.0 : 0.0; // Use ref for current state
-
-          source.connect(analyser);
-          analyser.connect(gainNode);
-          gainNode.connect(audioContext.destination);
-
-          analyserNodesRef.current.set(producer.producerSocketId, analyser);
-          gainNodesRef.current.set(producer.producerSocketId, gainNode);
-          audioRef.current.set(producer.producerSocketId, audio);
-          setVolumes(prev => new Map(prev).set(producer.producerSocketId, 100));
-
-          // Start voice detection with producerId
-          detectSpeaking(analyser, producer.producerSocketId, producer.producerId);
-        } catch (error) {
-          console.error('Error setting up audio:', error);
-        }
-      }
-
-      consumer.on('transportclose', () => {
-        console.log('Consumer transport closed');
-        consumer.close();
-        consumersRef.current.delete(consumer.id);
-      });
-
-      consumer.on('producerclose', () => {
-        console.log('Producer closed');
-        consumer.close();
-        consumersRef.current.delete(consumer.id);
-      });
-
-      consumer.on('trackended', () => {
-        console.log('Track ended');
-        consumer.close();
-        consumersRef.current.delete(consumer.id);
-      });
-
-      return consumer;
-    } catch (error) {
-      console.error('Error consuming producer:', error);
-      throw error;
-    }
-  };
-
   // Update toggleAudio function
   const toggleAudio = useCallback(() => {
     const newState = !isAudioEnabled;
@@ -3282,12 +3162,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
     </MuteProvider>
   );
 
-  // Рендер через портал
-  const root = typeof window !== 'undefined' ? document.getElementById('voicechat-root') : null;
-  if (root) {
-    return ReactDOM.createPortal(ui, root);
-  }
-  return null;
+  return ui;
 }
 
 export default VoiceChat;
