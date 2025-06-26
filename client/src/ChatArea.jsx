@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import GroupChat from './Chats/GroupChat';
 import VoiceChat from './VoiceChat';
 
-const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, isServerOwner }) => {
+const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, isServerOwner, onJoinVoiceChannel, onLeaveVoiceChannel }) => {
     // Локальное состояние для управления звонком
     const [isVoiceActive, setIsVoiceActive] = useState(false);
     const [voiceRoomData, setVoiceRoomData] = useState(null);
@@ -26,19 +26,22 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
     useEffect(() => {
         if (selectedChat?.chatType === 4) {
             if (!userLeftVoiceManually) {
-                setVoiceRoomData({
+                const data = {
                     roomId: selectedChat.chatId,
                     userName: username,
                     userId: userId,
                     serverId: serverId
-                });
+                };
+                setVoiceRoomData(data);
                 setIsVoiceActive(true);
                 setLeftVoiceChannel(false);
+                if (onJoinVoiceChannel) onJoinVoiceChannel(data);
             }
         } else {
             setIsVoiceActive(false);
+            if (onLeaveVoiceChannel) onLeaveVoiceChannel();
         }
-    }, [selectedChat, username, userId, serverId, userLeftVoiceManually]);
+    }, [selectedChat, username, userId, serverId, userLeftVoiceManually, onJoinVoiceChannel, onLeaveVoiceChannel]);
 
     // Обработчик выхода из голосового чата вручную
     const handleManualLeave = () => {

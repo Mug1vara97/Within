@@ -1112,7 +1112,7 @@ export const VoiceChatProvider = ({ children }) => {
   );
 };
 
-function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave, onManualLeave }) {
+function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave, onManualLeave, showUI = true }) {
   // const { leaveVoiceRoom } = useVoiceChat();
   const [isJoined, setIsJoined] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -3123,8 +3123,14 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
   const ui = (
     <MuteProvider socket={socketRef.current}>
       <VoiceChatUI
-        styles={styles}
         roomId={roomId}
+        userName={userName}
+        userId={userId}
+        serverId={serverId}
+        autoJoin={autoJoin}
+        onLeave={onLeave}
+        onManualLeave={onManualLeave}
+        styles={styles}
         error={error}
         isVideoEnabled={isVideoEnabled}
         videoStream={videoStream}
@@ -3213,7 +3219,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
       handleLeaveCall,
       // ...добавьте другие нужные состояния и обработчики
     }}>
-      {ui}
+      {showUI ? ui : null}
     </VoiceChatContext.Provider>
   );
 }
