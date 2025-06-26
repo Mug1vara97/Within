@@ -1,14 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import GroupChat from './Chats/GroupChat';
-import { useVoiceChat } from './contexts/VoiceChatContext';
-import VoiceChatUI from './components/VoiceChatUI';
-import { styles as voiceChatStyles } from './VoiceChatStyles';
+import VoiceChat from './components/VoiceChat';
 
 const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, isServerOwner }) => {
-    const { joinVoiceRoom, isVoiceChatActive, voiceRoom, setShowVoiceUI, leaveVoiceRoom } = useVoiceChat();
+    // Локальное состояние для управления звонком
+    const [isVoiceActive, setIsVoiceActive] = useState(false);
+    const [voiceRoomData, setVoiceRoomData] = useState(null);
     const [leftVoiceChannel, setLeftVoiceChannel] = useState(false);
     const [userLeftVoiceManually, setUserLeftVoiceManually] = useState(false);
-    const prevVoiceActive = useRef(isVoiceChatActive);
     const prevServerId = useRef(serverId);
     const prevChatId = useRef(selectedChat?.chatId);
 
@@ -27,46 +26,40 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
     useEffect(() => {
         if (selectedChat?.chatType === 4) {
             if (!userLeftVoiceManually) {
-                joinVoiceRoom({
+                setVoiceRoomData({
                     roomId: selectedChat.chatId,
                     userName: username,
                     userId: userId,
                     serverId: serverId
                 });
-                setShowVoiceUI(true);
-                setLeftVoiceChannel(false); // Скрываем сообщение при входе в голосовой канал
+                setIsVoiceActive(true);
+                setLeftVoiceChannel(false);
             }
         } else {
-            setShowVoiceUI(false);
+            setIsVoiceActive(false);
         }
-    }, [selectedChat, username, userId, serverId, joinVoiceRoom, setShowVoiceUI, userLeftVoiceManually]);
-
-    useEffect(() => {
-        // Если пользователь только что покинул голосовой чат
-        if (prevVoiceActive.current && !isVoiceChatActive) {
-            setLeftVoiceChannel(true);
-        }
-        prevVoiceActive.current = isVoiceChatActive;
-    }, [isVoiceChatActive]);
+    }, [selectedChat, username, userId, serverId, userLeftVoiceManually]);
 
     // Обработчик выхода из голосового чата вручную
     const handleManualLeave = () => {
         setUserLeftVoiceManually(true);
-        leaveVoiceRoom();
+        setIsVoiceActive(false);
+        setVoiceRoomData(null);
     };
 
-    // Показываем VoiceChatUI только когда пользователь находится в голосовом канале
-    if (selectedChat?.chatType === 4 && isVoiceChatActive && voiceRoom && !userLeftVoiceManually) {
+    if (selectedChat?.chatType === 4 && isVoiceActive && voiceRoomData && !userLeftVoiceManually) {
         return (
-            <VoiceChatUI
-                styles={voiceChatStyles}
-                {...voiceRoom}
+            <VoiceChat
+                roomId={voiceRoomData.roomId}
+                userName={voiceRoomData.userName}
+                userId={voiceRoomData.userId}
+                serverId={voiceRoomData.serverId}
+                autoJoin={true}
                 onLeave={handleManualLeave}
             />
         );
     }
 
-    // Показываем сообщение, если пользователь только что покинул голосовой канал
     if (leftVoiceChannel) {
         return (
             <div className="left-voice-channel-message" style={{textAlign: 'center', marginTop: '40px', color: '#888'}}>
@@ -75,7 +68,6 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
         );
     }
 
-    // Для остальных чатов
     if (selectedChat) {
         return (
             <GroupChat
