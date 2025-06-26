@@ -3,6 +3,7 @@ import { Box, AppBar, Toolbar, Typography, IconButton, Button, Menu, MenuItem } 
 import {
   Mic, MicOff, Videocam, VideocamOff, Headset, HeadsetOff, NoiseAware, NoiseControlOff, ExpandMore, PhoneDisabled, ScreenShare, StopScreenShare, VolumeUpRounded, Hearing
 } from '@mui/icons-material';
+import { VideoOverlay, VideoView } from '../VoiceChat';
 
 // VideoView and VideoOverlay should be passed as children or as props if needed
 
