@@ -911,7 +911,7 @@ const VideoPlayer = React.memo(({ stream, style }) => {
 // Компонент оверлея (перерисовывается отдельно от видео)
 const VideoOverlay = React.memo(({ 
   peerName, 
-  isMuted, 
+  isMuted,
   isSpeaking,
   isAudioEnabled,
   isLocal,
@@ -973,10 +973,10 @@ const VideoOverlay = React.memo(({
           <HeadsetOff sx={{ fontSize: 16, color: '#ed4245' }} />
         )}
         {peerName}
-      </Box>
-      
+              </Box>
+              
       {!isLocal && (
-        <IconButton
+                <IconButton
           onClick={handleVolumeIconClick}
           className={`volumeControl ${
             isVolumeOff
@@ -1024,8 +1024,8 @@ const VideoOverlay = React.memo(({
           ) : (
             <VolumeUp sx={{ fontSize: 20 }} />
           )}
-        </IconButton>
-      )}
+                  </IconButton>
+                )}
       
       {children}
     </div>
@@ -1067,9 +1067,9 @@ const VideoView = React.memo(({
       <VideoPlayer stream={stream} />
       <VideoOverlay
         peerName={peerName}
-        isMuted={isMuted}
+      isMuted={isMuted}
         isSpeaking={isSpeaking}
-        isAudioEnabled={isAudioEnabled}
+      isAudioEnabled={isAudioEnabled}
         isLocal={isLocal}
         onVolumeClick={onVolumeClick}
         volume={volume}

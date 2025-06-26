@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import GroupChat from './Chats/GroupChat';
 import { useVoiceChat } from './contexts/VoiceChatContext';
-// import VoiceChat from './VoiceChat';
+import VoiceChat from './VoiceChat';
 
 const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, isServerOwner }) => {
     const { joinVoiceRoom, isVoiceChatActive, voiceRoom, setShowVoiceUI, leaveVoiceRoom } = useVoiceChat();
@@ -33,7 +33,7 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
                     serverId: serverId
                 });
                 setShowVoiceUI(true);
-                setLeftVoiceChannel(false); // Скрываем сообщение при входе в голосовой канал
+                setLeftVoiceChannel(false);
             }
         } else {
             setShowVoiceUI(false);
@@ -41,14 +41,12 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
     }, [selectedChat, username, userId, serverId, joinVoiceRoom, setShowVoiceUI, userLeftVoiceManually]);
 
     useEffect(() => {
-        // Если пользователь только что покинул голосовой чат
         if (prevVoiceActive.current && !isVoiceChatActive) {
             setLeftVoiceChannel(true);
         }
         prevVoiceActive.current = isVoiceChatActive;
     }, [isVoiceChatActive]);
 
-    // Обработчик выхода из голосового чата вручную
     const handleManualLeave = () => {
         setUserLeftVoiceManually(true);
         leaveVoiceRoom();
@@ -57,15 +55,22 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
     // Показываем VoiceChat только когда пользователь находится в голосовом канале
     if (selectedChat?.chatType === 4 && isVoiceChatActive && voiceRoom && !userLeftVoiceManually) {
         return (
-            <div 
-              id="voicechat-root" 
-              style={{
+            <div style={{
                 width: '100%',
                 height: '100%',
                 position: 'relative',
                 overflow: 'hidden'
-              }}
-            />
+            }}>
+                <VoiceChat
+                    roomId={voiceRoom.roomId}
+                    userName={voiceRoom.userName}
+                    userId={voiceRoom.userId}
+                    serverId={voiceRoom.serverId}
+                    autoJoin={true}
+                    showUI={true}
+                    onLeave={handleManualLeave}
+                />
+            </div>
         );
     }
 
@@ -95,11 +100,7 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
         );
     }
 
-    return (
-        <div className="no-chat-selected">
-            <h3>Select a chat to start messaging</h3>
-        </div>
-    );
-};
+    return null;
+}
 
 export default ChatArea;
