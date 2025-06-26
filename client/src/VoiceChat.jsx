@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback, useContext, createContext } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, useContext } from 'react';
 import {
   Container,
   Paper,
@@ -47,8 +47,7 @@ import { io } from 'socket.io-client';
 import { NoiseSuppressionManager } from './utils/noiseSuppression';
 import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
 import ReactDOM from 'react-dom';
-// import { useVoiceChat } from './contexts/VoiceChatContext'; // <-- закомментировано, чтобы не было конфликта
-import VoiceChatUI from './components/VoiceChatUI';
+import { useVoiceChat } from './contexts/VoiceChatContext';
 
 
 const config = {
@@ -1093,28 +1092,10 @@ const VideoView = React.memo(({
   );
 });
 
-export { VideoOverlay, VideoView };
-
-export const VoiceChatContext = createContext();
-export const useVoiceChat = () => useContext(VoiceChatContext); // <-- основной экспорт
-
-export const VoiceChatProvider = ({ children }) => {
-  // --- ВСЯ ВАША ЛОГИКА ИЗ VoiceChat.jsx ---
-  // (useState, useRef, useEffect, useCallback, utility-функции, обработчики, всё, что было в VoiceChat)
-  // ...
-  // Вместо return UI, возвращаем провайдер:
-  return (
-    <VoiceChatContext.Provider value={{
-      // ...все состояния и обработчики, которые нужны в UI
-    }}>
-      {children}
-    </VoiceChatContext.Provider>
-  );
-};
-
-function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave, onManualLeave, showUI = true }) {
-  // const { leaveVoiceRoom } = useVoiceChat();
+function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave, onManualLeave }) {
+  const { leaveVoiceRoom } = useVoiceChat();
   const [isJoined, setIsJoined] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [useEarpiece, setUseEarpiece] = useState(true);
@@ -1177,7 +1158,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
   const animationFramesRef = useRef(new Map());
 
   // Добавляем новый ref для хранения состояний mute
-  // const mutedPeersRef = useRef(new Map());
+  const mutedPeersRef = useRef(new Map());
 
   const [fullscreenShare, setFullscreenShare] = useState(null);
 
@@ -1537,7 +1518,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
 
       socket.on('connect', () => {
         console.log('Socket connected successfully');
-        setIsJoined(true);
+        setIsConnected(true);
         // Set initial states
         socket.emit('muteState', { isMuted: false });
         socket.emit('audioState', { isEnabled: isAudioEnabled });
@@ -1550,6 +1531,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
 
       socket.on('disconnect', () => {
         console.log('Socket disconnected');
+        setIsConnected(false);
         setIsJoined(false);
         setPeers(new Map());
         cleanup();
@@ -2059,24 +2041,24 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
     });
   }, []);
 
-  // const initializeDevice = async (routerRtpCapabilities) => {
-  //   try {
-  //     if (!deviceRef.current) {
-  //       const device = new Device();
-  //       if (routerRtpCapabilities) {
-  //         await device.load({ routerRtpCapabilities });
-  //       }
-  //       deviceRef.current = device;
-  //       console.log('Device initialized', routerRtpCapabilities ? 'with capabilities' : 'without capabilities');
-  //     } else if (routerRtpCapabilities) {
-  //       await deviceRef.current.load({ routerRtpCapabilities });
-  //       console.log('Device reinitialized with capabilities');
-  //     }
-  //   } catch (error) {
-  //     console.error('Failed to initialize device:', error);
-  //     throw error;
-  //   }
-  // };
+  const initializeDevice = async (routerRtpCapabilities) => {
+    try {
+      if (!deviceRef.current) {
+        const device = new Device();
+        if (routerRtpCapabilities) {
+          await device.load({ routerRtpCapabilities });
+        }
+        deviceRef.current = device;
+        console.log('Device initialized', routerRtpCapabilities ? 'with capabilities' : 'without capabilities');
+      } else if (routerRtpCapabilities) {
+        await deviceRef.current.load({ routerRtpCapabilities });
+        console.log('Device reinitialized with capabilities');
+      }
+    } catch (error) {
+      console.error('Failed to initialize device:', error);
+      throw error;
+    }
+  };
 
   const createSendTransport = async () => {
     return new Promise((resolve, reject) => {
@@ -2428,7 +2410,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
     if (onManualLeave) {
       onManualLeave();
     } else {
-      // leaveVoiceRoom();
+      leaveVoiceRoom();
     }
     // Вызываем callback если есть
     if (onLeave) {
@@ -3024,6 +3006,143 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
     handleNoiseSuppressionMenuClose();
   };
 
+  const handleConsume = async (producer) => {
+    try {
+      console.log('Handling producer:', producer);
+      
+      if (producer.producerSocketId === socketRef.current.id) {
+        console.log('Skipping own producer');
+        return;
+      }
+      
+      const transport = await createConsumerTransport();
+      console.log('Consumer transport created:', transport.id);
+      
+      const { rtpCapabilities } = deviceRef.current;
+      
+      const { id, producerId, kind, rtpParameters, appData } = await new Promise((resolve, reject) => {
+        socketRef.current.emit('consume', {
+          rtpCapabilities,
+          remoteProducerId: producer.producerId,
+          transportId: transport.id
+        }, (response) => {
+          if (response.error) {
+            console.error('Consume request failed:', response.error);
+            reject(new Error(response.error));
+            return;
+          }
+          resolve(response);
+        });
+      });
+
+      if (!id || !producerId || !kind || !rtpParameters) {
+        throw new Error('Invalid consumer data received from server');
+      }
+
+      const consumer = await transport.consume({
+        id,
+        producerId,
+        kind,
+        rtpParameters,
+        appData
+      });
+
+      console.log('Consumer created:', consumer.id);
+      consumersRef.current.set(consumer.id, consumer);
+
+      const stream = new MediaStream([consumer.track]);
+
+      if (appData?.mediaType === 'screen') {
+        console.log('Processing screen sharing stream:', { kind, appData });
+        
+        if (kind === 'video') {
+          console.log('Setting up screen sharing video');
+          setRemoteScreens(prev => {
+            const newScreens = new Map(prev);
+            newScreens.set(producer.producerSocketId, { 
+              producerId,
+              consumerId: consumer.id,
+              stream
+            });
+            return newScreens;
+          });
+        }
+      } else if (appData?.mediaType === 'webcam') {
+        console.log('Processing webcam stream:', { kind, appData });
+        
+        if (kind === 'video') {
+          console.log('Setting up webcam stream');
+          setRemoteVideos(prev => {
+            const newVideos = new Map(prev);
+            newVideos.set(producer.producerSocketId, {
+              producerId,
+              consumerId: consumer.id,
+              stream
+            });
+            return newVideos;
+          });
+        }
+      } else if (kind === 'audio') {
+        try {
+          const audio = new Audio();
+          audio.srcObject = stream;
+          audio.id = `audio-${producer.producerSocketId}`;
+          audio.autoplay = true;
+          audio.muted = !isAudioEnabledRef.current; // Use ref for current state
+
+          if (isMobile) {
+            await setAudioOutput(audio, useEarpiece);
+          }
+          
+          const audioContext = audioContextRef.current;
+          const source = audioContext.createMediaStreamSource(stream);
+          
+          const analyser = createAudioAnalyser(audioContext);
+          
+          const gainNode = audioContext.createGain();
+          gainNode.gain.value = isAudioEnabledRef.current ? 1.0 : 0.0; // Use ref for current state
+
+          source.connect(analyser);
+          analyser.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+
+          analyserNodesRef.current.set(producer.producerSocketId, analyser);
+          gainNodesRef.current.set(producer.producerSocketId, gainNode);
+          audioRef.current.set(producer.producerSocketId, audio);
+          setVolumes(prev => new Map(prev).set(producer.producerSocketId, 100));
+
+          // Start voice detection with producerId
+          detectSpeaking(analyser, producer.producerSocketId, producer.producerId);
+        } catch (error) {
+          console.error('Error setting up audio:', error);
+        }
+      }
+
+      consumer.on('transportclose', () => {
+        console.log('Consumer transport closed');
+        consumer.close();
+        consumersRef.current.delete(consumer.id);
+      });
+
+      consumer.on('producerclose', () => {
+        console.log('Producer closed');
+        consumer.close();
+        consumersRef.current.delete(consumer.id);
+      });
+
+      consumer.on('trackended', () => {
+        console.log('Track ended');
+        consumer.close();
+        consumersRef.current.delete(consumer.id);
+      });
+
+      return consumer;
+    } catch (error) {
+      console.error('Error consuming producer:', error);
+      throw error;
+    }
+  };
+
   // Update toggleAudio function
   const toggleAudio = useCallback(() => {
     const newState = !isAudioEnabled;
@@ -3122,106 +3241,218 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
   // Подготовка всех нужных пропсов для UI
   const ui = (
     <MuteProvider socket={socketRef.current}>
-      <VoiceChatUI
-        roomId={roomId}
-        userName={userName}
-        userId={userId}
-        serverId={serverId}
-        autoJoin={autoJoin}
-        onLeave={onLeave}
-        onManualLeave={onManualLeave}
-        styles={styles}
-        error={error}
-        isVideoEnabled={isVideoEnabled}
-        videoStream={videoStream}
-        userName={userName}
+      <Box sx={styles.root}>
+        <AppBar position="static" sx={styles.appBar}>
+          <Toolbar sx={styles.toolbar}>
+            <Box sx={styles.channelName}>
+              <Tag />
+              <Typography variant="subtitle1">
+                {roomId}
+              </Typography>
+            </Box>
+          </Toolbar>
+        </AppBar>
+        {error && (
+          <Typography color="error" sx={{ p: 2 }}>
+            {error}
+          </Typography>
+        )}
+        <Box sx={styles.container}>
+          <Box sx={styles.videoGrid}>
+            {/* Only render video grid when not in fullscreen mode */}
+            {fullscreenShare === null && (
+              <>
+                {/* Local user */}
+                <Box sx={styles.videoItem} className={speakingStates.get(socketRef.current?.id) ? 'speaking' : ''}>
+                  {isVideoEnabled && videoStream ? (
+                    <VideoView 
+                      stream={videoStream} 
+                      peerName={userName}
                       isMuted={isMuted}
                       isSpeaking={speakingStates.get(socketRef.current?.id)}
                       isAudioEnabled={isAudioEnabled}
-        onMute={handleMute}
-        onVideo={isVideoEnabled ? stopVideo : startVideo}
-        onAudio={toggleAudio}
-        onNoiseSuppression={handleNoiseSuppressionToggle}
-        onNoiseSuppressionMenuOpen={handleNoiseSuppressionMenuOpen}
-        onNoiseSuppressionMenuClose={handleNoiseSuppressionMenuClose}
-        onNoiseSuppressionModeSelect={handleNoiseSuppressionModeSelect}
-        isNoiseSuppressed={isNoiseSuppressed}
-        noiseSuppressionMode={noiseSuppressionMode}
-        noiseSuppressMenuAnchor={noiseSuppressMenuAnchor}
-        isScreenSharing={isScreenSharing}
-        onScreenShare={startScreenSharing}
-        onStopScreenShare={stopScreenSharing}
-        isMobile={isMobile}
-        useEarpiece={useEarpiece}
-        onToggleSpeakerMode={toggleSpeakerMode}
-        onLeave={handleLeaveCall}
-        peers={peers}
-        remoteVideos={remoteVideos}
-        speakingStates={speakingStates}
-        audioStates={audioStates}
-        volumes={volumes}
-        individualMutedPeers={individualMutedPeersRef.current}
-        renderScreenShares={renderScreenShares}
-        fullscreenShare={fullscreenShare}
-        handleVolumeChange={handleVolumeChange}
-      />
+                      isLocal={true}
+                      isAudioMuted={isMuted}
+                    />
+                  ) : (
+                    <div style={{ 
+                      position: 'relative', 
+                      width: '100%', 
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      alignItems: 'center'
+                    }}>
+                      <Box sx={styles.userAvatar}>
+                        {userName[0].toUpperCase()}
+                      </Box>
+                      <VideoOverlay
+                        peerName={userName}
+                        isMuted={isMuted}
+                        isSpeaking={speakingStates.get(socketRef.current?.id)}
+                        isAudioEnabled={isAudioEnabled}
+                        isLocal={true}
+                        isAudioMuted={isMuted}
+                      />
+                    </div>
+                  )}
+                </Box>
+
+                {/* Remote users */}
+                {Array.from(peers.values()).map((peer) => (
+                  <Box key={peer.id} sx={styles.videoItem} className={speakingStates.get(peer.id) ? 'speaking' : ''}>
+                    {remoteVideos.get(peer.id)?.stream ? (
+                      <VideoView
+                        stream={remoteVideos.get(peer.id).stream}
+                        peerName={peer.name}
+                        isMuted={peer.isMuted}
+                        isSpeaking={speakingStates.get(peer.id)}
+                        isAudioEnabled={audioStates.get(peer.id)}
+                        isLocal={false}
+                        onVolumeClick={() => handleVolumeChange(peer.id)}
+                        volume={volumes.get(peer.id) || 100}
+                        isAudioMuted={individualMutedPeersRef.current.get(peer.id) || false}
+                      />
+                    ) : (
+                      <div style={{ 
+                        position: 'relative', 
+                        width: '100%', 
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                      }}>
+                        <Box sx={styles.userAvatar}>
+                          {peer.name[0].toUpperCase()}
+                        </Box>
+                        <VideoOverlay
+                          peerName={peer.name}
+                          isMuted={peer.isMuted}
+                          isSpeaking={speakingStates.get(peer.id)}
+                          isAudioEnabled={audioStates.get(peer.id)}
+                          isLocal={false}
+                          onVolumeClick={() => handleVolumeChange(peer.id)}
+                          volume={volumes.get(peer.id) || 100}
+                          isAudioMuted={individualMutedPeersRef.current.get(peer.id) || false}
+                        />
+                      </div>
+                    )}
+                  </Box>
+                ))}
+              </>
+            )}
+
+            {/* Screen sharing */}
+            {renderScreenShares}
+          </Box>
+          <Box sx={styles.bottomBar}>
+            <Box sx={styles.controlsContainer}>
+              <Box sx={styles.controlGroup}>
+                <IconButton
+                  sx={styles.iconButton}
+                  onClick={handleMute}
+                  title={isMuted ? "Unmute" : "Mute"}
+                >
+                  {isMuted ? <MicOff /> : <Mic />}
+                </IconButton>
+                <IconButton
+                  sx={styles.iconButton}
+                  onClick={isVideoEnabled ? stopVideo : startVideo}
+                  title={isVideoEnabled ? "Stop camera" : "Start camera"}
+                >
+                  {isVideoEnabled ? <VideocamOff /> : <Videocam />}
+                </IconButton>
+                <IconButton
+                  sx={styles.iconButton}
+                  onClick={toggleAudio}
+                  title={isAudioEnabled ? "Disable audio output" : "Enable audio output"}
+                >
+                  {isAudioEnabled ? <Headset /> : <HeadsetOff />}
+                </IconButton>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <IconButton
+                    sx={styles.iconButton}
+                    onClick={handleNoiseSuppressionToggle}
+                    title={isNoiseSuppressed ? "Disable noise suppression" : "Enable noise suppression"}
+                    disabled={!noiseSuppressionRef.current?.isInitialized()}
+                  >
+                    {isNoiseSuppressed ? <NoiseAware /> : <NoiseControlOff />}
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    sx={styles.iconButton}
+                    onClick={handleNoiseSuppressionMenuOpen}
+                    disabled={!noiseSuppressionRef.current?.isInitialized()}
+                  >
+                    <ExpandMore />
+                  </IconButton>
+                  <Menu
+                    anchorEl={noiseSuppressMenuAnchor}
+                    open={Boolean(noiseSuppressMenuAnchor)}
+                    onClose={handleNoiseSuppressionMenuClose}
+                  >
+                    <MenuItem 
+                      onClick={() => handleNoiseSuppressionModeSelect('rnnoise')}
+                      selected={noiseSuppressionMode === 'rnnoise'}
+                    >
+                      RNNoise (AI-based)
+                    </MenuItem>
+                    <MenuItem 
+                      onClick={() => handleNoiseSuppressionModeSelect('speex')}
+                      selected={noiseSuppressionMode === 'speex'}
+                    >
+                      Speex (Classic)
+                    </MenuItem>
+                    <MenuItem 
+                      onClick={() => handleNoiseSuppressionModeSelect('noisegate')}
+                      selected={noiseSuppressionMode === 'noisegate'}
+                    >
+                      Noise Gate
+                    </MenuItem>
+                  </Menu>
+                </Box>
+              </Box>
+              <Box sx={styles.controlGroup}>
+                <IconButton
+                  sx={styles.iconButton}
+                  onClick={isScreenSharing ? stopScreenSharing : startScreenSharing}
+                  title={isScreenSharing ? "Stop sharing" : "Share screen"}
+                >
+                  {isScreenSharing ? <StopScreenShare /> : <ScreenShare />}
+                </IconButton>
+                {isMobile && (
+                  <IconButton
+                    sx={styles.iconButton}
+                    onClick={toggleSpeakerMode}
+                    title={useEarpiece ? "Switch to speaker" : "Switch to earpiece"}
+                  >
+                    {useEarpiece ? <Hearing /> : <VolumeUpRounded />}
+                  </IconButton>
+                )}
+              </Box>
+            </Box>
+            <Button
+              variant="contained"
+              sx={styles.leaveButton}
+              onClick={handleLeaveCall}
+              startIcon={<PhoneDisabled />}
+            >
+              Leave
+            </Button>
+          </Box>
+        </Box>
+      </Box>
     </MuteProvider>
   );
 
-  // Оборачиваем UI в VoiceChatContext.Provider
-  return (
-    <VoiceChatContext.Provider value={{
-      isJoined,
-      isMuted,
-      isAudioEnabled,
-      useEarpiece,
-      isScreenSharing,
-      isVideoEnabled,
-      peers,
-      error,
-      volumes,
-      speakingStates,
-      audioStates,
-      screenProducer,
-      screenStream,
-      remoteScreens,
-      videoProducer,
-      videoStream,
-      remoteVideos,
-      isNoiseSuppressed,
-      noiseSuppressionMode,
-      noiseSuppressMenuAnchor,
-      fullscreenShare,
-      socketRef,
-      deviceRef,
-      producerTransportRef,
-      consumerTransportsRef,
-      producersRef,
-      consumersRef,
-      localStreamRef,
-      audioRef,
-      audioContextRef,
-      gainNodesRef,
-      analyserNodesRef,
-      animationFramesRef,
-      // handlers
-      handleMute,
-      toggleAudio,
-      handleVideo: isVideoEnabled ? stopVideo : startVideo,
-      handleScreenShare: isScreenSharing ? stopScreenSharing : startScreenSharing,
-      handleNoiseSuppression: handleNoiseSuppressionToggle,
-      handleVolumeChange,
-      handleToggleSpeakerMode: toggleSpeakerMode,
-      handleFullscreenToggle,
-      handleNoiseSuppressionMenuOpen,
-      handleNoiseSuppressionMenuClose,
-      handleNoiseSuppressionModeSelect,
-      handleLeaveCall,
-      // ...добавьте другие нужные состояния и обработчики
-    }}>
-      {showUI ? ui : null}
-    </VoiceChatContext.Provider>
-  );
+  // Рендер через портал
+  const root = typeof window !== 'undefined' ? document.getElementById('voicechat-root') : null;
+  if (root) {
+    return ReactDOM.createPortal(ui, root);
+  }
+  return null;
 }
 
 export default VoiceChat;

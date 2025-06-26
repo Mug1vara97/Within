@@ -5,18 +5,28 @@ import Home from './Home';
 import Register from './Authentication/Register';
 import "./UserProfile.css"
 import { AudioProvider } from './contexts/AudioContext';
+import { VoiceChatProvider, useVoiceChat } from './contexts/VoiceChatContext';
 import VoiceChat from './VoiceChat';
-// import { VoiceChatProvider } from './contexts/VoiceChatContext'; // закомментировано, чтобы не было конфликта контекстов
+
+function VoiceChatGlobalWrapper() {
+    const { voiceRoom, isVoiceChatActive, showVoiceUI } = useVoiceChat();
+    return isVoiceChatActive && voiceRoom ? (
+        <VoiceChat
+            roomId={voiceRoom.roomId}
+            userName={voiceRoom.userName}
+            userId={voiceRoom.userId}
+            serverId={voiceRoom.serverId}
+            autoJoin={true}
+            showUI={showVoiceUI}
+        />
+    ) : null;
+}
 
 const App = () => {
     const [user, setUser] = useState(() => {
         const savedUser = localStorage.getItem('user');
         return savedUser ? JSON.parse(savedUser) : { username: null, userId: null };
     });
-
-    // Глобальное состояние для голосового звонка
-    const [voiceRoomData, setVoiceRoomData] = useState(null);
-    const [showVoiceUI, setShowVoiceUI] = useState(false);
 
     const handleLogin = (username, userId) => {
         const userData = { username, userId };
@@ -29,49 +39,18 @@ const App = () => {
         localStorage.removeItem('user');
     };
 
-    // Функции для управления звонком, которые будут прокидываться в Home/ServerPage
-    const handleJoinVoiceChannel = (data) => {
-        // Сохраняем предыдущий serverId если переходим в ChatList
-        setVoiceRoomData(prev => ({
-            ...data,
-            serverId: data.serverId || prev?.serverId
-        }));
-        setShowVoiceUI(true);
-    };
-
-    const handleLeaveVoiceChannel = () => {
-        setShowVoiceUI(false);
-    };
-
-    // Полный выход из звонка
-    const handleLeaveVoiceRoom = () => {
-        setVoiceRoomData(null);
-        setShowVoiceUI(false);
-    };
-
     return (
         <AudioProvider>
-            {/* VoiceChat всегда работает в фоне, UI показывается по showVoiceUI */}
-            {voiceRoomData && (
-                <VoiceChat
-                    roomId={voiceRoomData.roomId}
-                    userName={voiceRoomData.userName}
-                    userId={voiceRoomData.userId}
-                    serverId={voiceRoomData.serverId}
-                    autoJoin={true}
-                    showUI={showVoiceUI}
-                    onLeave={handleLeaveVoiceRoom}
-                />
-            )}
-            {/* <VoiceChatProvider> */}  {/* закомментировано, чтобы не было конфликта контекстов */}
+            <VoiceChatProvider>
+                <VoiceChatGlobalWrapper />
                 <Router>
                     <Routes>
-                        <Route path="/*" element={user.username ? <Home user={user} onLogout={handleLogout} onJoinVoiceChannel={handleJoinVoiceChannel} onLeaveVoiceChannel={handleLeaveVoiceChannel} /> : <Login onLogin={handleLogin} />} />
+                        <Route path="/*" element={user.username ? <Home user={user} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />} />
                         <Route path="/login" element={<Login onLogin={handleLogin} />} />
                         <Route path="/register" element={<Register />} />
                     </Routes>
                 </Router>
-            {/* </VoiceChatProvider> */}
+            </VoiceChatProvider>
         </AudioProvider>
     );
 };

@@ -1,80 +1,84 @@
 import React, { useEffect, useState, useRef } from 'react';
 import GroupChat from './Chats/GroupChat';
+import { useVoiceChat } from './contexts/VoiceChatContext';
+// import VoiceChat from './VoiceChat';
 
-const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, isServerOwner, onJoinVoiceChannel, onLeaveVoiceChannel }) => {
+const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, isServerOwner }) => {
+    const { joinVoiceRoom, isVoiceChatActive, voiceRoom, setShowVoiceUI, leaveVoiceRoom } = useVoiceChat();
+    const [leftVoiceChannel, setLeftVoiceChannel] = useState(false);
     const [userLeftVoiceManually, setUserLeftVoiceManually] = useState(false);
+    const prevVoiceActive = useRef(isVoiceChatActive);
+    const prevServerId = useRef(serverId);
     const prevChatId = useRef(selectedChat?.chatId);
 
-    // Сброс флага только при смене чата, но не при смене сервера
+    // Сброс флага, если пользователь сменил сервер или чат
     useEffect(() => {
-        if (prevChatId.current !== selectedChat?.chatId) {
-            // Сбрасываем флаг только если новый чат - это голосовой канал
-            if (selectedChat?.chatType === 4) {
-                setUserLeftVoiceManually(false);
-            }
+        if (
+            prevServerId.current !== serverId ||
+            prevChatId.current !== selectedChat?.chatId
+        ) {
+            setUserLeftVoiceManually(false);
         }
+        prevServerId.current = serverId;
         prevChatId.current = selectedChat?.chatId;
-    }, [selectedChat?.chatId]);
+    }, [serverId, selectedChat?.chatId]);
 
-    // Подключение к голосовому чату
     useEffect(() => {
-        if (selectedChat?.chatType === 4 && !userLeftVoiceManually) {
-            const data = {
-                roomId: selectedChat.chatId,
-                userName: username,
-                userId: userId,
-                serverId: serverId
-            };
-            if (onJoinVoiceChannel) onJoinVoiceChannel(data);
+        if (selectedChat?.chatType === 4) {
+            if (!userLeftVoiceManually) {
+                joinVoiceRoom({
+                    roomId: selectedChat.chatId,
+                    userName: username,
+                    userId: userId,
+                    serverId: serverId
+                });
+                setShowVoiceUI(true);
+                setLeftVoiceChannel(false); // Скрываем сообщение при входе в голосовой канал
+            }
+        } else {
+            setShowVoiceUI(false);
         }
-    }, [selectedChat?.chatType, selectedChat?.chatId, username, userId, userLeftVoiceManually, onJoinVoiceChannel]);
+    }, [selectedChat, username, userId, serverId, joinVoiceRoom, setShowVoiceUI, userLeftVoiceManually]);
+
+    useEffect(() => {
+        // Если пользователь только что покинул голосовой чат
+        if (prevVoiceActive.current && !isVoiceChatActive) {
+            setLeftVoiceChannel(true);
+        }
+        prevVoiceActive.current = isVoiceChatActive;
+    }, [isVoiceChatActive]);
 
     // Обработчик выхода из голосового чата вручную
     const handleManualLeave = () => {
         setUserLeftVoiceManually(true);
-        if (onLeaveVoiceChannel) onLeaveVoiceChannel();
+        leaveVoiceRoom();
     };
 
-    // Если это голосовой канал и пользователь не вышел вручную,
-    // показываем специальный UI для голосового чата
-    if (selectedChat?.chatType === 4 && !userLeftVoiceManually) {
+    // Показываем VoiceChat только когда пользователь находится в голосовом канале
+    if (selectedChat?.chatType === 4 && isVoiceChatActive && voiceRoom && !userLeftVoiceManually) {
         return (
-            <div className="voice-chat-container" style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
+            <div 
+              id="voicechat-root" 
+              style={{
+                width: '100%',
                 height: '100%',
-                backgroundColor: '#36393f',
-                color: '#dcddde'
-            }}>
-                <h2 style={{ marginBottom: '20px' }}>{selectedChat.groupName}</h2>
-                <div style={{ 
-                    fontSize: '16px',
-                    marginBottom: '20px',
-                    textAlign: 'center'
-                }}>
-                    Вы находитесь в голосовом канале
-                </div>
-                <button
-                    onClick={handleManualLeave}
-                    style={{
-                        backgroundColor: '#ed4245',
-                        color: 'white',
-                        border: 'none',
-                        padding: '10px 20px',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        fontWeight: '500'
-                    }}
-                >
-                    Отключиться
-                </button>
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            />
+        );
+    }
+
+    // Показываем сообщение, если пользователь только что покинул голосовой канал
+    if (leftVoiceChannel) {
+        return (
+            <div className="left-voice-channel-message" style={{textAlign: 'center', marginTop: '40px', color: '#888'}}>
+                <h3>Вы покинули голосовой канал</h3>
             </div>
         );
     }
 
+    // Для остальных чатов
     if (selectedChat) {
         return (
             <GroupChat

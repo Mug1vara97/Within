@@ -5,7 +5,7 @@ import ServerPage from './ServerPage';
 import DiscoverLists from './Discover/DiscoverLists';
 import { Routes, Route, useParams, useLocation, useNavigate } from 'react-router-dom';
 
-const Home = ({ user, onJoinVoiceChannel, onLeaveVoiceChannel }) => {
+const Home = ({ user, onLogout }) => {
     const [isDiscoverMode, setIsDiscoverMode] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
@@ -42,7 +42,7 @@ const Home = ({ user, onJoinVoiceChannel, onLeaveVoiceChannel }) => {
                 ) : (
                     <Routes>
                         <Route path="/channels/@me/:chatId?" element={<ChatListWrapper user={user} />} />
-                        <Route path="/channels/:serverId/:chatId?" element={<ServerPageWrapper user={user} onJoinVoiceChannel={onJoinVoiceChannel} onLeaveVoiceChannel={onLeaveVoiceChannel} />} />
+                        <Route path="/channels/:serverId/:chatId?" element={<ServerPageWrapper user={user} />} />
                     </Routes>
                 )}
             </div>
@@ -59,15 +59,13 @@ const ChatListWrapper = ({ user }) => {
     />;
 };
 
-const ServerPageWrapper = ({ user, onJoinVoiceChannel, onLeaveVoiceChannel }) => {
+const ServerPageWrapper = ({ user }) => {
     const { serverId, chatId } = useParams();
     return <ServerPage 
         serverId={serverId} 
         initialChatId={chatId}
         username={user?.username} 
         userId={user?.userId} 
-        onJoinVoiceChannel={onJoinVoiceChannel}
-        onLeaveVoiceChannel={onLeaveVoiceChannel}
     />;
 };
 
