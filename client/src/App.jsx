@@ -10,6 +10,8 @@ import VoiceChat from './VoiceChat';
 
 function VoiceChatGlobalWrapper() {
     const { voiceRoom, isVoiceChatActive, showVoiceUI } = useVoiceChat();
+    // Получаем функцию onManualLeave из window, если она есть (установим из ChatArea)
+    const onManualLeave = window.__onManualLeaveVoiceChat || undefined;
     return isVoiceChatActive && voiceRoom ? (
         <VoiceChat
             roomId={voiceRoom.roomId}
@@ -18,6 +20,7 @@ function VoiceChatGlobalWrapper() {
             serverId={voiceRoom.serverId}
             autoJoin={true}
             showUI={showVoiceUI}
+            onManualLeave={onManualLeave}
         />
     ) : null;
 }

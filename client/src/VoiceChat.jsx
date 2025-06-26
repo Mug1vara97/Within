@@ -1092,7 +1092,7 @@ const VideoView = React.memo(({
   );
 });
 
-function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave }) {
+function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave, onManualLeave }) {
   const { leaveVoiceRoom } = useVoiceChat();
   const [isJoined, setIsJoined] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
@@ -2395,28 +2395,27 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
 
   const handleLeaveCall = () => {
     console.log('Leaving voice call...');
-    
     // Очищаем локальное состояние
     cleanup();
     setIsJoined(false);
     setPeers(new Map());
     setVolumes(new Map());
     setError('');
-    
     // Отключаем сокет
     if (socketRef.current) {
       socketRef.current.disconnect();
       socketRef.current = null;
     }
-    
     // Очищаем состояние в контексте
-    leaveVoiceRoom();
-    
+    if (onManualLeave) {
+      onManualLeave();
+    } else {
+      leaveVoiceRoom();
+    }
     // Вызываем callback если есть
     if (onLeave) {
       onLeave();
     }
-    
     console.log('Voice call left successfully');
   };
 
