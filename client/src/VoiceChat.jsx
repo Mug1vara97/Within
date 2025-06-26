@@ -3162,7 +3162,60 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
     </MuteProvider>
   );
 
-  return ui;
+  // Оборачиваем UI в VoiceChatContext.Provider
+  return (
+    <VoiceChatContext.Provider value={{
+      isJoined,
+      isMuted,
+      isAudioEnabled,
+      useEarpiece,
+      isScreenSharing,
+      isVideoEnabled,
+      peers,
+      error,
+      volumes,
+      speakingStates,
+      audioStates,
+      screenProducer,
+      screenStream,
+      remoteScreens,
+      videoProducer,
+      videoStream,
+      remoteVideos,
+      isNoiseSuppressed,
+      noiseSuppressionMode,
+      noiseSuppressMenuAnchor,
+      fullscreenShare,
+      socketRef,
+      deviceRef,
+      producerTransportRef,
+      consumerTransportsRef,
+      producersRef,
+      consumersRef,
+      localStreamRef,
+      audioRef,
+      audioContextRef,
+      gainNodesRef,
+      analyserNodesRef,
+      animationFramesRef,
+      // handlers
+      handleMute,
+      toggleAudio,
+      handleVideo: isVideoEnabled ? stopVideo : startVideo,
+      handleScreenShare: isScreenSharing ? stopScreenSharing : startScreenSharing,
+      handleNoiseSuppression: handleNoiseSuppressionToggle,
+      handleVolumeChange,
+      handleToggleSpeakerMode: toggleSpeakerMode,
+      handleFullscreenToggle,
+      handleNoiseSuppressionMenuOpen,
+      handleNoiseSuppressionMenuClose,
+      handleNoiseSuppressionModeSelect,
+      handleLeaveCall,
+      // ...добавьте другие нужные состояния и обработчики
+    }}>
+      {ui}
+    </VoiceChatContext.Provider>
+  );
 }
 
 export default VoiceChat;

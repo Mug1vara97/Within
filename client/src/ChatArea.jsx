@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import GroupChat from './Chats/GroupChat';
 import { useVoiceChat } from './contexts/VoiceChatContext';
-import VoiceChat from './VoiceChat';
+import VoiceChatUI from './components/VoiceChatUI';
+import { styles as voiceChatStyles } from './VoiceChatStyles';
 
 const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, isServerOwner }) => {
     const { joinVoiceRoom, isVoiceChatActive, voiceRoom, setShowVoiceUI, leaveVoiceRoom } = useVoiceChat();
@@ -57,12 +58,9 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
     // Показываем VoiceChatUI только когда пользователь находится в голосовом канале
     if (selectedChat?.chatType === 4 && isVoiceChatActive && voiceRoom && !userLeftVoiceManually) {
         return (
-            <VoiceChat
-                roomId={voiceRoom.roomId}
-                userName={voiceRoom.userName}
-                userId={voiceRoom.userId}
-                serverId={voiceRoom.serverId}
-                autoJoin={true}
+            <VoiceChatUI
+                styles={voiceChatStyles}
+                {...voiceRoom}
                 onLeave={handleManualLeave}
             />
         );
