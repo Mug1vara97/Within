@@ -11,13 +11,7 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
     const prevServerId = useRef(serverId);
     const prevChatId = useRef(selectedChat?.chatId);
 
-    // Сброс флагов при смене сервера или чата
-    useEffect(() => {
-        setUserLeftVoiceManually(false);
-        setLeftVoiceChannel(false);
-    }, [serverId, selectedChat?.chatId]);
-
-    // Сброс флага, если пользователь сменил сервер или чат (оставляем для совместимости)
+    // Сброс флага, если пользователь сменил сервер или чат
     useEffect(() => {
         if (
             prevServerId.current !== serverId ||
@@ -60,8 +54,20 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
         leaveVoiceRoom();
     };
 
-    // Пробрасываем обработчик для VoiceChat через window (используется в VoiceChatGlobalWrapper)
-    window.__onManualLeaveVoiceChat = handleManualLeave;
+    // Показываем VoiceChat только когда пользователь находится в голосовом канале
+    if (selectedChat?.chatType === 4 && isVoiceChatActive && voiceRoom && !userLeftVoiceManually) {
+        return (
+            <div 
+              id="voicechat-root" 
+              style={{
+                width: '100%',
+                height: '100%',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            />
+        );
+    }
 
     // Показываем сообщение, если пользователь только что покинул голосовой канал
     if (leftVoiceChannel) {
@@ -84,6 +90,7 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
                 serverId={serverId}
                 userPermissions={userPermissions}
                 isServerOwner={isServerOwner}
+                onLeaveVoiceChat={handleManualLeave}
             />
         );
     }
