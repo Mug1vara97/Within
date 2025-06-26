@@ -1093,38 +1093,34 @@ const VideoView = React.memo(({
 
 function VoiceChat({ roomId, userName, userId, serverId, isInVoiceChat, setIsInVoiceChat, onLeave }) {
   const [isJoined, setIsJoined] = useState(false);
-  const [error, setError] = useState('');
-  const [peers, setPeers] = useState(new Map());
-  const [volumes, setVolumes] = useState(new Map());
+  const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [useEarpiece, setUseEarpiece] = useState(true);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
+  const [peers, setPeers] = useState(new Map());
+  const [error, setError] = useState('');
+  const [volumes, setVolumes] = useState(new Map());
   const [speakingStates, setSpeakingStates] = useState(new Map());
   const [audioStates, setAudioStates] = useState(new Map());
-  const [useEarpiece, setUseEarpiece] = useState(false);
-  const [isNoiseSuppressed, setIsNoiseSuppressed] = useState(false);
-  const [noiseSuppressionMode, setNoiseSuppressionMode] = useState('moderate');
-  const [noiseSuppressMenuAnchor, setNoiseSuppressMenuAnchor] = useState(null);
-  const [remoteVideos, setRemoteVideos] = useState(new Map());
-  const [remoteScreens, setRemoteScreens] = useState(new Map());
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [screenStream, setScreenStream] = useState(null);
-  const [screenProducer, setScreenProducer] = useState(null);
-  const [videoProducer, setVideoProducer] = useState(null);
-  const [videoStream, setVideoStream] = useState(null);
   const isMobile = useMemo(() => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent), []);
 
   // Use userId and serverId in socket connection
   useEffect(() => {
-    if (userId && serverId) {
-      socketRef.current = io(SOCKET_SERVER_URL, {
-        query: {
-          userId,
-          serverId
-        }
-      });
+    if (socketRef.current) {
+      socketRef.current.emit('setUserInfo', { userId, serverId });
     }
   }, [userId, serverId]);
-
+  const [screenProducer, setScreenProducer] = useState(null);
+  const [screenStream, setScreenStream] = useState(null);
+  const [remoteScreens, setRemoteScreens] = useState(new Map());
+  const [videoProducer, setVideoProducer] = useState(null);
+  const [videoStream, setVideoStream] = useState(null);
+  const [remoteVideos, setRemoteVideos] = useState(new Map());
+  const [isNoiseSuppressed, setIsNoiseSuppressed] = useState(false);
+  const [noiseSuppressionMode, setNoiseSuppressionMode] = useState('rnnoise');
+  const [noiseSuppressMenuAnchor, setNoiseSuppressMenuAnchor] = useState(null);
   const noiseSuppressionRef = useRef(null);
   const isAudioEnabledRef = useRef(isAudioEnabled);
   const individualMutedPeersRef = useRef(new Map());
@@ -1141,9 +1137,6 @@ function VoiceChat({ roomId, userName, userId, serverId, isInVoiceChat, setIsInV
   const gainNodesRef = useRef(new Map());
   const analyserNodesRef = useRef(new Map());
   const animationFramesRef = useRef(new Map());
-
-  // Добавляем новый ref для хранения состояний mute
-  const mutedPeersRef = useRef(new Map());
 
   const [fullscreenShare, setFullscreenShare] = useState(null);
 
@@ -1218,7 +1211,7 @@ function VoiceChat({ roomId, userName, userId, serverId, isInVoiceChat, setIsInV
         setRemoteScreens(prev => {
           const newScreens = new Map(prev);
           const screenEntry = [...newScreens.entries()].find(
-            ([id, data]) => data.producerId === producerId
+            ([_, data]) => data.producerId === producerId
           );
           
           if (screenEntry) {
@@ -1242,7 +1235,7 @@ function VoiceChat({ roomId, userName, userId, serverId, isInVoiceChat, setIsInV
         setRemoteVideos(prev => {
           const newVideos = new Map(prev);
           const videoEntry = [...newVideos.entries()].find(
-            ([id, data]) => data.producerId === producerId
+            ([_, data]) => data.producerId === producerId
           );
           
           if (videoEntry) {
@@ -1260,7 +1253,7 @@ function VoiceChat({ roomId, userName, userId, serverId, isInVoiceChat, setIsInV
 
               // Находим и закрываем соответствующий consumer
               const consumer = Array.from(consumersRef.current.entries()).find(
-                ([id, consumer]) => consumer.producerId === producerId
+                ([_, consumer]) => consumer.producerId === producerId
               );
               if (consumer) {
                 console.log('Found and closing associated consumer:', consumer[0]);
@@ -1355,11 +1348,10 @@ function VoiceChat({ roomId, userName, userId, serverId, isInVoiceChat, setIsInV
       setRemoteScreens(new Map());
 
       // Cleanup voice detection workers
-      audioRef.current.forEach((peerAudio, peerId) => {
+      audioRef.current.forEach((peerAudio) => {
         if (peerAudio instanceof Map && peerAudio.has('voiceDetector')) {
           const voiceDetector = peerAudio.get('voiceDetector');
           if (voiceDetector) {
-            voiceDetector.port.close();
             voiceDetector.disconnect();
           }
         }

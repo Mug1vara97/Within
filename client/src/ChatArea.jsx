@@ -5,11 +5,12 @@ import VoiceChat from './VoiceChat';
 const ChatArea = ({ selectedChat, leftVoiceChat, setLeftVoiceChat, username, userId, serverId, userPermissions, isServerOwner }) => {
     const [isInVoiceChat, setIsInVoiceChat] = useState(false);
 
-    // Сбрасываем leftVoiceChat и isInVoiceChat при смене чата
+    // Сбрасываем leftVoiceChat при смене чата
     useEffect(() => {
         if (selectedChat?.chatType === 3) {
             setLeftVoiceChat(false);
         }
+        // Сбрасываем флаг голосового чата при смене на текстовый канал
         if (!selectedChat || selectedChat.chatType === 3) {
             setIsInVoiceChat(false);
         }
