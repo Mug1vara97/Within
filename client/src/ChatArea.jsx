@@ -28,7 +28,7 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
                     userName={voiceRoom.userName}
                     userId={voiceRoom.userId}
                     serverId={voiceRoom.serverId}
-                    autoJoin={true}
+                    autoJoin={false}
                     onLeave={() => {/* функция для выхода */}}
                 />
             );
