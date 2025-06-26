@@ -70,8 +70,10 @@ button:focus-visible {
 /* Глобальный голосовой чат */
 .voice-chat-global {
   position: fixed;
-
-
+  bottom: 0;
+  right: 20px;
+  width: 700px;
+  height: 400px;
   background: #36393f;
   border: 1px solid #202225;
   border-radius: 8px 8px 0 0;
