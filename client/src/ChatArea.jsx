@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import GroupChat from './Chats/GroupChat';
 import { useVoiceChat } from './contexts/VoiceChatContext';
-import VoiceChat from './VoiceChat';
+// import VoiceChat from './VoiceChat';
 
 const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, isServerOwner }) => {
     const { joinVoiceRoom, isVoiceChatActive, voiceRoom, setShowVoiceUI, leaveVoiceRoom } = useVoiceChat();
@@ -54,28 +54,18 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
         leaveVoiceRoom();
     };
 
-    // Отображаем UI голосового чата внутри ChatArea
+    // Показываем VoiceChat только когда пользователь находится в голосовом канале
     if (selectedChat?.chatType === 4 && isVoiceChatActive && voiceRoom && !userLeftVoiceManually) {
         return (
             <div 
+              id="voicechat-root" 
               style={{
                 width: '100%',
                 height: '100%',
                 position: 'relative',
                 overflow: 'hidden'
               }}
-            >
-                {/* Отображаем UI голосового чата */}
-                <VoiceChat
-                    roomId={voiceRoom.roomId}
-                    userName={voiceRoom.userName}
-                    userId={voiceRoom.userId}
-                    serverId={voiceRoom.serverId}
-                    autoJoin={false} // Не подключаемся снова, подключение уже есть через GlobalVoiceChat
-                    showUI={true}    // Показываем только UI
-                    onManualLeave={handleManualLeave}
-                />
-            </div>
+            />
         );
     }
 

@@ -8,27 +8,18 @@ import { AudioProvider } from './contexts/AudioContext';
 import { VoiceChatProvider, useVoiceChat } from './contexts/VoiceChatContext';
 import VoiceChat from './VoiceChat';
 
-// Глобальный компонент только для фоновой работы голосового чата
-function GlobalVoiceChat() {
-    const { voiceRoom, isVoiceChatActive, leaveVoiceRoom } = useVoiceChat();
-    
-    if (!isVoiceChatActive || !voiceRoom) return null;
-    
-    // Всегда рендерим без UI, UI будет отображаться в ChatArea
-    return (
+function VoiceChatGlobalWrapper() {
+    const { voiceRoom, isVoiceChatActive, showVoiceUI } = useVoiceChat();
+    return isVoiceChatActive && voiceRoom ? (
         <VoiceChat
-            key={`${voiceRoom.roomId}-${voiceRoom.serverId}`}
             roomId={voiceRoom.roomId}
             userName={voiceRoom.userName}
             userId={voiceRoom.userId}
             serverId={voiceRoom.serverId}
             autoJoin={true}
-            showUI={false} // Всегда false, UI будет в ChatArea
-            onLeave={() => {
-                leaveVoiceRoom();
-            }}
+            showUI={showVoiceUI}
         />
-    );
+    ) : null;
 }
 
 const App = () => {
@@ -51,7 +42,7 @@ const App = () => {
     return (
         <AudioProvider>
             <VoiceChatProvider>
-                <GlobalVoiceChat />
+                <VoiceChatGlobalWrapper />
                 <Router>
                     <Routes>
                         <Route path="/*" element={user.username ? <Home user={user} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />} />

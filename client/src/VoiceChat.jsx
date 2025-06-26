@@ -46,6 +46,7 @@ import { Device } from 'mediasoup-client';
 import { io } from 'socket.io-client';
 import { NoiseSuppressionManager } from './utils/noiseSuppression';
 import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
+import ReactDOM from 'react-dom';
 import { useVoiceChat } from './contexts/VoiceChatContext';
 
 
@@ -1091,21 +1092,21 @@ const VideoView = React.memo(({
   );
 });
 
-function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave, onManualLeave, showUI = true }) {
+function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave, onManualLeave }) {
   const { leaveVoiceRoom } = useVoiceChat();
   const [isJoined, setIsJoined] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const [error, setError] = useState('');
-  const [peers, setPeers] = useState(new Map());
-  const [audioStates, setAudioStates] = useState(new Map());
-  const [volumes, setVolumes] = useState(new Map());
-  const [speakingStates, setSpeakingStates] = useState(new Map());
   const [isMuted, setIsMuted] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [useEarpiece, setUseEarpiece] = useState(true);
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
+  const [peers, setPeers] = useState(new Map());
+  const [error, setError] = useState('');
+  const [volumes, setVolumes] = useState(new Map());
+  const [speakingStates, setSpeakingStates] = useState(new Map());
+  const [audioStates, setAudioStates] = useState(new Map());
+  const isMobile = useMemo(() => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent), []);
   const prevRoomIdRef = useRef(roomId);
 
   // Use userId and serverId in socket connection
@@ -1129,19 +1130,6 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
     }
     prevRoomIdRef.current = roomId;
   }, [roomId, autoJoin]);
-
-  // Инициализация подключения только если autoJoin = true
-  useEffect(() => {
-    if (autoJoin) {
-      console.log('VoiceChat: Initializing with autoJoin');
-      initializeConnection();
-    } else {
-      console.log('VoiceChat: UI-only mode, skipping connection initialization');
-      // В режиме только UI мы не инициализируем соединение
-      // и используем данные из контекста
-      setIsJoined(true);
-    }
-  }, [roomId, userName, userId, serverId, autoJoin]);
 
   const [screenProducer, setScreenProducer] = useState(null);
   const [screenStream, setScreenStream] = useState(null);
@@ -3234,18 +3222,11 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
     }
   };
 
-  // Инициализация соединения
-  const initializeConnection = async () => {
-    try {
-      if (roomId && userName && !isJoined) {
-        console.log('Initializing connection for room:', roomId);
-        handleJoin();
-      }
-    } catch (error) {
-      console.error('Error initializing connection:', error);
-      setError('Ошибка инициализации соединения: ' + error.message);
+  useEffect(() => {
+    if (autoJoin && roomId && userName && !isJoined) {
+      handleJoin();
     }
-  };
+  }, [autoJoin, roomId, userName]);
 
   // Автоматический выход при размонтировании компонента
   useEffect(() => {
@@ -3257,13 +3238,8 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
     };
   }, [isJoined]);
 
-  // Если showUI = false, рендерим только функциональную часть без UI
-  if (!showUI) {
-    return null; // Не рендерим UI, но все функции и эффекты продолжают работать
-  }
-
-  // Рендерим UI напрямую без портала
-  return (
+  // Подготовка всех нужных пропсов для UI
+  const ui = (
     <MuteProvider socket={socketRef.current}>
       <Box sx={styles.root}>
         <AppBar position="static" sx={styles.appBar}>
@@ -3470,6 +3446,13 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
       </Box>
     </MuteProvider>
   );
+
+  // Рендер через портал
+  const root = typeof window !== 'undefined' ? document.getElementById('voicechat-root') : null;
+  if (root) {
+    return ReactDOM.createPortal(ui, root);
+  }
+  return null;
 }
 
 export default VoiceChat;
