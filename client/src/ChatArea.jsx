@@ -9,7 +9,6 @@ const ChatArea = ({ selectedChat, leftVoiceChat, setLeftVoiceChat, username, use
     useEffect(() => {
         if (selectedChat?.chatType === 3) {
             setLeftVoiceChat(false);
-            setIsInVoiceChat(false);
         }
     }, [selectedChat, setLeftVoiceChat]);
 

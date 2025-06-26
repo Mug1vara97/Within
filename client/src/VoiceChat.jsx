@@ -1138,6 +1138,9 @@ function VoiceChat({ roomId, userName, userId, serverId, isInVoiceChat, setIsInV
   const analyserNodesRef = useRef(new Map());
   const animationFramesRef = useRef(new Map());
 
+  // Добавляем новый ref для хранения состояний mute
+  const mutedPeersRef = useRef(new Map());
+
   const [fullscreenShare, setFullscreenShare] = useState(null);
 
   useEffect(() => {
@@ -1211,7 +1214,7 @@ function VoiceChat({ roomId, userName, userId, serverId, isInVoiceChat, setIsInV
         setRemoteScreens(prev => {
           const newScreens = new Map(prev);
           const screenEntry = [...newScreens.entries()].find(
-            ([_, data]) => data.producerId === producerId
+            ([id, data]) => data.producerId === producerId
           );
           
           if (screenEntry) {
@@ -1235,7 +1238,7 @@ function VoiceChat({ roomId, userName, userId, serverId, isInVoiceChat, setIsInV
         setRemoteVideos(prev => {
           const newVideos = new Map(prev);
           const videoEntry = [...newVideos.entries()].find(
-            ([_, data]) => data.producerId === producerId
+            ([id, data]) => data.producerId === producerId
           );
           
           if (videoEntry) {
@@ -1253,7 +1256,7 @@ function VoiceChat({ roomId, userName, userId, serverId, isInVoiceChat, setIsInV
 
               // Находим и закрываем соответствующий consumer
               const consumer = Array.from(consumersRef.current.entries()).find(
-                ([_, consumer]) => consumer.producerId === producerId
+                ([id, consumer]) => consumer.producerId === producerId
               );
               if (consumer) {
                 console.log('Found and closing associated consumer:', consumer[0]);
@@ -1348,10 +1351,11 @@ function VoiceChat({ roomId, userName, userId, serverId, isInVoiceChat, setIsInV
       setRemoteScreens(new Map());
 
       // Cleanup voice detection workers
-      audioRef.current.forEach((peerAudio) => {
+      audioRef.current.forEach((peerAudio, peerId) => {
         if (peerAudio instanceof Map && peerAudio.has('voiceDetector')) {
           const voiceDetector = peerAudio.get('voiceDetector');
           if (voiceDetector) {
+            voiceDetector.port.close();
             voiceDetector.disconnect();
           }
         }
@@ -2377,6 +2381,9 @@ function VoiceChat({ roomId, userName, userId, serverId, isInVoiceChat, setIsInV
     setVolumes(new Map());
     setError('');
     setIsInVoiceChat(false);
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+    }
     if (onLeave) {
       onLeave();
     }
@@ -3188,19 +3195,12 @@ function VoiceChat({ roomId, userName, userId, serverId, isInVoiceChat, setIsInV
   useEffect(() => {
     if (!roomId || !userName) return;
 
-    // Если мы не в звонке и не подключены, то присоединяемся
-    if (!isInVoiceChat && !isJoined) {
+    // Простая проверка: если не в звонке, то подключаемся
+    if (!isInVoiceChat) {
       handleJoin();
       setIsInVoiceChat(true);
     }
-
-    return () => {
-      // Очистка только при размонтировании компонента
-      if (!isInVoiceChat) {
-        cleanup();
-      }
-    };
-  }, [roomId, userName, isInVoiceChat, isJoined]);
+  }, [roomId, userName, isInVoiceChat]);
 
   return (
     <MuteProvider socket={socketRef.current}>
