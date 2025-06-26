@@ -47,6 +47,7 @@ import { io } from 'socket.io-client';
 import { NoiseSuppressionManager } from './utils/noiseSuppression';
 import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
 import ReactDOM from 'react-dom';
+import { useVoiceChat } from './contexts/VoiceChatContext';
 
 
 const config = {
@@ -1093,6 +1094,7 @@ const VideoView = React.memo(({
 });
 
 function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave }) {
+  const { leaveVoiceRoom } = useVoiceChat();
   const [isJoined, setIsJoined] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -2401,6 +2403,8 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
     if (socketRef.current) {
       socketRef.current.disconnect();
     }
+    // Очищаем состояние в контексте
+    leaveVoiceRoom();
     if (onLeave) {
       onLeave();
     }
