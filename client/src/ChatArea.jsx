@@ -5,7 +5,7 @@ import { useVoiceChat } from './contexts/VoiceChatContext';
 const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, isServerOwner }) => {
     const { joinVoiceRoom, isVoiceChatActive } = useVoiceChat();
 
-    // Подключаемся к голосовому чату при выборе
+    // Подключаемся к голосовому чату при выборе голосового канала
     useEffect(() => {
         if (selectedChat?.chatType === 3) {
             joinVoiceRoom({
@@ -18,17 +18,21 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
         }
     }, [selectedChat, username, userId, serverId, joinVoiceRoom]);
 
-    // Если выбран голосовой канал и мы подключены
-    if (selectedChat?.chatType === 3 && isVoiceChatActive) {
-        return (
-            <div className="voice-chat-active-placeholder">
-                <h3>Голосовой чат активен в фоновом режиме</h3>
-                <p>Вы можете продолжать общение, переключаясь между каналами</p>
-            </div>
-        );
-    }
-
     if (selectedChat) {
+        // Если это голосовой канал (chatType === 3)
+        if (selectedChat.chatType === 3) {
+            // Если голосовой чат активен, показываем заглушку
+            if (isVoiceChatActive) {
+                return (
+                    <div className="voice-chat-active-placeholder">
+                        <h3>Голосовой чат активен в фоновом режиме</h3>
+                        <p>Вы можете продолжать общение, переключаясь между каналами</p>
+                    </div>
+                );
+            }
+        }
+        
+        // Для всех остальных чатов (текстовых) показываем GroupChat
         return (
             <GroupChat
                 username={username}
