@@ -20,8 +20,8 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
         }
     }, [selectedChat, username, userId, serverId, joinVoiceRoom, setShowVoiceUI]);
 
-    // Показываем VoiceChat всегда, если звонок активен (фон или foreground)
-    if (isVoiceChatActive && voiceRoom) {
+    // Показываем VoiceChat только когда пользователь находится в голосовом канале
+    if (selectedChat?.chatType === 4 && isVoiceChatActive && voiceRoom) {
         return (
             <div 
               id="voicechat-root" 
