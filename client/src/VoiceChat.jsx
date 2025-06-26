@@ -3195,7 +3195,7 @@ function VoiceChat({ roomId, userName, userId, serverId, isInVoiceChat, setIsInV
   useEffect(() => {
     if (!roomId || !userName) return;
 
-    // Простая проверка: если не в звонке, то подключаемся
+    // Если не в звонке, то подключаемся
     if (!isInVoiceChat) {
       handleJoin();
       setIsInVoiceChat(true);
