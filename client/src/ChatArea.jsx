@@ -9,9 +9,6 @@ const ChatArea = ({ selectedChat, leftVoiceChat, setLeftVoiceChat, username, use
     useEffect(() => {
         if (selectedChat?.chatType === 3) {
             setLeftVoiceChat(false);
-        }
-        // Сбрасываем флаг голосового чата при смене на текстовый канал
-        if (!selectedChat || selectedChat.chatType === 3) {
             setIsInVoiceChat(false);
         }
     }, [selectedChat, setLeftVoiceChat]);

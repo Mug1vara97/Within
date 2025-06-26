@@ -2372,6 +2372,10 @@ function VoiceChat({ roomId, userName, userId, serverId, isInVoiceChat, setIsInV
 
   const handleLeaveCall = () => {
     cleanup();
+    setIsJoined(false);
+    setPeers(new Map());
+    setVolumes(new Map());
+    setError('');
     setIsInVoiceChat(false);
     if (onLeave) {
       onLeave();
@@ -3184,16 +3188,19 @@ function VoiceChat({ roomId, userName, userId, serverId, isInVoiceChat, setIsInV
   useEffect(() => {
     if (!roomId || !userName) return;
 
-    if (!isInVoiceChat) {
-      // Если мы не в звонке, то присоединяемся
+    // Если мы не в звонке и не подключены, то присоединяемся
+    if (!isInVoiceChat && !isJoined) {
       handleJoin();
       setIsInVoiceChat(true);
     }
 
     return () => {
-      cleanup();
+      // Очистка только при размонтировании компонента
+      if (!isInVoiceChat) {
+        cleanup();
+      }
     };
-  }, [roomId, userName, isInVoiceChat]);
+  }, [roomId, userName, isInVoiceChat, isJoined]);
 
   return (
     <MuteProvider socket={socketRef.current}>
