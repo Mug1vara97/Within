@@ -4,22 +4,31 @@ import { useVoiceChat } from './contexts/VoiceChatContext';
 // import VoiceChat from './VoiceChat';
 
 const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, isServerOwner }) => {
-    const { joinVoiceRoom, isVoiceChatActive, voiceRoom, setShowVoiceUI } = useVoiceChat();
+    const { joinVoiceRoom, isVoiceChatActive, voiceRoom, setShowVoiceUI, leaveVoiceRoom } = useVoiceChat();
 
     useEffect(() => {
         if (selectedChat?.chatType === 4) {
+            // Входим в голосовой канал
             joinVoiceRoom({
                 roomId: selectedChat.chatId,
                 userName: username,
                 userId: userId,
                 serverId: serverId,
-                leaveVoiceRoom: () => {/* функция для выхода */}
+                leaveVoiceRoom: () => {
+                    // Функция для выхода из голосового канала
+                    leaveVoiceRoom();
+                }
             });
             setShowVoiceUI(true);
         } else {
+            // Если переключились на не-голосовой канал, очищаем состояние
+            if (isVoiceChatActive) {
+                console.log('Switching to non-voice channel, leaving voice room...');
+                leaveVoiceRoom();
+            }
             setShowVoiceUI(false);
         }
-    }, [selectedChat, username, userId, serverId, joinVoiceRoom, setShowVoiceUI]);
+    }, [selectedChat, username, userId, serverId, joinVoiceRoom, setShowVoiceUI, isVoiceChatActive, leaveVoiceRoom]);
 
     if (selectedChat) {
         // Если это голосовой канал (chatType === 4) и голосовой чат активен
