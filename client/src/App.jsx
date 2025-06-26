@@ -8,8 +8,8 @@ import { AudioProvider } from './contexts/AudioContext';
 import { VoiceChatProvider, useVoiceChat } from './contexts/VoiceChatContext';
 import VoiceChat from './VoiceChat';
 
-function VoiceChatHeadlessWrapper() {
-    const { voiceRoom, isVoiceChatActive } = useVoiceChat();
+function VoiceChatGlobalWrapper() {
+    const { voiceRoom, isVoiceChatActive, showVoiceUI } = useVoiceChat();
     return isVoiceChatActive && voiceRoom ? (
         <VoiceChat
             roomId={voiceRoom.roomId}
@@ -17,7 +17,7 @@ function VoiceChatHeadlessWrapper() {
             userId={voiceRoom.userId}
             serverId={voiceRoom.serverId}
             autoJoin={true}
-            headless={true}
+            showUI={showVoiceUI}
         />
     ) : null;
 }
@@ -42,7 +42,7 @@ const App = () => {
     return (
         <AudioProvider>
             <VoiceChatProvider>
-                <VoiceChatHeadlessWrapper />
+                <VoiceChatGlobalWrapper />
                 <Router>
                     <Routes>
                         <Route path="/*" element={user.username ? <Home user={user} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />} />

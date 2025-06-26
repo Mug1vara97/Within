@@ -1091,7 +1091,7 @@ const VideoView = React.memo(({
   );
 });
 
-function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, headless = false, onLeave }) {
+function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI = true, onLeave }) {
   const [isJoined, setIsJoined] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -3214,8 +3214,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, headle
     }
   }, [autoJoin, roomId, userName]);
 
-  // Если headless, не рендерим UI, но соединение и эффекты работают
-  if (headless) return null;
+  if (!showUI) return null;
 
   return (
     <MuteProvider socket={socketRef.current}>

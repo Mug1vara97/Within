@@ -5,6 +5,7 @@ const VoiceChatContext = createContext();
 export const VoiceChatProvider = ({ children }) => {
   const [voiceRoom, setVoiceRoom] = useState(null);
   const [isVoiceChatActive, setIsVoiceChatActive] = useState(false);
+  const [showVoiceUI, setShowVoiceUI] = useState(false);
 
   const joinVoiceRoom = (data) => {
     setVoiceRoom(data);
@@ -14,6 +15,7 @@ export const VoiceChatProvider = ({ children }) => {
   const leaveVoiceRoom = () => {
     setVoiceRoom(null);
     setIsVoiceChatActive(false);
+    setShowVoiceUI(false);
   };
 
   return (
@@ -22,7 +24,9 @@ export const VoiceChatProvider = ({ children }) => {
         voiceRoom,
         isVoiceChatActive,
         joinVoiceRoom,
-        leaveVoiceRoom
+        leaveVoiceRoom,
+        showVoiceUI,
+        setShowVoiceUI
       }}
     >
       {children}
