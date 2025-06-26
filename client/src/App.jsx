@@ -7,12 +7,13 @@ import "./UserProfile.css"
 import { AudioProvider } from './contexts/AudioContext';
 import { VoiceChatProvider, useVoiceChat } from './contexts/VoiceChatContext';
 import VoiceChat from './VoiceChat';
+import VoiceRender from './VoiceRender';
 
 function VoiceChatGlobalWrapper() {
     const { voiceRoom, isVoiceChatActive, showVoiceUI } = useVoiceChat();
     // Получаем функцию onManualLeave из window, если она есть (установим из ChatArea)
     const onManualLeave = window.__onManualLeaveVoiceChat || undefined;
-    return isVoiceChatActive && voiceRoom ? (
+    return isVoiceChatActive && voiceRoom && showVoiceUI ? (
         <VoiceChat
             roomId={voiceRoom.roomId}
             userName={voiceRoom.userName}
@@ -45,6 +46,7 @@ const App = () => {
     return (
         <AudioProvider>
             <VoiceChatProvider>
+                <VoiceRender />
                 <VoiceChatGlobalWrapper />
                 <Router>
                     <Routes>

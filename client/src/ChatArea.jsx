@@ -63,21 +63,6 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
     // Пробрасываем обработчик для VoiceChat через window (используется в VoiceChatGlobalWrapper)
     window.__onManualLeaveVoiceChat = handleManualLeave;
 
-    // Показываем VoiceChat только когда пользователь находится в голосовом канале
-    if (selectedChat?.chatType === 4 && isVoiceChatActive && voiceRoom && !userLeftVoiceManually) {
-        return (
-            <div 
-              id="voicechat-root" 
-              style={{
-                width: '100%',
-                height: '100%',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            />
-        );
-    }
-
     // Показываем сообщение, если пользователь только что покинул голосовой канал
     if (leftVoiceChannel) {
         return (
