@@ -5,7 +5,7 @@ import Home from './Home';
 import Register from './Authentication/Register';
 import "./UserProfile.css"
 import { AudioProvider } from './contexts/AudioContext';
-import { VoiceChatProvider } from './contexts/VoiceChatContext';
+import { VoiceChatProvider } from './VoiceChat';
 
 const App = () => {
     const [user, setUser] = useState(() => {
