@@ -1095,17 +1095,17 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
   const { leaveVoiceRoom } = useVoiceChat();
   const [isJoined, setIsJoined] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [useEarpiece, setUseEarpiece] = useState(true);
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
-  const [peers, setPeers] = useState(new Map());
   const [error, setError] = useState('');
+  const [peers, setPeers] = useState(new Map());
+  const [audioStates, setAudioStates] = useState(new Map());
   const [volumes, setVolumes] = useState(new Map());
   const [speakingStates, setSpeakingStates] = useState(new Map());
-  const [audioStates, setAudioStates] = useState(new Map());
-  const isMobile = useMemo(() => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent), []);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [useEarpiece, setUseEarpiece] = useState(true);
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   const prevRoomIdRef = useRef(roomId);
 
   // Use userId and serverId in socket connection
@@ -1129,6 +1129,19 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
     }
     prevRoomIdRef.current = roomId;
   }, [roomId, autoJoin]);
+
+  // Инициализация подключения только если autoJoin = true
+  useEffect(() => {
+    if (autoJoin) {
+      console.log('VoiceChat: Initializing with autoJoin');
+      initializeConnection();
+    } else {
+      console.log('VoiceChat: UI-only mode, skipping connection initialization');
+      // В режиме только UI мы не инициализируем соединение
+      // и используем данные из контекста
+      setIsJoined(true);
+    }
+  }, [roomId, userName, userId, serverId, autoJoin]);
 
   const [screenProducer, setScreenProducer] = useState(null);
   const [screenStream, setScreenStream] = useState(null);
@@ -3221,11 +3234,18 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
     }
   };
 
-  useEffect(() => {
-    if (autoJoin && roomId && userName && !isJoined) {
-      handleJoin();
+  // Инициализация соединения
+  const initializeConnection = async () => {
+    try {
+      if (roomId && userName && !isJoined) {
+        console.log('Initializing connection for room:', roomId);
+        handleJoin();
+      }
+    } catch (error) {
+      console.error('Error initializing connection:', error);
+      setError('Ошибка инициализации соединения: ' + error.message);
     }
-  }, [autoJoin, roomId, userName]);
+  };
 
   // Автоматический выход при размонтировании компонента
   useEffect(() => {

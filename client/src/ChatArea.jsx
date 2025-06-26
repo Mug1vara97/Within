@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import GroupChat from './Chats/GroupChat';
 import { useVoiceChat } from './contexts/VoiceChatContext';
+import VoiceChat from './VoiceChat';
 
 const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, isServerOwner }) => {
     const { joinVoiceRoom, isVoiceChatActive, voiceRoom, setShowVoiceUI, leaveVoiceRoom } = useVoiceChat();
@@ -53,8 +54,7 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
         leaveVoiceRoom();
     };
 
-    // Показываем пустой контейнер для голосового чата
-    // VoiceChat будет рендериться через App.jsx, но с showUI=true
+    // Отображаем UI голосового чата внутри ChatArea
     if (selectedChat?.chatType === 4 && isVoiceChatActive && voiceRoom && !userLeftVoiceManually) {
         return (
             <div 
@@ -65,7 +65,16 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
                 overflow: 'hidden'
               }}
             >
-              {/* Здесь ничего не рендерим - VoiceChat будет отображаться через VoiceChatContext */}
+                {/* Отображаем UI голосового чата */}
+                <VoiceChat
+                    roomId={voiceRoom.roomId}
+                    userName={voiceRoom.userName}
+                    userId={voiceRoom.userId}
+                    serverId={voiceRoom.serverId}
+                    autoJoin={false} // Не подключаемся снова, подключение уже есть через GlobalVoiceChat
+                    showUI={true}    // Показываем только UI
+                    onManualLeave={handleManualLeave}
+                />
             </div>
         );
     }

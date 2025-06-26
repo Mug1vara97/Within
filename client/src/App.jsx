@@ -8,12 +8,13 @@ import { AudioProvider } from './contexts/AudioContext';
 import { VoiceChatProvider, useVoiceChat } from './contexts/VoiceChatContext';
 import VoiceChat from './VoiceChat';
 
-// Единый компонент для голосового чата, который адаптируется в зависимости от showVoiceUI
+// Глобальный компонент только для фоновой работы голосового чата
 function GlobalVoiceChat() {
-    const { voiceRoom, isVoiceChatActive, showVoiceUI, leaveVoiceRoom } = useVoiceChat();
+    const { voiceRoom, isVoiceChatActive, leaveVoiceRoom } = useVoiceChat();
     
     if (!isVoiceChatActive || !voiceRoom) return null;
     
+    // Всегда рендерим без UI, UI будет отображаться в ChatArea
     return (
         <VoiceChat
             key={`${voiceRoom.roomId}-${voiceRoom.serverId}`}
@@ -22,7 +23,7 @@ function GlobalVoiceChat() {
             userId={voiceRoom.userId}
             serverId={voiceRoom.serverId}
             autoJoin={true}
-            showUI={showVoiceUI}
+            showUI={false} // Всегда false, UI будет в ChatArea
             onLeave={() => {
                 leaveVoiceRoom();
             }}
