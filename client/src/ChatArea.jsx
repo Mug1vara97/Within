@@ -24,21 +24,17 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
     }, [serverId, selectedChat?.chatId]);
 
     useEffect(() => {
-        if (selectedChat?.chatType === 4) {
-            if (!userLeftVoiceManually) {
-                const data = {
-                    roomId: selectedChat.chatId,
-                    userName: username,
-                    userId: userId,
-                    serverId: serverId
-                };
-                setVoiceRoomData(data);
-                setIsVoiceActive(true);
-                setLeftVoiceChannel(false);
-                if (onJoinVoiceChannel) onJoinVoiceChannel(data);
-            }
-        } else {
-            setIsVoiceActive(false);
+        if (selectedChat?.chatType === 4 && !userLeftVoiceManually) {
+            const data = {
+                roomId: selectedChat.chatId,
+                userName: username,
+                userId: userId,
+                serverId: serverId
+            };
+            setVoiceRoomData(data);
+            setIsVoiceActive(true);
+            setLeftVoiceChannel(false);
+            if (onJoinVoiceChannel) onJoinVoiceChannel(data);
         }
     }, [selectedChat, username, userId, serverId, userLeftVoiceManually, onJoinVoiceChannel]);
 
@@ -50,7 +46,8 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
         if (onLeaveVoiceChannel) onLeaveVoiceChannel();
     };
 
-    if (selectedChat?.chatType === 4 && isVoiceActive && voiceRoomData && !userLeftVoiceManually) {
+    // Render voice chat if active, regardless of current selected chat
+    if (isVoiceActive && voiceRoomData && !userLeftVoiceManually) {
         return (
             <VoiceChat
                 roomId={voiceRoomData.roomId}
