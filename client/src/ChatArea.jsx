@@ -33,7 +33,7 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
                     serverId: serverId
                 });
                 setShowVoiceUI(true);
-                setLeftVoiceChannel(false);
+                setLeftVoiceChannel(false); // Скрываем сообщение при входе в голосовой канал
             }
         } else {
             setShowVoiceUI(false);
@@ -41,12 +41,14 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
     }, [selectedChat, username, userId, serverId, joinVoiceRoom, setShowVoiceUI, userLeftVoiceManually]);
 
     useEffect(() => {
+        // Если пользователь только что покинул голосовой чат
         if (prevVoiceActive.current && !isVoiceChatActive) {
             setLeftVoiceChannel(true);
         }
         prevVoiceActive.current = isVoiceChatActive;
     }, [isVoiceChatActive]);
 
+    // Обработчик выхода из голосового чата вручную
     const handleManualLeave = () => {
         setUserLeftVoiceManually(true);
         leaveVoiceRoom();
@@ -55,13 +57,14 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
     // Показываем VoiceChat только когда пользователь находится в голосовом канале
     if (selectedChat?.chatType === 4 && isVoiceChatActive && voiceRoom && !userLeftVoiceManually) {
         return (
-            <div style={{
+            <div 
+              style={{
                 width: '100%',
                 height: '100%',
                 position: 'relative',
-                overflow: 'hidden',
-                backgroundColor: '#36393f'
-            }}>
+                overflow: 'hidden'
+              }}
+            >
                 <VoiceChat
                     roomId={voiceRoom.roomId}
                     userName={voiceRoom.userName}
@@ -69,7 +72,7 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
                     serverId={voiceRoom.serverId}
                     autoJoin={true}
                     showUI={true}
-                    onLeave={handleManualLeave}
+                    onManualLeave={handleManualLeave}
                 />
             </div>
         );
@@ -78,14 +81,7 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
     // Показываем сообщение, если пользователь только что покинул голосовой канал
     if (leftVoiceChannel) {
         return (
-            <div className="left-voice-channel-message" style={{
-                textAlign: 'center',
-                marginTop: '40px',
-                color: '#888',
-                backgroundColor: '#36393f',
-                padding: '20px',
-                borderRadius: '8px'
-            }}>
+            <div className="left-voice-channel-message" style={{textAlign: 'center', marginTop: '40px', color: '#888'}}>
                 <h3>Вы покинули голосовой канал</h3>
             </div>
         );
@@ -108,7 +104,11 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
         );
     }
 
-    return null;
-}
+    return (
+        <div className="no-chat-selected">
+            <h3>Select a chat to start messaging</h3>
+        </div>
+    );
+};
 
 export default ChatArea;
