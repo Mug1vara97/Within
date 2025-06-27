@@ -3125,10 +3125,10 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
   };
 
   useEffect(() => {
-    if (autoJoin && showUI === false && roomId && userName && !isJoined) {
+    if (autoJoin && roomId && userName && !isJoined) {
       handleJoin();
     }
-  }, [autoJoin, showUI, roomId, userName, isJoined]);
+  }, [autoJoin, roomId, userName]);
 
   // Автоматический выход при размонтировании компонента
   useEffect(() => {
