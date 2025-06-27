@@ -5,7 +5,7 @@ import Login from './Authentication/Login';
 import Register from './Authentication/Register';
 import "./UserProfile.css"
 import { AudioProvider } from './contexts/AudioContext';
-import { VoiceChatProvider } from './contexts/VoiceChatContext';
+import VoiceChatProvider from './contexts/VoiceChatContext';
 import VoiceChatGlobal from './components/VoiceChatGlobal';
 
 const App = () => {
