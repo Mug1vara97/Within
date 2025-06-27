@@ -1,13 +1,11 @@
-// ServerPage.jsx
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import ServerSidebar from './ServerSidebar';
 import ChatArea from './ChatArea';
 import { BASE_URL } from './config/apiConfig';
 import Modals from './Modals/Modals';
 import { HubConnectionBuilder, LogLevel, HttpTransportType } from '@microsoft/signalr';
-import GroupChat from './Chats/GroupChat';
 
-const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected }) => {
+const ServerPage = ({ username, userId, serverId }) => {
     const [server, setServer] = useState(null);
     const [selectedChat, setSelectedChat] = useState(null);
     const [users, setUsers] = useState([]);
@@ -444,30 +442,21 @@ const [modalsState, setModalsState] = useState({
 // Загрузка данных сервера
 const fetchServerData = async () => {
     try {
-        const response = await fetch(`${BASE_URL}/api/messages/zxc/${serverId}`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-        });
+        const response = await fetch(`${BASE_URL}/api/messages/zxc/${serverId}?userId=${userId}`);
+        const data = await response.json();
+        setServer(data);
+        setIsServerOwner(data.ownerId === userId);
         
-        if (response.ok) {
-            const data = await response.json();
-            setServer(data);
-            setIsServerOwner(data.ownerId === userId);
-            
-            // Если есть initialChatId, выбираем соответствующий чат
-            if (initialChatId) {
-                const foundChat = data.categories
-                    .flatMap(cat => cat.chats)
-                    .find(c => c.chatId === parseInt(initialChatId));
-                
-                if (foundChat) {
-                    handleChatSelect(foundChat);
-                }
+        // Запрашиваем роли пользователя через SignalR
+        if (connection) {
+            try {
+                await connection.invoke("GetUserRoles", parseInt(userId, 10), parseInt(serverId, 10));
+            } catch (error) {
+                console.error('Error fetching user roles:', error);
             }
         }
     } catch (error) {
-        console.error('Error fetching server data:', error);
+        console.error('Error loading server data:', error);
     }
 };
 
@@ -732,20 +721,10 @@ const handleKickMember = async (memberId) => {
     }
 };
 
-// Обработчик выбора чата
-const handleChatSelect = (chat) => {
-    setSelectedChat(chat);
-    
-    // Вызываем колбэк, если он предоставлен
-    if (onChatSelected) {
-        onChatSelected(chat);
-    }
-};
-
 if (!server) return <div>Loading...</div>;
 
 return (
-    <div className="server-page" style={{ display: 'flex', width: '100%', height: '100%' }}>
+    <div className="server-page" onContextMenu={handleContextMenu}>
             <ServerSidebar 
                 server={server}
                 serverId={serverId}
@@ -762,41 +741,20 @@ return (
                 isServerOwner={isServerOwner}
                 connection={connection}
                 userRoles={userRoles}
-                onChatSelect={handleChatSelect}
-                onContextMenu={handleContextMenu}
-                onChatContextMenu={handleChatContextMenu}
-                onCategoryContextMenu={handleCategoryContextMenu}
             />
             
-            <div className="server-content" style={{ flex: 1, height: '100%' }}>
-                {selectedChat ? (
-                    <GroupChat
-                        username={username}
-                        userId={userId}
-                        chatId={selectedChat.chatId}
-                        groupName={selectedChat.groupName}
-                        isServerChat={true}
-                        serverId={serverId}
-                        userPermissions={userPermissions}
-                        isServerOwner={isServerOwner}
-                    />
-                ) : (
-                    <div className="no-chat-selected" style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        height: '100%',
-                        color: '#8e9297'
-                    }}>
-                        <h3>Выберите чат для начала общения</h3>
-                    </div>
-                )}
-            </div>
+            <ChatArea 
+                selectedChat={selectedChat}
+                username={username}
+                userId={userId}
+                userPermissions={userPermissions}
+                isServerOwner={isServerOwner}
+            />
 
             <Modals
                 modalsState={modalsState}
                 setModalsState={setModalsState}
-                contextMenu={contextMenuRef.current}
+                contextMenu={contextMenu}
                 contextMenuCategory={contextMenuCategory}
                 contextMenuChat={contextMenuChat}
                 setContextMenu={setContextMenu}
@@ -823,9 +781,6 @@ return (
                 setUserPermissions={setUserPermissions}
                 aggregatePermissions={aggregatePermissions}
                 roles={roles}
-                server={server}
-                updateServerState={updateServerState}
-                onKickMember={handleKickMember}
             />
     </div>
 );
