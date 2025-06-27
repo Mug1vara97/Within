@@ -703,17 +703,24 @@ useEffect(() => {
 
 // Обработчик выбора чата
 const handleChatSelect = (chat) => {
+    console.log('ServerPage handleChatSelect received:', chat);
+    
     const enhancedChat = {
         ...chat,
         userPermissions,
         isServerOwner
     };
     
+    console.log('ServerPage enhanced chat:', enhancedChat);
+    
     setSelectedChat(enhancedChat);
     
     // Вызываем колбэк, если он предоставлен
     if (onChatSelected) {
+        console.log('Calling onChatSelected with:', enhancedChat);
         onChatSelected(enhancedChat);
+    } else {
+        console.log('onChatSelected is not defined');
     }
 };
 

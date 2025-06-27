@@ -44,7 +44,15 @@ const ChatItem = ({
                         {...provided.draggableProps}
                         {...provided.dragHandleProps}
                         className={`channel ${selectedChat?.chatId === chat.chatId ? 'active' : ''} ${snapshot.isDragging ? 'dragging' : ''} ${chat.isPrivate ? 'private' : ''}`}
-                        onClick={() => handleGroupChatClick(chat.chatId, chat.name, chat.typeId)}
+                        onClick={() => {
+                            console.log('ChatItem clicked:', { 
+                                chatId: chat.chatId, 
+                                name: chat.name, 
+                                typeId: chat.typeId,
+                                chat: chat
+                            });
+                            handleGroupChatClick(chat.chatId, chat.name, chat.typeId);
+                        }}
                         onContextMenu={(e) => onContextMenu(e, chat.chatId, chat.name, chat.typeId)}
                         style={{
                             ...provided.draggableProps.style,

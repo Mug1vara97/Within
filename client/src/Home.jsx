@@ -234,11 +234,15 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, re
     
     // Обработчик для получения выбранного чата из ServerPage
     const handleChatSelected = (chat) => {
+        console.log('Home ServerPageWrapper handleChatSelected received:', chat);
+        
         if (chat) {
             setSelectedChat(chat);
+            console.log('Home ServerPageWrapper setSelectedChat with:', chat);
             
             // Если это голосовой канал, подключаемся к нему
             if (chat.chatType === 4 && !userLeftVoiceManually) {
+                console.log('Connecting to voice channel:', chat);
                 onJoinVoiceChannel({
                     roomId: chat.chatId,
                     userName: user.username,

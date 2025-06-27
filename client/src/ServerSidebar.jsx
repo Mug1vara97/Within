@@ -99,7 +99,23 @@ const ServerSidebar = ({
     };
 
     const handleChatClick = (chatId, groupName, chatType) => {
-        props.setSelectedChat({ chatId, groupName, chatType });
+        console.log('ServerSidebar handleChatClick:', { chatId, groupName, chatType });
+        
+        const chatData = {
+            chatId,
+            groupName,
+            chatType
+        };
+        
+        // Вызываем функцию onChatSelect для передачи данных в ServerPage
+        if (props.onChatSelect) {
+            console.log('Calling props.onChatSelect with:', chatData);
+            props.onChatSelect(chatData);
+        } else {
+            console.log('props.onChatSelect is not defined');
+        }
+        
+        props.setSelectedChat(chatData);
         navigate(`/channels/${props.serverId}/${chatId}`);
     };
 
