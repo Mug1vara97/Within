@@ -12,18 +12,16 @@ const Home = ({ user }) => {
     const [isDiscoverMode, setIsDiscoverMode] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
-    const { joinVoiceRoom, leaveVoiceRoom, voiceRoom } = useVoiceChat();
+    const { joinVoiceRoom, leaveVoiceRoom, voiceRoom, userLeftVoiceManually } = useVoiceChat();
     
     // Состояние для отображения сообщения о выходе из голосового канала
     const [leftVoiceChannel, setLeftVoiceChannel] = useState(false);
-    const [userLeftVoiceManually, setUserLeftVoiceManually] = useState(false);
     
     // Обработчик подключения к голосовому каналу
     const handleJoinVoiceChannel = (data) => {
         console.log('Joining voice channel with data:', data);
         joinVoiceRoom(data);
         setLeftVoiceChannel(false);
-        setUserLeftVoiceManually(false);
     };
     
     // Обработчик выхода из голосового канала
@@ -31,7 +29,6 @@ const Home = ({ user }) => {
         console.log('Leaving voice channel');
         leaveVoiceRoom();
         setLeftVoiceChannel(true);
-        setUserLeftVoiceManually(true);
         
         // Сбрасываем флаг через 5 секунд
         setTimeout(() => {
@@ -93,8 +90,6 @@ const Home = ({ user }) => {
                                     user={user} 
                                     onJoinVoiceChannel={handleJoinVoiceChannel}
                                     userLeftVoiceManually={userLeftVoiceManually}
-                                    handleLeaveVoiceChannel={handleLeaveVoiceChannel}
-                                    voiceRoom={voiceRoom}
                                 />
                             } />
                             <Route path="/channels/:serverId/:chatId?" element={
@@ -194,7 +189,8 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, ha
             setSelectedChat(chat);
             console.log('Home ServerPageWrapper setSelectedChat with:', chat);
             
-            // Если это голосовой канал, подключаемся к нему
+            // Если это голосовой канал и пользователь не вышел вручную,
+            // подключаемся к нему
             if ((chat.chatType === 4 || chat.typeId === 4) && !userLeftVoiceManually) {
                 console.log('Connecting to voice channel:', chat);
                 onJoinVoiceChannel({

@@ -1,17 +1,17 @@
-import React, { useEffect, useState, useRef } from 'react';
+/*
+import React, { useEffect, useRef } from 'react';
 import GroupChat from './Chats/GroupChat';
+import { useVoiceChat } from './contexts/VoiceChatContext';
 
 const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, isServerOwner, onJoinVoiceChannel, onLeaveVoiceChannel }) => {
-    const [userLeftVoiceManually, setUserLeftVoiceManually] = useState(false);
+    const { userLeftVoiceManually, leaveVoiceRoom } = useVoiceChat();
     const prevChatId = useRef(selectedChat?.chatId);
 
     // Сброс флага только при смене чата, но не при смене сервера
     useEffect(() => {
         if (prevChatId.current !== selectedChat?.chatId) {
-            // Сбрасываем флаг только если новый чат - это голосовой канал
-            if (selectedChat?.chatType === 4) {
-                setUserLeftVoiceManually(false);
-            }
+            // Мы больше не сбрасываем флаг, так как теперь он управляется через контекст
+            // и сбрасывается при вызове joinVoiceRoom
         }
         prevChatId.current = selectedChat?.chatId;
     }, [selectedChat?.chatId]);
@@ -27,11 +27,11 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
             };
             if (onJoinVoiceChannel) onJoinVoiceChannel(data);
         }
-    }, [selectedChat?.chatType, selectedChat?.chatId, username, userId, userLeftVoiceManually, onJoinVoiceChannel]);
+    }, [selectedChat?.chatType, selectedChat?.chatId, username, userId, userLeftVoiceManually, onJoinVoiceChannel, serverId]);
 
     // Обработчик выхода из голосового чата вручную
     const handleManualLeave = () => {
-        setUserLeftVoiceManually(true);
+        leaveVoiceRoom(); // Это обновит userLeftVoiceManually в контексте
         if (onLeaveVoiceChannel) onLeaveVoiceChannel();
     };
 
@@ -99,3 +99,4 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
 };
 
 export default ChatArea;
+*/

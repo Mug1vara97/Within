@@ -46,7 +46,6 @@ import { Device } from 'mediasoup-client';
 import { io } from 'socket.io-client';
 import { NoiseSuppressionManager } from './utils/noiseSuppression';
 import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
-import ReactDOM from 'react-dom';
 import { useVoiceChat } from './contexts/VoiceChatContext';
 
 
@@ -3241,7 +3240,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
   // Подготовка всех нужных пропсов для UI
   const ui = (
     <MuteProvider socket={socketRef.current}>
-      <Box sx={{ ...styles.root, ...(showUI ? {} : { position: 'fixed', top: '-9999px', left: '-9999px', zIndex: -999 }) }}>
+      <Box sx={{ ...styles.root, ...(showUI ? {} : { display: 'none' }) }}>
         <AppBar position="static" sx={styles.appBar}>
           <Toolbar sx={styles.toolbar}>
             <Box sx={styles.channelName}>
@@ -3447,15 +3446,6 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
     </MuteProvider>
   );
 
-  // Рендер через портал только если showUI=false, иначе рендерим прямо в компоненте
-  if (!showUI && typeof window !== 'undefined') {
-    const root = document.getElementById('voicechat-root');
-    if (root) {
-      return ReactDOM.createPortal(ui, root);
-    }
-    return null;
-  }
-  
   return ui;
 }
 
