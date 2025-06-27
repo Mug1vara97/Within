@@ -1109,6 +1109,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
   const isMobile = useMemo(() => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent), []);
   const prevRoomIdRef = useRef(roomId);
   const componentMountedRef = useRef(true);
+  const connectionAttemptRef = useRef(false);
 
   // Исправление линтера: переименуем переменную, чтобы показать, что она используется
   // const peerMuteStatesRef = useRef(new Map());
@@ -1247,7 +1248,8 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
         setRemoteScreens(prev => {
           const newScreens = new Map(prev);
           const screenEntry = [...newScreens.entries()].find(
-            ([_, data]) => data.producerId === producerId
+            // eslint-disable-next-line no-unused-vars
+            ([unused, data]) => data.producerId === producerId
           );
           
           if (screenEntry) {
@@ -1271,7 +1273,8 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
         setRemoteVideos(prev => {
           const newVideos = new Map(prev);
           const videoEntry = [...newVideos.entries()].find(
-            ([_, data]) => data.producerId === producerId
+            // eslint-disable-next-line no-unused-vars
+            ([unused, data]) => data.producerId === producerId
           );
           
           if (videoEntry) {
@@ -1289,7 +1292,8 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
 
               // Находим и закрываем соответствующий consumer
               const consumer = Array.from(consumersRef.current.entries()).find(
-                ([_, consumer]) => consumer.producerId === producerId
+                // eslint-disable-next-line no-unused-vars
+                ([unused, consumer]) => consumer.producerId === producerId
               );
               if (consumer) {
                 console.log('Found and closing associated consumer:', consumer[0]);
@@ -1482,6 +1486,9 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
         noiseSuppressionRef.current = null;
       }
 
+      // Сбрасываем флаг попытки подключения
+      connectionAttemptRef.current = false;
+
     } catch (error) {
       console.error('Cleanup error:', error);
     }
@@ -1493,11 +1500,20 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
       return;
     }
 
+    // Проверяем, не выполняется ли уже попытка подключения
+    if (connectionAttemptRef.current) {
+      console.log('Connection attempt already in progress, skipping join');
+      return;
+    }
+
     // Если уже подключены, не подключаемся повторно
     if (isJoined || socketRef.current) {
       console.log('Already connected or connection in progress, skipping join');
       return;
     }
+
+    // Устанавливаем флаг попытки подключения
+    connectionAttemptRef.current = true;
 
     try {
       // Reset states to enabled when joining
@@ -1536,6 +1552,8 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
       socket.on('connect_error', (error) => {
         console.error('Socket connection error:', error);
         setError('Failed to connect to server: ' + error.message);
+        // Сбрасываем флаг попытки подключения при ошибке
+        connectionAttemptRef.current = false;
       });
 
       socket.on('disconnect', () => {
@@ -1624,6 +1642,8 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
           if (joinError) {
             console.error('Join error:', joinError);
             setError(joinError);
+            // Сбрасываем флаг попытки подключения при ошибке
+            connectionAttemptRef.current = false;
             return;
           }
 
@@ -1686,11 +1706,15 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
 
             console.log('Setting joined state to true');
             setIsJoined(true);
+            // Сбрасываем флаг попытки подключения после успешного подключения
+            connectionAttemptRef.current = false;
 
           } catch (err) {
             console.error('Failed to initialize:', err);
             setError('Failed to initialize connection: ' + err.message);
             cleanup();
+            // Сбрасываем флаг попытки подключения при ошибке
+            connectionAttemptRef.current = false;
           }
         });
       });
@@ -1699,6 +1723,8 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
       console.error('Connection error:', err);
       setError('Failed to connect to server: ' + err.message);
       cleanup();
+      // Сбрасываем флаг попытки подключения при ошибке
+      connectionAttemptRef.current = false;
     }
   };
 
@@ -3113,8 +3139,8 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
       // Если да, то полностью очищаем соединение
       // Если нет (фоновый режим), то сохраняем соединение
       if (showUI) {
-        if (isJoined) {
-          handleLeaveCall();
+      if (isJoined) {
+        handleLeaveCall();
         }
       } else {
         console.log('Background voice chat component unmounting, keeping connection');

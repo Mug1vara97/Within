@@ -109,7 +109,7 @@ const Home = ({ user }) => {
                     </Routes>
                 ) : (
                     <>
-                        <Routes>
+                    <Routes>
                             <Route path="/channels/@me/:chatId?" element={
                                 <ChatListWrapper 
                                     user={user} 
@@ -129,7 +129,7 @@ const Home = ({ user }) => {
                                     isVoiceChatActive={isVoiceChatActive}
                                 />
                             } />
-                        </Routes>
+                    </Routes>
                         
                         {/* Сообщение о выходе из голосового канала */}
                         {leftVoiceChannel && <LeftVoiceChannelMessage />}
@@ -184,9 +184,9 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, voic
         <div style={{ display: 'flex', width: '100%', height: '100%' }}>
             <div style={{ width: '240px', minWidth: '240px', borderRight: '1px solid #2f3136' }}>
                 <ChatList 
-                    userId={user?.userId} 
-                    username={user?.username} 
-                    initialChatId={chatId}
+        userId={user?.userId} 
+        username={user?.username} 
+        initialChatId={chatId} 
                     ref={chatListRef}
                     onChatSelected={handleChatSelected}
                 />
@@ -305,8 +305,8 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, handleLeaveVoiceChannel, 
                 <ServerPage
                     username={user?.username}
                     userId={user?.userId}
-                    serverId={serverId}
-                    initialChatId={chatId}
+        serverId={serverId} 
+        initialChatId={chatId}
                     onChatSelected={handleChatSelected}
                 />
             </div>
@@ -380,8 +380,8 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, handleLeaveVoiceChannel, 
                     ) : (
                         // Это текстовый чат, отображаем GroupChat
                         <GroupChat
-                            username={user?.username}
-                            userId={user?.userId}
+        username={user?.username} 
+        userId={user?.userId} 
                             chatId={selectedChat.chatId}
                             groupName={selectedChat.groupName || selectedChat.name}
                             isServerChat={true}

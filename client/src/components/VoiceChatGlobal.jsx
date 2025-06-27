@@ -23,20 +23,20 @@ const VoiceChatGlobal = () => {
     }
     
     console.log(`VoiceChatGlobal [${instanceIdRef.current}]: Rendering voice chat component with roomId:`, voiceRoom.roomId);
-    
-    return (
+
+  return (
         <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
-            <VoiceChat
+      <VoiceChat
                 key={`global-voice-${voiceRoom.roomId}-${voiceRoom.serverId || 'dm'}`}
-                roomId={voiceRoom.roomId}
-                userName={voiceRoom.userName}
-                userId={voiceRoom.userId}
-                serverId={voiceRoom.serverId}
-                autoJoin={true}
+        roomId={voiceRoom.roomId}
+        userName={voiceRoom.userName}
+        userId={voiceRoom.userId}
+        serverId={voiceRoom.serverId}
+        autoJoin={true}
                 showUI={false} // UI скрыт, но компонент работает в фоне
-            />
-        </div>
-    );
+      />
+    </div>
+  );
 };
 
 export default VoiceChatGlobal; 

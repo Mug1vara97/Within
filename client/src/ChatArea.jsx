@@ -98,5 +98,4 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
     );
 };
 
-export default ChatArea;
-*/
+export default ChatArea;*/

@@ -74,10 +74,10 @@ export const VoiceChatProvider = ({ children }) => {
 
   // Значение контекста, которое будет доступно потребителям
   const contextValue = {
-    voiceRoom,
-    isVoiceChatActive,
-    joinVoiceRoom,
-    leaveVoiceRoom,
+        voiceRoom,
+        isVoiceChatActive,
+        joinVoiceRoom,
+        leaveVoiceRoom,
   };
 
   return (
