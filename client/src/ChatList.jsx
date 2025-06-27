@@ -374,35 +374,6 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected }) => {
                 )}
                 <UserPanel userId={userId} username={username} isOpen={true}/>
             </div>
-
-            <div className="chat-area">
-                {selectedChat ? (
-                    selectedChat.type === 'group' ? (
-                        <GroupChat
-                            username={username}
-                            userId={userId}
-                            chatId={selectedChat.chatId}
-                            groupName={selectedChat.name}
-                            isGroupChat={true}
-                            chatListConnection={connection}
-                            key={`${selectedChat.chatId}-${forceUpdate}`}
-                        />
-                    ) : (
-                        <GroupChat
-                            username={username}
-                            userId={userId}
-                            chatId={selectedChat.chatId}
-                            groupName={selectedChat.name}
-                            chatListConnection={connection}
-                            key={`${selectedChat.chatId}-${forceUpdate}`}
-                        />
-                    )
-                ) : (
-                    <div className="no-chat-selected">
-                        <h3>Select a chat to start messaging</h3>
-                    </div>
-                )}
-            </div>
         </div>
     );
 };
