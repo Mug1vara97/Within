@@ -46,7 +46,7 @@ import { Device } from 'mediasoup-client';
 import { io } from 'socket.io-client';
 import { NoiseSuppressionManager } from './utils/noiseSuppression';
 import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
-import { useVoiceChat } from './contexts/VoiceChatContext';
+import { useVoiceChat } from './contexts/useVoiceChat';
 
 
 const config = {

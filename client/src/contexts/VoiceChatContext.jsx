@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useEffect } from 'react';
 
 const VoiceChatContext = createContext();
 
@@ -10,43 +10,63 @@ export const VoiceChatProvider = ({ children }) => {
     
     // Если пользователь вышел вручную, не восстанавливаем состояние
     if (savedManuallyLeft === 'true') {
+      console.log('VoiceChatContext: User manually left, not restoring state');
       return null;
     }
     
     try {
-      return savedVoiceRoom ? JSON.parse(savedVoiceRoom) : null;
+      const parsedRoom = savedVoiceRoom ? JSON.parse(savedVoiceRoom) : null;
+      console.log('VoiceChatContext: Restored voice room from storage:', parsedRoom);
+      return parsedRoom;
     } catch (error) {
       console.error('Ошибка при парсинге сохраненного состояния голосового чата:', error);
       return null;
     }
   });
   
-  const [isVoiceChatActive, setIsVoiceChatActive] = useState(() => !!voiceRoom);
+  const [isVoiceChatActive, setIsVoiceChatActive] = useState(() => {
+    // При инициализации проверяем, есть ли сохраненное состояние и не вышел ли пользователь вручную
+    const savedVoiceRoom = localStorage.getItem('voiceRoom');
+    const savedManuallyLeft = localStorage.getItem('userLeftVoiceManually');
+    
+    const isActive = savedVoiceRoom && savedManuallyLeft !== 'true';
+    console.log('VoiceChatContext: Initial isVoiceChatActive:', isActive);
+    return isActive;
+  });
+  
   const [showVoiceUI, setShowVoiceUI] = useState(false);
   const [userLeftVoiceManually, setUserLeftVoiceManually] = useState(() => {
-    return localStorage.getItem('userLeftVoiceManually') === 'true';
+    const savedManuallyLeft = localStorage.getItem('userLeftVoiceManually') === 'true';
+    console.log('VoiceChatContext: Initial userLeftVoiceManually:', savedManuallyLeft);
+    return savedManuallyLeft;
   });
 
   // Сохраняем состояние в localStorage при изменении
   useEffect(() => {
     if (voiceRoom) {
+      console.log('VoiceChatContext: Saving voice room to storage:', voiceRoom);
       localStorage.setItem('voiceRoom', JSON.stringify(voiceRoom));
     } else {
+      console.log('VoiceChatContext: Removing voice room from storage');
       localStorage.removeItem('voiceRoom');
     }
   }, [voiceRoom]);
 
   useEffect(() => {
+    console.log('VoiceChatContext: Saving userLeftVoiceManually to storage:', userLeftVoiceManually);
     localStorage.setItem('userLeftVoiceManually', userLeftVoiceManually.toString());
   }, [userLeftVoiceManually]);
 
   const joinVoiceRoom = (data) => {
+    console.log('VoiceChatContext: Joining voice room with data:', data);
     setVoiceRoom(data);
     setIsVoiceChatActive(true);
+    setShowVoiceUI(true);
     setUserLeftVoiceManually(false);
   };
 
   const leaveVoiceRoom = () => {
+    console.log('VoiceChatContext: Leaving voice room');
     setVoiceRoom(null);
     setIsVoiceChatActive(false);
     setShowVoiceUI(false);
@@ -70,4 +90,5 @@ export const VoiceChatProvider = ({ children }) => {
   );
 };
 
-export const useVoiceChat = () => useContext(VoiceChatContext); 
+// Экспортируем контекст для использования в хуке
+export { VoiceChatContext }; 

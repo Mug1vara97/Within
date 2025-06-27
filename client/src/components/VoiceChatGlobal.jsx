@@ -1,5 +1,5 @@
-import React from 'react';
-import { useVoiceChat } from '../contexts/VoiceChatContext';
+import React, { useEffect } from 'react';
+import { useVoiceChat } from '../contexts/useVoiceChat';
 import VoiceChat from '../VoiceChat';
 
 /**
@@ -7,13 +7,24 @@ import VoiceChat from '../VoiceChat';
  * независимо от текущего открытого чата или страницы
  */
 const VoiceChatGlobal = () => {
-    const { voiceRoom } = useVoiceChat();
+    const { voiceRoom, isVoiceChatActive } = useVoiceChat();
+    
+    // Логирование для отладки
+    useEffect(() => {
+        console.log('VoiceChatGlobal: voiceRoom state changed:', voiceRoom);
+        console.log('VoiceChatGlobal: isVoiceChatActive:', isVoiceChatActive);
+    }, [voiceRoom, isVoiceChatActive]);
     
     // Если нет активного голосового чата, ничего не рендерим
-    if (!voiceRoom) return null;
+    if (!voiceRoom || !isVoiceChatActive) {
+        console.log('VoiceChatGlobal: No active voice room or chat is not active');
+        return null;
+    }
+    
+    console.log('VoiceChatGlobal: Rendering voice chat component with roomId:', voiceRoom.roomId);
     
     return (
-        <div style={{ display: 'none', position: 'absolute' }}>
+        <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
             <VoiceChat
                 roomId={voiceRoom.roomId}
                 userName={voiceRoom.userName}
