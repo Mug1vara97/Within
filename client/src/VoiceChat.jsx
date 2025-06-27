@@ -1092,7 +1092,7 @@ const VideoView = React.memo(({
 });
 
 function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI = false, onLeave, onManualLeave }) {
-  const { leaveVoiceRoom } = useVoiceChat();
+  const { leaveVoiceRoom, activateVoiceChatUI, deactivateVoiceChatUI } = useVoiceChat();
   const [isJoined, setIsJoined] = useState(false);
   // Префикс _ показывает, что переменная используется, но может не использоваться напрямую
   const [_isSocketConnected, setIsSocketConnected] = useState(false);
@@ -1176,6 +1176,18 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
   // const mutedPeersRef = useRef(new Map());
 
   const [fullscreenShare, setFullscreenShare] = useState(null);
+  const voiceChatRef = useRef();
+
+  useEffect(() => {
+    if (showUI) {
+      activateVoiceChatUI();
+    }
+    return () => {
+      if (showUI) {
+        deactivateVoiceChatUI();
+      }
+    };
+  }, [showUI, activateVoiceChatUI, deactivateVoiceChatUI]);
 
   useEffect(() => {
     const resumeAudioContext = async () => {
@@ -3152,7 +3164,11 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
   // Подготовка всех нужных пропсов для UI
   const ui = (
     <MuteProvider socket={socketRef.current}>
-      <Box sx={{ ...styles.root, ...(showUI ? { display: 'flex', width: '100%', height: '100%' } : { display: 'none' }) }}>
+      <Box
+        ref={voiceChatRef}
+        data-showui={showUI.toString()}
+        sx={{ ...styles.root, ...(showUI ? { display: 'flex', width: '100%', height: '100%' } : { display: 'none' }) }}
+      >
         <AppBar position="static" sx={styles.appBar}>
           <Toolbar sx={styles.toolbar}>
             <Box sx={styles.channelName}>

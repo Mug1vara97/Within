@@ -25,6 +25,9 @@ export const VoiceChatProvider = ({ children }) => {
     }
   });
 
+  // Состояние активности UI голосового чата
+  const [isVoiceChatUIActive, setIsVoiceChatUIActive] = useState(false);
+
   // Сохраняем состояние в localStorage при изменении
   useEffect(() => {
     try {
@@ -72,12 +75,24 @@ export const VoiceChatProvider = ({ children }) => {
     // setVoiceRoom(null);
   }, []);
 
+  // Функции для управления состоянием UI
+  const activateVoiceChatUI = useCallback(() => {
+    setIsVoiceChatUIActive(true);
+  }, []);
+
+  const deactivateVoiceChatUI = useCallback(() => {
+    setIsVoiceChatUIActive(false);
+  }, []);
+
   // Значение контекста, которое будет доступно потребителям
   const contextValue = {
         voiceRoom,
         isVoiceChatActive,
+        isVoiceChatUIActive,
         joinVoiceRoom,
         leaveVoiceRoom,
+        activateVoiceChatUI,
+        deactivateVoiceChatUI,
   };
 
   return (

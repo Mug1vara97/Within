@@ -7,7 +7,7 @@ import VoiceChat from '../VoiceChat';
  * независимо от текущего открытого чата или страницы
  */
 const VoiceChatGlobal = () => {
-    const { voiceRoom, isVoiceChatActive } = useVoiceChat();
+    const { voiceRoom, isVoiceChatActive, isVoiceChatUIActive } = useVoiceChat();
     const instanceIdRef = useRef(`voice-global-${Date.now()}`);
     
     // Логирование для отладки
@@ -16,9 +16,8 @@ const VoiceChatGlobal = () => {
         console.log(`VoiceChatGlobal [${instanceIdRef.current}]: isVoiceChatActive:`, isVoiceChatActive);
     }, [voiceRoom, isVoiceChatActive]);
     
-    // Если нет активного голосового чата, ничего не рендерим
-    if (!voiceRoom || !isVoiceChatActive) {
-        console.log(`VoiceChatGlobal [${instanceIdRef.current}]: No active voice room or chat is not active`);
+    // Если UI открыт или нет активного голосового чата - не рендерим глобальный компонент
+    if (!voiceRoom || !isVoiceChatActive || isVoiceChatUIActive) {
         return null;
     }
     
