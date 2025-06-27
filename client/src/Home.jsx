@@ -86,7 +86,7 @@ const Home = ({ user }) => {
                     userName={voiceRoom.userName}
                     userId={voiceRoom.userId}
                     serverId={voiceRoom.serverId}
-                    autoJoin={true}
+                    autoJoin={false}
                     showUI={true}
                     onLeave={handleLeaveVoiceChannel}
                 />
@@ -193,20 +193,8 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, voic
             </div>
             <div style={{ flex: 1, width: 'calc(100% - 240px)', height: '100%' }}>
                 {selectedChat ? (
-                    isVoiceChat && voiceRoom && isVoiceChatActive ? (
-                        // Если это голосовой чат и есть активное соединение, показываем UI
-                        <div style={{ width: '100%', height: '100%' }}>
-                            <VoiceChat
-                                roomId={voiceRoom.roomId}
-                                userName={voiceRoom.userName}
-                                userId={voiceRoom.userId}
-                                serverId={voiceRoom.serverId}
-                                autoJoin={true}
-                                showUI={true}
-                            />
-                        </div>
-                    ) : isVoiceChat ? (
-                        // Если это голосовой чат, но соединение еще не установлено
+                    isVoiceChat ? (
+                        // Если это голосовой чат, показываем только заглушку
                         <div className="voice-chat-container" style={{
                             display: 'flex',
                             flexDirection: 'column',
@@ -323,7 +311,7 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, handleLeaveVoiceChannel, 
                                     userName={voiceRoom.userName}
                                     userId={voiceRoom.userId}
                                     serverId={voiceRoom.serverId}
-                                    autoJoin={true}
+                                    autoJoin={false}
                                     showUI={true}
                                     onLeave={handleLeaveVoiceChannel}
                                 />
