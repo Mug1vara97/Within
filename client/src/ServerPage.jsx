@@ -6,7 +6,7 @@ import { BASE_URL } from './config/apiConfig';
 import Modals from './Modals/Modals';
 import { HubConnectionBuilder, LogLevel, HttpTransportType } from '@microsoft/signalr';
 
-const ServerPage = ({ username, userId, serverId }) => {
+const ServerPage = ({ username, userId, serverId, onJoinVoiceChannel, onLeaveVoiceChannel }) => {
     const [server, setServer] = useState(null);
     const [selectedChat, setSelectedChat] = useState(null);
     const [users, setUsers] = useState([]);
@@ -742,15 +742,30 @@ return (
                 isServerOwner={isServerOwner}
                 connection={connection}
                 userRoles={userRoles}
+                onChatSelect={setSelectedChat}
+                onContextMenu={handleContextMenu}
+                onChatContextMenu={handleChatContextMenu}
+                onCategoryContextMenu={handleCategoryContextMenu}
             />
             
-            <ChatArea 
-                selectedChat={selectedChat}
-                username={username}
-                userId={userId}
-                userPermissions={userPermissions}
-                isServerOwner={isServerOwner}
-            />
+            <div className="server-content">
+                {selectedChat ? (
+                    <ChatArea 
+                        selectedChat={selectedChat}
+                        username={username}
+                        userId={userId}
+                        serverId={serverId}
+                        userPermissions={userPermissions}
+                        isServerOwner={isServerOwner}
+                        onJoinVoiceChannel={onJoinVoiceChannel}
+                        onLeaveVoiceChannel={onLeaveVoiceChannel}
+                    />
+                ) : (
+                    <div className="no-chat-selected">
+                        <h3>Select a chat to start messaging</h3>
+                    </div>
+                )}
+            </div>
 
             <Modals
                 modalsState={modalsState}
@@ -782,6 +797,9 @@ return (
                 setUserPermissions={setUserPermissions}
                 aggregatePermissions={aggregatePermissions}
                 roles={roles}
+                server={server}
+                updateServerState={updateServerState}
+                onKickMember={handleKickMember}
             />
     </div>
 );

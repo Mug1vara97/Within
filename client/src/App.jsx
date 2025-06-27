@@ -1,26 +1,11 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Login from './Authentication/Login';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './Home';
+import Login from './Authentication/Login';
 import Register from './Authentication/Register';
 import "./UserProfile.css"
 import { AudioProvider } from './contexts/AudioContext';
-import { VoiceChatProvider, useVoiceChat } from './contexts/VoiceChatContext';
-import VoiceChat from './VoiceChat';
-
-function VoiceChatGlobalWrapper() {
-    const { voiceRoom, isVoiceChatActive, showVoiceUI } = useVoiceChat();
-    return isVoiceChatActive && voiceRoom ? (
-        <VoiceChat
-            roomId={voiceRoom.roomId}
-            userName={voiceRoom.userName}
-            userId={voiceRoom.userId}
-            serverId={voiceRoom.serverId}
-            autoJoin={true}
-            showUI={showVoiceUI}
-        />
-    ) : null;
-}
+import { VoiceChatProvider } from './contexts/VoiceChatContext';
 
 const App = () => {
     const [user, setUser] = useState(() => {
@@ -30,8 +15,8 @@ const App = () => {
 
     const handleLogin = (username, userId) => {
         const userData = { username, userId };
-        localStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
     };
 
     const handleLogout = () => {
@@ -42,7 +27,6 @@ const App = () => {
     return (
         <AudioProvider>
             <VoiceChatProvider>
-                <VoiceChatGlobalWrapper />
                 <Router>
                     <Routes>
                         <Route path="/*" element={user.username ? <Home user={user} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />} />
