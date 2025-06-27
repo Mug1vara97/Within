@@ -181,6 +181,7 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, ha
     const { serverId, chatId } = useParams();
     const [selectedChat, setSelectedChat] = useState(null);
     const [isJoining, setIsJoining] = useState(false);
+    const [lastSelectedVoiceChat, setLastSelectedVoiceChat] = useState(null);
     
     // Обработчик для получения выбранного чата из ServerPage
     const handleChatSelected = (chat) => {
@@ -192,15 +193,20 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, ha
             
             // Если это голосовой канал и пользователь не вышел вручную,
             // подключаемся к нему
-            if ((chat.chatType === 4 || chat.typeId === 4) && !userLeftVoiceManually) {
-                console.log('Connecting to voice channel:', chat);
-                setIsJoining(true);
-                onJoinVoiceChannel({
-                    roomId: chat.chatId,
-                    userName: user.username,
-                    userId: user.userId,
-                    serverId: serverId
-                });
+            if ((chat.chatType === 4 || chat.typeId === 4)) {
+                // Сохраняем последний выбранный голосовой чат
+                setLastSelectedVoiceChat(chat);
+                
+                if (!userLeftVoiceManually) {
+                    console.log('Connecting to voice channel:', chat);
+                    setIsJoining(true);
+                    onJoinVoiceChannel({
+                        roomId: chat.chatId,
+                        userName: user.username,
+                        userId: user.userId,
+                        serverId: serverId
+                    });
+                }
             }
         }
     };
@@ -214,6 +220,10 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, ha
     
     // Проверяем, является ли выбранный чат голосовым
     const isVoiceChat = selectedChat && (selectedChat.chatType === 4 || selectedChat.typeId === 4);
+    
+    // Проверяем, соответствует ли текущий голосовой канал выбранному чату
+    const isCurrentVoiceChat = voiceRoom && lastSelectedVoiceChat && 
+                              (voiceRoom.roomId === lastSelectedVoiceChat.chatId);
     
     // Функция для повторного подключения к голосовому каналу
     const handleRejoinVoiceChannel = () => {
@@ -242,7 +252,7 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, ha
                 {selectedChat ? (
                     isVoiceChat ? (
                         // Если это голосовой чат
-                        voiceRoom ? (
+                        isCurrentVoiceChat ? (
                             // Есть активное подключение, показываем VoiceChat
                             <VoiceChat
                                 roomId={voiceRoom.roomId}
@@ -255,7 +265,7 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, ha
                             />
                         ) : (
                             // Проверяем, отключился ли пользователь вручную или это первое подключение
-                            userLeftVoiceManually ? (
+                            userLeftVoiceManually && lastSelectedVoiceChat && selectedChat.chatId === lastSelectedVoiceChat.chatId ? (
                                 // Если пользователь вышел вручную, показываем кнопку для повторного подключения
                                 <div className="voice-chat-container" style={{
                                     display: 'flex',
