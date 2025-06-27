@@ -177,7 +177,7 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually }) =>
     );
 };
 
-const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, handleLeaveVoiceChannel, voiceRoom }) => {
+const ServerPageWrapper = ({ user, onJoinVoiceChannel, handleLeaveVoiceChannel, voiceRoom }) => {
     const { serverId, chatId } = useParams();
     const [selectedChat, setSelectedChat] = useState(null);
     const [isJoining, setIsJoining] = useState(false);
@@ -190,19 +190,16 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, ha
             setSelectedChat(chat);
             console.log('Home ServerPageWrapper setSelectedChat with:', chat);
             
-            // Если это голосовой канал и пользователь не вышел вручную,
-            // подключаемся к нему
+            // Если это голосовой канал, всегда пытаемся подключиться
             if ((chat.chatType === 4 || chat.typeId === 4)) {
-                if (!userLeftVoiceManually) {
-                    console.log('Connecting to voice channel:', chat);
-                    setIsJoining(true);
-                    onJoinVoiceChannel({
-                        roomId: chat.chatId,
-                        userName: user.username,
-                        userId: user.userId,
-                        serverId: serverId
-                    });
-                }
+                console.log('Connecting to voice channel:', chat);
+                setIsJoining(true);
+                onJoinVoiceChannel({
+                    roomId: chat.chatId,
+                    userName: user.username,
+                    userId: user.userId,
+                    serverId: serverId
+                });
             }
         }
     };
@@ -216,19 +213,6 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, ha
     
     // Проверяем, является ли выбранный чат голосовым
     const isVoiceChat = selectedChat && (selectedChat.chatType === 4 || selectedChat.typeId === 4);
-    
-    // Функция для повторного подключения к голосовому каналу
-    const handleRejoinVoiceChannel = () => {
-        if (selectedChat) {
-            setIsJoining(true);
-            onJoinVoiceChannel({
-                roomId: selectedChat.chatId,
-                userName: user.username,
-                userId: user.userId,
-                serverId: serverId
-            });
-        }
-    };
     
     return (
         <div style={{ display: 'flex', width: '100%', height: '100%' }}>
@@ -245,7 +229,7 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, ha
                     isVoiceChat ? (
                         // Если это голосовой чат
                         voiceRoom ? (
-                            // Есть активное подключение, показываем VoiceChat
+                            // Если у нас есть данные о голосовом чате, показываем его
                             <VoiceChat
                                 roomId={voiceRoom.roomId}
                                 userName={voiceRoom.userName}
@@ -255,43 +239,8 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, ha
                                 showUI={true}
                                 onLeave={handleLeaveVoiceChannel}
                             />
-                        ) : userLeftVoiceManually ? (
-                            // Если пользователь вышел вручную, показываем кнопку для повторного подключения
-                            <div className="voice-chat-container" style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                height: '100%',
-                                backgroundColor: '#36393f',
-                                color: '#dcddde'
-                            }}>
-                                <h2 style={{ marginBottom: '20px' }}>{selectedChat.name || selectedChat.groupName}</h2>
-                                <div style={{ 
-                                    fontSize: '16px',
-                                    marginBottom: '20px',
-                                    textAlign: 'center'
-                                }}>
-                                    Вы отключились от голосового канала
-                                </div>
-                                <button
-                                    onClick={handleRejoinVoiceChannel}
-                                    style={{
-                                        backgroundColor: '#4f545c',
-                                        color: 'white',
-                                        border: 'none',
-                                        padding: '10px 20px',
-                                        borderRadius: '4px',
-                                        cursor: 'pointer',
-                                        fontSize: '14px',
-                                        fontWeight: '500'
-                                    }}
-                                >
-                                    Присоединиться
-                                </button>
-                            </div>
                         ) : (
-                            // Если подключаемся или ожидаем подключение
+                            // Если ещё нет данных о комнате, показываем состояние подключения
                             <div className="voice-chat-container" style={{
                                 display: 'flex',
                                 flexDirection: 'column',
@@ -307,23 +256,10 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, ha
                                     marginBottom: '20px',
                                     textAlign: 'center'
                                 }}>
-                                    {isJoining ? "Подключение к голосовому каналу..." : "Подготовка голосового канала..."}
+                                    {isJoining ? 
+                                        "Подключение к голосовому каналу..." : 
+                                        "Ожидание подключения..."}
                                 </div>
-                                <button
-                                    onClick={handleLeaveVoiceChannel}
-                                    style={{
-                                        backgroundColor: '#ed4245',
-                                        color: 'white',
-                                        border: 'none',
-                                        padding: '10px 20px',
-                                        borderRadius: '4px',
-                                        cursor: 'pointer',
-                                        fontSize: '14px',
-                                        fontWeight: '500'
-                                    }}
-                                >
-                                    Отключиться
-                                </button>
                             </div>
                         )
                     ) : (
