@@ -5,8 +5,9 @@ import ChatArea from './ChatArea';
 import { BASE_URL } from './config/apiConfig';
 import Modals from './Modals/Modals';
 import { HubConnectionBuilder, LogLevel, HttpTransportType } from '@microsoft/signalr';
+import GroupChat from './Chats/GroupChat';
 
-const ServerPage = ({ username, userId, serverId, onJoinVoiceChannel, onLeaveVoiceChannel }) => {
+const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected }) => {
     const [server, setServer] = useState(null);
     const [selectedChat, setSelectedChat] = useState(null);
     const [users, setUsers] = useState([]);
@@ -443,21 +444,30 @@ const [modalsState, setModalsState] = useState({
 // Загрузка данных сервера
 const fetchServerData = async () => {
     try {
-        const response = await fetch(`${BASE_URL}/api/messages/zxc/${serverId}?userId=${userId}`);
-        const data = await response.json();
-        setServer(data);
-        setIsServerOwner(data.ownerId === userId);
+        const response = await fetch(`${BASE_URL}/api/server/${serverId}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
         
-        // Запрашиваем роли пользователя через SignalR
-        if (connection) {
-            try {
-                await connection.invoke("GetUserRoles", parseInt(userId, 10), parseInt(serverId, 10));
-            } catch (error) {
-                console.error('Error fetching user roles:', error);
+        if (response.ok) {
+            const data = await response.json();
+            setServer(data);
+            setIsServerOwner(data.ownerId === userId);
+            
+            // Если есть initialChatId, выбираем соответствующий чат
+            if (initialChatId) {
+                const foundChat = data.categories
+                    .flatMap(cat => cat.chats)
+                    .find(c => c.chatId === parseInt(initialChatId));
+                
+                if (foundChat) {
+                    handleChatSelect(foundChat);
+                }
             }
         }
     } catch (error) {
-        console.error('Error loading server data:', error);
+        console.error('Error fetching server data:', error);
     }
 };
 
@@ -722,10 +732,20 @@ const handleKickMember = async (memberId) => {
     }
 };
 
+// Обработчик выбора чата
+const handleChatSelect = (chat) => {
+    setSelectedChat(chat);
+    
+    // Вызываем колбэк, если он предоставлен
+    if (onChatSelected) {
+        onChatSelected(chat);
+    }
+};
+
 if (!server) return <div>Loading...</div>;
 
 return (
-    <div className="server-page" onContextMenu={handleContextMenu}>
+    <div className="server-page" style={{ display: 'flex', width: '100%', height: '100%' }}>
             <ServerSidebar 
                 server={server}
                 serverId={serverId}
@@ -742,27 +762,33 @@ return (
                 isServerOwner={isServerOwner}
                 connection={connection}
                 userRoles={userRoles}
-                onChatSelect={setSelectedChat}
+                onChatSelect={handleChatSelect}
                 onContextMenu={handleContextMenu}
                 onChatContextMenu={handleChatContextMenu}
                 onCategoryContextMenu={handleCategoryContextMenu}
             />
             
-            <div className="server-content">
+            <div className="server-content" style={{ flex: 1, height: '100%' }}>
                 {selectedChat ? (
-                    <ChatArea 
-                        selectedChat={selectedChat}
+                    <GroupChat
                         username={username}
                         userId={userId}
+                        chatId={selectedChat.chatId}
+                        groupName={selectedChat.groupName}
+                        isServerChat={true}
                         serverId={serverId}
                         userPermissions={userPermissions}
                         isServerOwner={isServerOwner}
-                        onJoinVoiceChannel={onJoinVoiceChannel}
-                        onLeaveVoiceChannel={onLeaveVoiceChannel}
                     />
                 ) : (
-                    <div className="no-chat-selected">
-                        <h3>Select a chat to start messaging</h3>
+                    <div className="no-chat-selected" style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        height: '100%',
+                        color: '#8e9297'
+                    }}>
+                        <h3>Выберите чат для начала общения</h3>
                     </div>
                 )}
             </div>
@@ -770,7 +796,7 @@ return (
             <Modals
                 modalsState={modalsState}
                 setModalsState={setModalsState}
-                contextMenu={contextMenu}
+                contextMenu={contextMenuRef.current}
                 contextMenuCategory={contextMenuCategory}
                 contextMenuChat={contextMenuChat}
                 setContextMenu={setContextMenu}
