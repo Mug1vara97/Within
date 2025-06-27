@@ -444,7 +444,7 @@ const [modalsState, setModalsState] = useState({
 // Загрузка данных сервера
 const fetchServerData = async () => {
     try {
-        const response = await fetch(`${BASE_URL}/api/server/${serverId}`, {
+        const response = await fetch(`${BASE_URL}/api/messages/zxc/${serverId}`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
