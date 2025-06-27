@@ -705,8 +705,22 @@ useEffect(() => {
 const handleChatSelect = (chat) => {
     console.log('ServerPage handleChatSelect received:', chat);
     
+    // Нормализуем данные о чате
+    let normalizedChat = { ...chat };
+    
+    // Обрабатываем разные форматы данных
+    if (chat.typeId && !chat.chatType) {
+        normalizedChat.chatType = chat.typeId;
+    }
+    
+    if (chat.name && !chat.groupName) {
+        normalizedChat.groupName = chat.name;
+    }
+    
+    console.log('Normalized chat data:', normalizedChat);
+    
     const enhancedChat = {
-        ...chat,
+        ...normalizedChat,
         userPermissions,
         isServerOwner
     };

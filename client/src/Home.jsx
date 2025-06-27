@@ -70,43 +70,6 @@ const Home = ({ user }) => {
         </div>
     );
 
-    // Компонент для отображения UI голосового канала
-    const VoiceChannelUI = ({ selectedChat }) => (
-        <div className="voice-chat-container" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%',
-            backgroundColor: '#36393f',
-            color: '#dcddde'
-        }}>
-            <h2 style={{ marginBottom: '20px' }}>{selectedChat.groupName}</h2>
-            <div style={{ 
-                fontSize: '16px',
-                marginBottom: '20px',
-                textAlign: 'center'
-            }}>
-                Вы находитесь в голосовом канале
-            </div>
-            <button
-                onClick={handleLeaveVoiceChannel}
-                style={{
-                    backgroundColor: '#ed4245',
-                    color: 'white',
-                    border: 'none',
-                    padding: '10px 20px',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '500'
-                }}
-            >
-                Отключиться
-            </button>
-        </div>
-    );
-
     return (
         <div className="home-container">
             <ServerList 
@@ -128,7 +91,7 @@ const Home = ({ user }) => {
                                     user={user} 
                                     onJoinVoiceChannel={handleJoinVoiceChannel}
                                     userLeftVoiceManually={userLeftVoiceManually}
-                                    renderVoiceUI={(selectedChat) => <VoiceChannelUI selectedChat={selectedChat} />}
+                                    handleLeaveVoiceChannel={handleLeaveVoiceChannel}
                                 />
                             } />
                             <Route path="/channels/:serverId/:chatId?" element={
@@ -136,13 +99,13 @@ const Home = ({ user }) => {
                                     user={user} 
                                     onJoinVoiceChannel={handleJoinVoiceChannel}
                                     userLeftVoiceManually={userLeftVoiceManually}
-                                    renderVoiceUI={(selectedChat) => <VoiceChannelUI selectedChat={selectedChat} />}
+                                    handleLeaveVoiceChannel={handleLeaveVoiceChannel}
                                 />
                             } />
                         </Routes>
                         
                         {/* Глобальный голосовой чат (без UI) */}
-                        {isVoiceChatActive && voiceRoom && (
+                        {isVoiceChatActive && voiceRoom && !userLeftVoiceManually && (
                             <VoiceChat
                                 roomId={voiceRoom.roomId}
                                 userName={voiceRoom.userName}
@@ -163,22 +126,26 @@ const Home = ({ user }) => {
     );
 };
 
-const ChatListWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, renderVoiceUI }) => {
+const ChatListWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, handleLeaveVoiceChannel }) => {
     const { chatId } = useParams();
     const chatListRef = useRef(null);
     const [selectedChat, setSelectedChat] = useState(null);
     
     // Обработчик для получения выбранного чата из ChatList
     const handleChatSelected = (chat) => {
+        console.log('Home ChatListWrapper handleChatSelected received:', chat);
+        
         if (chat) {
             setSelectedChat({
                 chatId: chat.chat_id,
                 groupName: chat.username,
-                chatType: chat.isGroupChat ? 2 : 1
+                chatType: chat.isGroupChat ? 2 : 1,
+                typeId: chat.chatType
             });
             
             // Если это голосовой канал, подключаемся к нему
-            if (chat.chatType === 4 && !userLeftVoiceManually) {
+            if (chat.chatType === 4 || chat.typeId === 4) {
+                console.log('Connecting to voice channel:', chat);
                 onJoinVoiceChannel({
                     roomId: chat.chat_id,
                     userName: user.username,
@@ -201,14 +168,21 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, rend
             </div>
             <div style={{ flex: 1, height: '100%' }}>
                 {selectedChat ? (
-                    selectedChat.chatType === 4 && !userLeftVoiceManually ? (
-                        renderVoiceUI(selectedChat)
+                    (selectedChat.chatType === 4 || selectedChat.typeId === 4) && !userLeftVoiceManually ? (
+                        <VoiceChat
+                            roomId={selectedChat.chatId}
+                            userName={user.username}
+                            userId={user.userId}
+                            autoJoin={true}
+                            showUI={true}
+                            onLeave={handleLeaveVoiceChannel}
+                        />
                     ) : (
                         <GroupChat
                             username={user?.username}
                             userId={user?.userId}
                             chatId={selectedChat.chatId}
-                            groupName={selectedChat.groupName}
+                            groupName={selectedChat.groupName || selectedChat.name}
                             isServerChat={false}
                         />
                     )
@@ -228,7 +202,7 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, rend
     );
 };
 
-const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, renderVoiceUI }) => {
+const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, handleLeaveVoiceChannel }) => {
     const { serverId, chatId } = useParams();
     const [selectedChat, setSelectedChat] = useState(null);
     
@@ -241,7 +215,7 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, re
             console.log('Home ServerPageWrapper setSelectedChat with:', chat);
             
             // Если это голосовой канал, подключаемся к нему
-            if (chat.chatType === 4 && !userLeftVoiceManually) {
+            if (chat.chatType === 4 || chat.typeId === 4) {
                 console.log('Connecting to voice channel:', chat);
                 onJoinVoiceChannel({
                     roomId: chat.chatId,
@@ -263,16 +237,24 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, re
                 onChatSelected={handleChatSelected}
             />
             
-            <div className="server-content" style={{ flex: 1, height: '100%' }}>
+            <div className="server-content" style={{  }}>
                 {selectedChat ? (
-                    selectedChat.chatType === 4 && !userLeftVoiceManually ? (
-                        renderVoiceUI(selectedChat)
+                    (selectedChat.chatType === 4 || selectedChat.typeId === 4) && !userLeftVoiceManually ? (
+                        <VoiceChat
+                            roomId={selectedChat.chatId}
+                            userName={user.username}
+                            userId={user.userId}
+                            serverId={serverId}
+                            autoJoin={true}
+                            showUI={true}
+                            onLeave={handleLeaveVoiceChannel}
+                        />
                     ) : (
                         <GroupChat
                             username={user?.username}
                             userId={user?.userId}
                             chatId={selectedChat.chatId}
-                            groupName={selectedChat.groupName}
+                            groupName={selectedChat.groupName || selectedChat.name}
                             isServerChat={true}
                             serverId={serverId}
                             userPermissions={selectedChat.userPermissions}

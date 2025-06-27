@@ -1092,7 +1092,7 @@ const VideoView = React.memo(({
   );
 });
 
-function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeave, onManualLeave }) {
+function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI = false, onLeave, onManualLeave }) {
   const { leaveVoiceRoom } = useVoiceChat();
   const [isJoined, setIsJoined] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
@@ -3241,7 +3241,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
   // Подготовка всех нужных пропсов для UI
   const ui = (
     <MuteProvider socket={socketRef.current}>
-      <Box sx={styles.root}>
+      <Box sx={{ ...styles.root, ...(showUI ? {} : { position: 'fixed', top: '-9999px', left: '-9999px', zIndex: -999 }) }}>
         <AppBar position="static" sx={styles.appBar}>
           <Toolbar sx={styles.toolbar}>
             <Box sx={styles.channelName}>
@@ -3447,12 +3447,16 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, onLeav
     </MuteProvider>
   );
 
-  // Рендер через портал
-  const root = typeof window !== 'undefined' ? document.getElementById('voicechat-root') : null;
-  if (root) {
-    return ReactDOM.createPortal(ui, root);
+  // Рендер через портал только если showUI=false, иначе рендерим прямо в компоненте
+  if (!showUI && typeof window !== 'undefined') {
+    const root = document.getElementById('voicechat-root');
+    if (root) {
+      return ReactDOM.createPortal(ui, root);
+    }
+    return null;
   }
-  return null;
+  
+  return ui;
 }
 
 export default VoiceChat;
