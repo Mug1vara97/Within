@@ -3240,7 +3240,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
   // Подготовка всех нужных пропсов для UI
   const ui = (
     <MuteProvider socket={socketRef.current}>
-      <Box sx={{ ...styles.root, ...(showUI ? {} : { display: 'none' }) }}>
+      <Box sx={{ ...styles.root, ...(showUI ? { display: 'flex', width: '100%', height: '100%' } : { display: 'none' }) }}>
         <AppBar position="static" sx={styles.appBar}>
           <Toolbar sx={styles.toolbar}>
             <Box sx={styles.channelName}>

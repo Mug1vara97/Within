@@ -76,7 +76,7 @@ const Home = ({ user }) => {
                 onDiscoverClick={handleDiscoverModeChange}
             />
             
-            <div className="main-content">
+            <div className="main-content" style={{ width: '100%', display: 'flex' }}>
                 {isDiscoverMode ? (
                     <Routes>
                         <Route path="/discover" element={<DiscoverLists userId={user?.userId} onBack={() => handleDiscoverModeChange(false)} />} />
@@ -143,7 +143,7 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually }) =>
     
     return (
         <div style={{ display: 'flex', width: '100%', height: '100%' }}>
-            <div style={{ width: '240px', borderRight: '1px solid #2f3136' }}>
+            <div style={{ width: '240px', minWidth: '240px', borderRight: '1px solid #2f3136' }}>
                 <ChatList 
                     userId={user?.userId} 
                     username={user?.username} 
@@ -152,7 +152,7 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually }) =>
                     onChatSelected={handleChatSelected}
                 />
             </div>
-            <div style={{ flex: 1, height: '100%' }}>
+            <div style={{ flex: 1, width: 'calc(100% - 240px)', height: '100%' }}>
                 {selectedChat ? (
                     <GroupChat
                         username={user?.username}
@@ -167,6 +167,7 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually }) =>
                         alignItems: 'center', 
                         justifyContent: 'center', 
                         height: '100%',
+                        width: '100%',
                         color: '#8e9297'
                     }}>
                         <h3>Выберите чат для начала общения</h3>
@@ -216,29 +217,33 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, handleLeaveVoiceChannel, 
     
     return (
         <div style={{ display: 'flex', width: '100%', height: '100%' }}>
-            <ServerPage
-                username={user?.username}
-                userId={user?.userId}
-                serverId={serverId}
-                initialChatId={chatId}
-                onChatSelected={handleChatSelected}
-            />
+            <div style={{ width: '240px', minWidth: '240px', borderRight: '1px solid #2f3136' }}>
+                <ServerPage
+                    username={user?.username}
+                    userId={user?.userId}
+                    serverId={serverId}
+                    initialChatId={chatId}
+                    onChatSelected={handleChatSelected}
+                />
+            </div>
             
-            <div className="server-content" style={{ flex: 1, height: '100%' }}>
+            <div className="server-content" style={{ flex: 1, width: 'calc(100% - 240px)', height: '100%' }}>
                 {selectedChat ? (
                     isVoiceChat ? (
                         // Если это голосовой чат
                         voiceRoom ? (
                             // Если у нас есть данные о голосовом чате, показываем его
-                            <VoiceChat
-                                roomId={voiceRoom.roomId}
-                                userName={voiceRoom.userName}
-                                userId={voiceRoom.userId}
-                                serverId={voiceRoom.serverId}
-                                autoJoin={true}
-                                showUI={true}
-                                onLeave={handleLeaveVoiceChannel}
-                            />
+                            <div style={{ width: '100%', height: '100%' }}>
+                                <VoiceChat
+                                    roomId={voiceRoom.roomId}
+                                    userName={voiceRoom.userName}
+                                    userId={voiceRoom.userId}
+                                    serverId={voiceRoom.serverId}
+                                    autoJoin={true}
+                                    showUI={true}
+                                    onLeave={handleLeaveVoiceChannel}
+                                />
+                            </div>
                         ) : (
                             // Если ещё нет данных о комнате, показываем состояние подключения
                             <div className="voice-chat-container" style={{
@@ -247,6 +252,7 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, handleLeaveVoiceChannel, 
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 height: '100%',
+                                width: '100%',
                                 backgroundColor: '#36393f',
                                 color: '#dcddde'
                             }}>
@@ -281,6 +287,7 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, handleLeaveVoiceChannel, 
                         alignItems: 'center', 
                         justifyContent: 'center', 
                         height: '100%',
+                        width: '100%',
                         color: '#8e9297'
                     }}>
                         <h3>Выберите чат для начала общения</h3>
