@@ -180,6 +180,7 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually }) =>
 const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, handleLeaveVoiceChannel, voiceRoom }) => {
     const { serverId, chatId } = useParams();
     const [selectedChat, setSelectedChat] = useState(null);
+    const [isJoining, setIsJoining] = useState(false);
     
     // Обработчик для получения выбранного чата из ServerPage
     const handleChatSelected = (chat) => {
@@ -193,6 +194,7 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, ha
             // подключаемся к нему
             if ((chat.chatType === 4 || chat.typeId === 4) && !userLeftVoiceManually) {
                 console.log('Connecting to voice channel:', chat);
+                setIsJoining(true);
                 onJoinVoiceChannel({
                     roomId: chat.chatId,
                     userName: user.username,
@@ -203,8 +205,28 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, ha
         }
     };
     
+    // Сбрасываем флаг isJoining, когда voiceRoom меняется
+    useEffect(() => {
+        if (voiceRoom) {
+            setIsJoining(false);
+        }
+    }, [voiceRoom]);
+    
     // Проверяем, является ли выбранный чат голосовым
     const isVoiceChat = selectedChat && (selectedChat.chatType === 4 || selectedChat.typeId === 4);
+    
+    // Функция для повторного подключения к голосовому каналу
+    const handleRejoinVoiceChannel = () => {
+        if (selectedChat) {
+            setIsJoining(true);
+            onJoinVoiceChannel({
+                roomId: selectedChat.chatId,
+                userName: user.username,
+                userId: user.userId,
+                serverId: serverId
+            });
+        }
+    };
     
     return (
         <div style={{ display: 'flex', width: '100%', height: '100%' }}>
@@ -219,56 +241,8 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, ha
             <div className="server-content" style={{ flex: 1, height: '100%' }}>
                 {selectedChat ? (
                     isVoiceChat ? (
-                        // Если это голосовой чат и пользователь не вышел вручную
-                        !userLeftVoiceManually ? (
-                            // Показываем интерфейс голосового чата или сообщение о подключении
-                            voiceRoom ? (
-                                <VoiceChat
-                                    roomId={voiceRoom.roomId}
-                                    userName={voiceRoom.userName}
-                                    userId={voiceRoom.userId}
-                                    serverId={voiceRoom.serverId}
-                                    autoJoin={true}
-                                    showUI={true}
-                                    onLeave={handleLeaveVoiceChannel}
-                                />
-                            ) : (
-                                // Показываем сообщение о подключении к голосовому чату
-                                <div className="voice-chat-container" style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    height: '100%',
-                                    backgroundColor: '#36393f',
-                                    color: '#dcddde'
-                                }}>
-                                    <h2 style={{ marginBottom: '20px' }}>{selectedChat.name || selectedChat.groupName}</h2>
-                                    <div style={{ 
-                                        fontSize: '16px',
-                                        marginBottom: '20px',
-                                        textAlign: 'center'
-                                    }}>
-                                        Вы находитесь в голосовом канале
-                                    </div>
-                                    <button
-                                        onClick={handleLeaveVoiceChannel}
-                                        style={{
-                                            backgroundColor: '#ed4245',
-                                            color: 'white',
-                                            border: 'none',
-                                            padding: '10px 20px',
-                                            borderRadius: '4px',
-                                            cursor: 'pointer',
-                                            fontSize: '14px',
-                                            fontWeight: '500'
-                                        }}
-                                    >
-                                        Отключиться
-                                    </button>
-                                </div>
-                            )
-                        ) : (
+                        // Если это голосовой чат
+                        userLeftVoiceManually ? (
                             // Если пользователь вышел вручную, показываем кнопку для повторного подключения
                             <div className="voice-chat-container" style={{
                                 display: 'flex',
@@ -288,12 +262,7 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, ha
                                     Вы отключились от голосового канала
                                 </div>
                                 <button
-                                    onClick={() => onJoinVoiceChannel({
-                                        roomId: selectedChat.chatId,
-                                        userName: user.username,
-                                        userId: user.userId,
-                                        serverId: serverId
-                                    })}
+                                    onClick={handleRejoinVoiceChannel}
                                     style={{
                                         backgroundColor: '#4f545c',
                                         color: 'white',
@@ -308,6 +277,55 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, ha
                                     Присоединиться
                                 </button>
                             </div>
+                        ) : (
+                            // Если пользователь не выходил или в процессе подключения
+                            voiceRoom ? (
+                                // Есть активное подключение, показываем VoiceChat
+                                <VoiceChat
+                                    roomId={voiceRoom.roomId}
+                                    userName={voiceRoom.userName}
+                                    userId={voiceRoom.userId}
+                                    serverId={voiceRoom.serverId}
+                                    autoJoin={true}
+                                    showUI={true}
+                                    onLeave={handleLeaveVoiceChannel}
+                                />
+                            ) : (
+                                // Подключаемся или ожидаем подключение
+                                <div className="voice-chat-container" style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    height: '100%',
+                                    backgroundColor: '#36393f',
+                                    color: '#dcddde'
+                                }}>
+                                    <h2 style={{ marginBottom: '20px' }}>{selectedChat.name || selectedChat.groupName}</h2>
+                                    <div style={{ 
+                                        fontSize: '16px',
+                                        marginBottom: '20px',
+                                        textAlign: 'center'
+                                    }}>
+                                        {isJoining ? "Подключение к голосовому каналу..." : "Вы находитесь в голосовом канале"}
+                                    </div>
+                                    <button
+                                        onClick={handleLeaveVoiceChannel}
+                                        style={{
+                                            backgroundColor: '#ed4245',
+                                            color: 'white',
+                                            border: 'none',
+                                            padding: '10px 20px',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer',
+                                            fontSize: '14px',
+                                            fontWeight: '500'
+                                        }}
+                                    >
+                                        Отключиться
+                                    </button>
+                                </div>
+                            )
                         )
                     ) : (
                         // Это текстовый чат, отображаем GroupChat
