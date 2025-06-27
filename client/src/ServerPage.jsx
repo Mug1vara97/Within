@@ -1,11 +1,10 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import ServerSidebar from './ServerSidebar';
-import ChatArea from './ChatArea';
 import { BASE_URL } from './config/apiConfig';
 import Modals from './Modals/Modals';
 import { HubConnectionBuilder, LogLevel, HttpTransportType } from '@microsoft/signalr';
 
-const ServerPage = ({ username, userId, serverId }) => {
+const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected }) => {
     const [server, setServer] = useState(null);
     const [selectedChat, setSelectedChat] = useState(null);
     const [users, setUsers] = useState([]);
@@ -13,7 +12,6 @@ const ServerPage = ({ username, userId, serverId }) => {
     const [userPermissions, setUserPermissions] = useState({});
     const [isServerOwner, setIsServerOwner] = useState(false);
     const [connection, setConnection] = useState(null);
-    const [serverMembers, setServerMembers] = useState([]);
     const [roles, setRoles] = useState([]);
     const [userRoles, setUserRoles] = useState([]);
 
@@ -182,7 +180,13 @@ const ServerPage = ({ username, userId, serverId }) => {
                 }));
             },
            "ServerMembersLoaded": (loadedMembers) => {
-                setServerMembers(loadedMembers);
+                // Обрабатываем загруженных участников сервера
+                if (server) {
+                    setServer(prev => ({
+                        ...prev,
+                        members: loadedMembers
+                    }));
+                }
             },
 
           "RolesLoaded": (loadedRoles) => {
@@ -352,8 +356,8 @@ const loadUserPermissions = useCallback(async () => {
             parseInt(userId, 10), 
             parseInt(serverId, 10)
         );
-    } catch (error) {
-        console.error('Permissions load error:', error);
+    } catch (err) {
+        console.error('Permissions load error:', err);
     }
 }, [connection, serverId, userId]);
 
@@ -442,21 +446,39 @@ const [modalsState, setModalsState] = useState({
 // Загрузка данных сервера
 const fetchServerData = async () => {
     try {
-        const response = await fetch(`${BASE_URL}/api/messages/zxc/${serverId}?userId=${userId}`);
-        const data = await response.json();
-        setServer(data);
-        setIsServerOwner(data.ownerId === userId);
+        const response = await fetch(`${BASE_URL}/api/messages/zxc/${serverId}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
         
-        // Запрашиваем роли пользователя через SignalR
-        if (connection) {
-            try {
-                await connection.invoke("GetUserRoles", parseInt(userId, 10), parseInt(serverId, 10));
-            } catch (error) {
-                console.error('Error fetching user roles:', error);
+        if (response.ok) {
+            const data = await response.json();
+            setServer(data);
+            setIsServerOwner(data.ownerId === userId);
+            
+            // Запрашиваем роли пользователя через SignalR
+            if (connection) {
+                try {
+                    await connection.invoke("GetUserRoles", parseInt(userId, 10), parseInt(serverId, 10));
+                } catch (err) {
+                    console.error('Error fetching user roles:', err);
+                }
+            }
+            
+            // Если есть initialChatId, выбираем соответствующий чат
+            if (initialChatId) {
+                const foundChat = data.categories
+                    .flatMap(cat => cat.chats)
+                    .find(c => c.chatId === parseInt(initialChatId));
+                
+                if (foundChat) {
+                    handleChatSelect(foundChat);
+                }
             }
         }
-    } catch (error) {
-        console.error('Error loading server data:', error);
+    } catch (err) {
+        console.error('Error fetching server data:', err);
     }
 };
 
@@ -468,8 +490,8 @@ const fetchUsers = async () => {
             const data = await response.json();
             setUsers(data);
         }
-    } catch (error) {
-        console.error('Error fetching users:', error);
+    } catch (err) {
+        console.error('Error fetching users:', err);
     }
 };
 
@@ -486,9 +508,11 @@ const handleAddMember = async (userIdToAdd) => {
             alert('User added successfully');
             setModalsState(prev => ({ ...prev, showAddMemberModal: false }));
             fetchServerData();
+        } else {
+            alert('Failed to add user: ' + (await response.text()));
         }
-    } catch (error) {
-        alert('Failed to add user');
+    } catch (err) {
+        alert('Failed to add user: ' + err.message);
     }
 };
 
@@ -511,9 +535,9 @@ const handleCreateChat = async () => {
                 ...prev, 
                 showCreateChatModal: { isOpen: false, categoryId: null, chatType: 3 }
             }));
-    } catch (error) {
-        console.error('Ошибка при создании чата:', error);
-        alert('Не удалось создать чат');
+    } catch (err) {
+        console.error('Ошибка при создании чата:', err);
+        alert('Не удалось создать чат: ' + err.message);
     }
 };
 
@@ -677,6 +701,22 @@ useEffect(() => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
 }, []);
 
+// Обработчик выбора чата
+const handleChatSelect = (chat) => {
+    const enhancedChat = {
+        ...chat,
+        userPermissions,
+        isServerOwner
+    };
+    
+    setSelectedChat(enhancedChat);
+    
+    // Вызываем колбэк, если он предоставлен
+    if (onChatSelected) {
+        onChatSelected(enhancedChat);
+    }
+};
+
 // Обработчик события исключения участника
 const handleMemberKicked = (kickedUserId) => {
     setServer(prev => {
@@ -690,12 +730,9 @@ const handleMemberKicked = (kickedUserId) => {
 
 useEffect(() => {
     if (connection) {
-        // ... existing connection handlers ...
-
         connection.on("MemberKicked", handleMemberKicked);
 
         return () => {
-            // ... existing cleanup ...
             connection.off("MemberKicked", handleMemberKicked);
         };
     }
@@ -715,8 +752,8 @@ const handleKickMember = async (memberId) => {
         
         // Обновляем локальное состояние после успешного исключения
         handleMemberKicked(memberIdNum);
-    } catch (error) {
-        console.error('Error kicking member:', error);
+    } catch (err) {
+        console.error('Error kicking member:', err);
         alert('Ошибка при исключении участника');
     }
 };
@@ -724,7 +761,7 @@ const handleKickMember = async (memberId) => {
 if (!server) return <div>Loading...</div>;
 
 return (
-    <div className="server-page" onContextMenu={handleContextMenu}>
+    <div className="server-page" style={{ display: 'flex', width: '100%', height: '100%' }} onContextMenu={handleContextMenu}>
             <ServerSidebar 
                 server={server}
                 serverId={serverId}
@@ -741,14 +778,10 @@ return (
                 isServerOwner={isServerOwner}
                 connection={connection}
                 userRoles={userRoles}
-            />
-            
-            <ChatArea 
-                selectedChat={selectedChat}
-                username={username}
-                userId={userId}
-                userPermissions={userPermissions}
-                isServerOwner={isServerOwner}
+                onChatSelect={handleChatSelect}
+                onContextMenu={handleContextMenu}
+                onChatContextMenu={handleChatContextMenu}
+                onCategoryContextMenu={handleCategoryContextMenu}
             />
 
             <Modals
@@ -781,6 +814,9 @@ return (
                 setUserPermissions={setUserPermissions}
                 aggregatePermissions={aggregatePermissions}
                 roles={roles}
+                server={server}
+                updateServerState={updateServerState}
+                onKickMember={handleKickMember}
             />
     </div>
 );

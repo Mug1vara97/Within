@@ -251,18 +251,42 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, re
     
     return (
         <div style={{ display: 'flex', width: '100%', height: '100%' }}>
-            <ServerPage 
-                serverId={serverId} 
-                initialChatId={chatId}
-                username={user?.username} 
+            <ServerPage
+                username={user?.username}
                 userId={user?.userId}
+                serverId={serverId}
+                initialChatId={chatId}
                 onChatSelected={handleChatSelected}
             />
-            {selectedChat && selectedChat.chatType === 4 && !userLeftVoiceManually && (
-                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10 }}>
-                    {renderVoiceUI(selectedChat)}
-                </div>
-            )}
+            
+            <div className="server-content" style={{ flex: 1, height: '100%' }}>
+                {selectedChat ? (
+                    selectedChat.chatType === 4 && !userLeftVoiceManually ? (
+                        renderVoiceUI(selectedChat)
+                    ) : (
+                        <GroupChat
+                            username={user?.username}
+                            userId={user?.userId}
+                            chatId={selectedChat.chatId}
+                            groupName={selectedChat.groupName}
+                            isServerChat={true}
+                            serverId={serverId}
+                            userPermissions={selectedChat.userPermissions}
+                            isServerOwner={selectedChat.isServerOwner}
+                        />
+                    )
+                ) : (
+                    <div className="no-chat-selected" style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        height: '100%',
+                        color: '#8e9297'
+                    }}>
+                        <h3>Выберите чат для начала общения</h3>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
