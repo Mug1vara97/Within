@@ -196,14 +196,14 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, voic
                     isVoiceChat && voiceRoom && isVoiceChatActive ? (
                         // Если это голосовой чат и есть активное соединение, показываем UI
                         <div style={{ width: '100%', height: '100%' }}>
-                            <VoiceChat
+                            {/* <VoiceChat
                                 roomId={voiceRoom.roomId}
                                 userName={voiceRoom.userName}
                                 userId={voiceRoom.userId}
                                 serverId={voiceRoom.serverId}
                                 autoJoin={false}
                                 showUI={true}
-                            />
+                            /> */}
                         </div>
                     ) : isVoiceChat ? (
                         // Если это голосовой чат, но соединение еще не установлено
