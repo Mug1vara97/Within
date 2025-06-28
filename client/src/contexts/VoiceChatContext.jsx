@@ -3,49 +3,14 @@ import { VoiceChatContext } from './voiceChatContextDef';
 
 // Провайдер контекста голосового чата
 export const VoiceChatProvider = ({ children }) => {
-  // Загружаем сохраненное состояние из localStorage при инициализации
-  const [voiceRoom, setVoiceRoom] = useState(() => {
-    try {
-      const savedVoiceRoom = localStorage.getItem('voiceRoomState');
-      return savedVoiceRoom ? JSON.parse(savedVoiceRoom) : null;
-    } catch (error) {
-      console.error('Error loading voice room state from localStorage:', error);
-      return null;
-    }
-  });
+  // НЕ загружаем состояние из localStorage автоматически - пользователь должен явно подключиться
+  const [voiceRoom, setVoiceRoom] = useState(null);
 
-  // Состояние активности голосового чата
-  const [isVoiceChatActive, setIsVoiceChatActive] = useState(() => {
-    try {
-      const savedActiveState = localStorage.getItem('voiceChatActive');
-      return savedActiveState ? JSON.parse(savedActiveState) === true : false;
-    } catch (error) {
-      console.error('Error loading voice chat active state from localStorage:', error);
-      return false;
-    }
-  });
+  // Состояние активности голосового чата - всегда начинаем с false
+  const [isVoiceChatActive, setIsVoiceChatActive] = useState(false);
 
-  // Сохраняем состояние в localStorage при изменении
-  useEffect(() => {
-    try {
-      if (voiceRoom) {
-        localStorage.setItem('voiceRoomState', JSON.stringify(voiceRoom));
-      } else {
-        localStorage.removeItem('voiceRoomState');
-      }
-    } catch (error) {
-      console.error('Error saving voice room state to localStorage:', error);
-    }
-  }, [voiceRoom]);
-
-  // Сохраняем состояние активности в localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('voiceChatActive', JSON.stringify(isVoiceChatActive));
-    } catch (error) {
-      console.error('Error saving voice chat active state to localStorage:', error);
-    }
-  }, [isVoiceChatActive]);
+  // НЕ сохраняем состояние в localStorage автоматически - это предотвращает автоматическое подключение
+  // При необходимости можно добавить явное сохранение/восстановление состояния
 
   // Функция для подключения к голосовому чату
   const joinVoiceRoom = useCallback((roomData) => {
@@ -68,8 +33,8 @@ export const VoiceChatProvider = ({ children }) => {
   const leaveVoiceRoom = useCallback(() => {
     console.log('VoiceChatContext: Leaving voice room');
     setIsVoiceChatActive(false);
-    // Не очищаем voiceRoom, чтобы сохранить информацию о последней комнате
-    // setVoiceRoom(null);
+    // Очищаем voiceRoom полностью при выходе
+    setVoiceRoom(null);
   }, []);
 
   // Значение контекста, которое будет доступно потребителям

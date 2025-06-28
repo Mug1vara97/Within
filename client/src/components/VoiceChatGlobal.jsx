@@ -25,7 +25,7 @@ const VoiceChatGlobal = () => {
     console.log(`VoiceChatGlobal [${instanceIdRef.current}]: Rendering voice chat component with roomId:`, voiceRoom.roomId);
 
   return (
-        <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
+        <div style={{ display: 'none' }}>
       <VoiceChat
                 key={`global-voice-${voiceRoom.roomId}-${voiceRoom.serverId || 'dm'}`}
         roomId={voiceRoom.roomId}
