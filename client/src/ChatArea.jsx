@@ -20,13 +20,13 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
     useEffect(() => {
         if (selectedChat?.chatType === 4 && !userLeftVoiceManually) {
             const data = {
-                    roomId: selectedChat.chatId,
-                    userName: username,
-                    userId: userId,
-                    serverId: serverId
+                roomId: selectedChat.chatId,
+                userName: username,
+                userId: userId,
+                serverId: serverId
             };
             if (onJoinVoiceChannel) onJoinVoiceChannel(data);
-            }
+        }
     }, [selectedChat?.chatType, selectedChat?.chatId, username, userId, userLeftVoiceManually, onJoinVoiceChannel, serverId]);
 
     // Обработчик выхода из голосового чата вручную
@@ -98,4 +98,5 @@ const ChatArea = ({ selectedChat, username, userId, serverId, userPermissions, i
     );
 };
 
-export default ChatArea;*/
+export default ChatArea;
+*/

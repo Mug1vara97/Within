@@ -4,24 +4,18 @@ import ServerList from './ServerList';
 import ServerPage from './ServerPage';
 import DiscoverLists from './Discover/DiscoverLists';
 import { Routes, Route, useParams, useLocation, useNavigate } from 'react-router-dom';
-import { useVoiceChat } from './contexts/useVoiceChat';
+import { useVoiceChat } from './contexts/VoiceChatContext';
+import VoiceChat from './VoiceChat';
 import GroupChat from './Chats/GroupChat';
-import VoiceChatUI from './components/VoiceChatUI';
 
 const Home = ({ user }) => {
     const [isDiscoverMode, setIsDiscoverMode] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
-    const { joinVoiceRoom, leaveVoiceRoom, voiceRoom, isVoiceChatActive, userLeftVoiceManually } = useVoiceChat();
+    const { joinVoiceRoom, leaveVoiceRoom, voiceRoom, userLeftVoiceManually } = useVoiceChat();
     
     // Состояние для отображения сообщения о выходе из голосового канала
     const [leftVoiceChannel, setLeftVoiceChannel] = useState(false);
-    
-    // Отладочная информация о состоянии голосового чата
-    useEffect(() => {
-        console.log('Home: voiceRoom state changed:', voiceRoom);
-        console.log('Home: isVoiceChatActive:', isVoiceChatActive);
-    }, [voiceRoom, isVoiceChatActive]);
     
     // Обработчик подключения к голосовому каналу
     const handleJoinVoiceChannel = (data) => {
@@ -75,7 +69,6 @@ const Home = ({ user }) => {
         </div>
     );
 
-
     return (
         <div className="home-container">
             <ServerList 
@@ -91,14 +84,12 @@ const Home = ({ user }) => {
                     </Routes>
                 ) : (
                     <>
-                    <Routes>
+                        <Routes>
                             <Route path="/channels/@me/:chatId?" element={
                                 <ChatListWrapper 
                                     user={user} 
                                     onJoinVoiceChannel={handleJoinVoiceChannel}
                                     userLeftVoiceManually={userLeftVoiceManually}
-                                    voiceRoom={voiceRoom}
-                                    isVoiceChatActive={isVoiceChatActive}
                                 />
                             } />
                             <Route path="/channels/:serverId/:chatId?" element={
@@ -108,10 +99,9 @@ const Home = ({ user }) => {
                                     userLeftVoiceManually={userLeftVoiceManually}
                                     handleLeaveVoiceChannel={handleLeaveVoiceChannel}
                                     voiceRoom={voiceRoom}
-                                    isVoiceChatActive={isVoiceChatActive}
                                 />
                             } />
-                    </Routes>
+                        </Routes>
                         
                         {/* Сообщение о выходе из голосового канала */}
                         {leftVoiceChannel && <LeftVoiceChannelMessage />}
@@ -122,7 +112,7 @@ const Home = ({ user }) => {
     );
 };
 
-const ChatListWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, voiceRoom, isVoiceChatActive }) => {
+const ChatListWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually }) => {
     const { chatId } = useParams();
     const chatListRef = useRef(null);
     const [selectedChat, setSelectedChat] = useState(null);
@@ -139,91 +129,38 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, voic
                 typeId: chat.chatType
             });
             
-            // НЕ подключаемся автоматически к голосовому каналу
-            // Пользователь должен явно нажать кнопку подключения
-            console.log('Selected chat:', chat, 'isVoiceChannel:', (chat.chatType === 4 || chat.typeId === 4));
+            // Если это голосовой канал, подключаемся к нему
+            if ((chat.chatType === 4 || chat.typeId === 4) && !userLeftVoiceManually) {
+                console.log('Connecting to voice channel:', chat);
+                onJoinVoiceChannel({
+                    roomId: chat.chat_id,
+                    userName: user.username,
+                    userId: user.userId
+                });
+            }
         }
     };
-
-    // Проверяем, является ли выбранный чат голосовым
-    const isVoiceChat = selectedChat && (selectedChat.chatType === 4 || selectedChat.typeId === 4);
-    
-    // Отладочная информация
-    useEffect(() => {
-        console.log('ChatListWrapper: selectedChat =', selectedChat);
-        console.log('ChatListWrapper: isVoiceChat =', isVoiceChat);
-        console.log('ChatListWrapper: voiceRoom =', voiceRoom);
-        console.log('ChatListWrapper: isVoiceChatActive =', isVoiceChatActive);
-    }, [selectedChat, isVoiceChat, voiceRoom, isVoiceChatActive]);
     
     return (
         <div style={{ display: 'flex', width: '100%', height: '100%' }}>
             <div style={{ width: '240px', minWidth: '240px', borderRight: '1px solid #2f3136' }}>
                 <ChatList 
-        userId={user?.userId} 
-        username={user?.username} 
-        initialChatId={chatId} 
+                    userId={user?.userId} 
+                    username={user?.username} 
+                    initialChatId={chatId}
                     ref={chatListRef}
                     onChatSelected={handleChatSelected}
                 />
             </div>
             <div style={{ flex: 1, width: 'calc(100% - 240px)', height: '100%' }}>
                 {selectedChat ? (
-                    isVoiceChat && voiceRoom && isVoiceChatActive ? (
-                        // Голосовой чат управляется глобальным компонентом VoiceChatGlobal
-                        <VoiceChatUI chatName={selectedChat.groupName || selectedChat.name} />
-                    ) : isVoiceChat ? (
-                        // Если это голосовой чат, показываем UI для подключения
-                        <div className="voice-chat-container" style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            height: '100%',
-                            width: '100%',
-                            backgroundColor: '#36393f',
-                            color: '#dcddde'
-                        }}>
-                            <h2 style={{ marginBottom: '20px' }}>{selectedChat.groupName || selectedChat.name}</h2>
-                            <div style={{ 
-                                fontSize: '16px',
-                                marginBottom: '20px',
-                                textAlign: 'center'
-                            }}>
-                                Голосовой канал
-                            </div>
-                            <button 
-                                style={{
-                                    backgroundColor: '#5865F2',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    padding: '10px 16px',
-                                    fontSize: '14px',
-                                    cursor: 'pointer'
-                                }}
-                                onClick={() => {
-                                    console.log('Manually joining voice channel');
-                                    onJoinVoiceChannel({
-                                        roomId: selectedChat.chatId,
-                                        userName: user.username,
-                                        userId: user.userId
-                                    });
-                                }}
-                            >
-                                Подключиться к голосовому каналу
-                            </button>
-                        </div>
-                    ) : (
-                        // Иначе показываем текстовый чат
-                        <GroupChat
-                            username={user?.username}
-                            userId={user?.userId}
-                            chatId={selectedChat.chatId}
-                            groupName={selectedChat.groupName || selectedChat.name}
-                            isServerChat={false}
-                        />
-                    )
+                    <GroupChat
+                        username={user?.username}
+                        userId={user?.userId}
+                        chatId={selectedChat.chatId}
+                        groupName={selectedChat.groupName || selectedChat.name}
+                        isServerChat={false}
+                    />
                 ) : (
                     <div style={{ 
                         display: 'flex', 
@@ -241,7 +178,7 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, voic
     );
 };
 
-const ServerPageWrapper = ({ user, onJoinVoiceChannel, handleLeaveVoiceChannel, voiceRoom, userLeftVoiceManually, isVoiceChatActive }) => {
+const ServerPageWrapper = ({ user, onJoinVoiceChannel, handleLeaveVoiceChannel, voiceRoom }) => {
     const { serverId, chatId } = useParams();
     const [selectedChat, setSelectedChat] = useState(null);
     const [isJoining, setIsJoining] = useState(false);
@@ -254,9 +191,17 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, handleLeaveVoiceChannel, 
             setSelectedChat(chat);
             console.log('Home ServerPageWrapper setSelectedChat with:', chat);
             
-            // НЕ подключаемся автоматически к голосовому каналу
-            // Пользователь должен явно нажать кнопку подключения
-            console.log('Selected server chat:', chat, 'isVoiceChannel:', (chat.chatType === 4 || chat.typeId === 4));
+            // Если это голосовой канал, всегда пытаемся подключиться
+            if ((chat.chatType === 4 || chat.typeId === 4)) {
+                console.log('Connecting to voice channel:', chat);
+                setIsJoining(true);
+                onJoinVoiceChannel({
+                    roomId: chat.chatId,
+                    userName: user.username,
+                    userId: user.userId,
+                    serverId: serverId
+                });
+            }
         }
     };
     
@@ -267,15 +212,6 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, handleLeaveVoiceChannel, 
         }
     }, [voiceRoom]);
     
-    // Отладочная информация
-    useEffect(() => {
-        console.log('ServerPageWrapper: selectedChat =', selectedChat);
-        console.log('ServerPageWrapper: isVoiceChat =', selectedChat && (selectedChat.chatType === 4 || selectedChat.typeId === 4));
-        console.log('ServerPageWrapper: voiceRoom =', voiceRoom);
-        console.log('ServerPageWrapper: isVoiceChatActive =', isVoiceChatActive);
-        console.log('ServerPageWrapper: isJoining =', isJoining);
-    }, [selectedChat, voiceRoom, isVoiceChatActive, isJoining]);
-    
     // Проверяем, является ли выбранный чат голосовым
     const isVoiceChat = selectedChat && (selectedChat.chatType === 4 || selectedChat.typeId === 4);
     
@@ -285,8 +221,8 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, handleLeaveVoiceChannel, 
                 <ServerPage
                     username={user?.username}
                     userId={user?.userId}
-        serverId={serverId} 
-        initialChatId={chatId}
+                    serverId={serverId}
+                    initialChatId={chatId}
                     onChatSelected={handleChatSelected}
                 />
             </div>
@@ -295,11 +231,21 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, handleLeaveVoiceChannel, 
                 {selectedChat ? (
                     isVoiceChat ? (
                         // Если это голосовой чат
-                        voiceRoom && isVoiceChatActive ? (
-                        // Голосовой чат управляется глобальным компонентом VoiceChatGlobal
-                            <VoiceChatUI chatName={selectedChat.name || selectedChat.groupName} />
+                        voiceRoom ? (
+                            // Если у нас есть данные о голосовом чате, показываем его
+                            <div style={{ width: '100%', height: '100%' }}>
+                                <VoiceChat
+                                    roomId={voiceRoom.roomId}
+                                    userName={voiceRoom.userName}
+                                    userId={voiceRoom.userId}
+                                    serverId={voiceRoom.serverId}
+                                    autoJoin={true}
+                                    showUI={true}
+                                    onLeave={handleLeaveVoiceChannel}
+                                />
+                            </div>
                         ) : (
-                            // Если ещё нет данных о комнате, показываем UI для подключения
+                            // Если ещё нет данных о комнате, показываем состояние подключения
                             <div className="voice-chat-container" style={{
                                 display: 'flex',
                                 flexDirection: 'column',
@@ -318,42 +264,15 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, handleLeaveVoiceChannel, 
                                 }}>
                                     {isJoining ? 
                                         "Подключение к голосовому каналу..." : 
-                                        "Голосовой канал"}
+                                        "Ожидание подключения..."}
                                 </div>
-                                
-                                {/* Кнопка для подключения */}
-                                <button 
-                                    style={{
-                                        backgroundColor: '#5865F2',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '4px',
-                                        padding: '10px 16px',
-                                        fontSize: '14px',
-                                        cursor: 'pointer',
-                                        opacity: isJoining ? 0.7 : 1
-                                    }}
-                                    disabled={isJoining}
-                                    onClick={() => {
-                                        console.log('Manually connecting to voice channel');
-                                        setIsJoining(true);
-                                        onJoinVoiceChannel({
-                                            roomId: selectedChat.chatId,
-                                            userName: user.username,
-                                            userId: user.userId,
-                                            serverId: serverId
-                                        });
-                                    }}
-                                >
-                                    {isJoining ? "Подключение..." : "Подключиться к голосовому каналу"}
-                                </button>
                             </div>
                         )
                     ) : (
                         // Это текстовый чат, отображаем GroupChat
                         <GroupChat
-        username={user?.username} 
-        userId={user?.userId} 
+                            username={user?.username}
+                            userId={user?.userId}
                             chatId={selectedChat.chatId}
                             groupName={selectedChat.groupName || selectedChat.name}
                             isServerChat={true}

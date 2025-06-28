@@ -453,14 +453,14 @@ const fetchServerData = async () => {
         });
         
         if (response.ok) {
-        const data = await response.json();
-        setServer(data);
-        setIsServerOwner(data.ownerId === userId);
-        
-        // Запрашиваем роли пользователя через SignalR
-        if (connection) {
-            try {
-                await connection.invoke("GetUserRoles", parseInt(userId, 10), parseInt(serverId, 10));
+            const data = await response.json();
+            setServer(data);
+            setIsServerOwner(data.ownerId === userId);
+            
+            // Запрашиваем роли пользователя через SignalR
+            if (connection) {
+                try {
+                    await connection.invoke("GetUserRoles", parseInt(userId, 10), parseInt(serverId, 10));
                 } catch (err) {
                     console.error('Error fetching user roles:', err);
                 }

@@ -5,8 +5,7 @@ import Login from './Authentication/Login';
 import Register from './Authentication/Register';
 import "./UserProfile.css"
 import { AudioProvider } from './contexts/AudioContext';
-import VoiceChatProvider from './contexts/VoiceChatContext';
-import VoiceChatGlobal from './components/VoiceChatGlobal';
+import { VoiceChatProvider } from './contexts/VoiceChatContext';
 
 const App = () => {
     const [user, setUser] = useState(() => {
@@ -29,7 +28,6 @@ const App = () => {
         <AudioProvider>
             <VoiceChatProvider>
                 <Router>
-                    {user.username && <VoiceChatGlobal />}
                     <Routes>
                         <Route path="/*" element={user.username ? <Home user={user} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />} />
                         <Route path="/login" element={<Login onLogin={handleLogin} />} />

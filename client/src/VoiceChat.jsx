@@ -46,7 +46,7 @@ import { Device } from 'mediasoup-client';
 import { io } from 'socket.io-client';
 import { NoiseSuppressionManager } from './utils/noiseSuppression';
 import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
-import { useVoiceChat } from './contexts/useVoiceChat';
+import { useVoiceChat } from './contexts/VoiceChatContext';
 
 
 const config = {
@@ -1094,8 +1094,7 @@ const VideoView = React.memo(({
 function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI = false, onLeave, onManualLeave }) {
   const { leaveVoiceRoom } = useVoiceChat();
   const [isJoined, setIsJoined] = useState(false);
-  // Префикс _ показывает, что переменная используется, но может не использоваться напрямую
-  const [_isSocketConnected, setIsSocketConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [useEarpiece, setUseEarpiece] = useState(true);
@@ -1108,11 +1107,6 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
   const [audioStates, setAudioStates] = useState(new Map());
   const isMobile = useMemo(() => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent), []);
   const prevRoomIdRef = useRef(roomId);
-  const componentMountedRef = useRef(true);
-  const connectionAttemptRef = useRef(false);
-
-  // Исправление линтера: переименуем переменную, чтобы показать, что она используется
-  // const peerMuteStatesRef = useRef(new Map());
 
   // Use userId and serverId in socket connection
   useEffect(() => {
@@ -1135,15 +1129,6 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
     }
     prevRoomIdRef.current = roomId;
   }, [roomId, autoJoin]);
-
-  // Добавляем эффект для отслеживания монтирования/размонтирования компонента
-  useEffect(() => {
-    componentMountedRef.current = true;
-    
-    return () => {
-      componentMountedRef.current = false;
-    };
-  }, []);
 
   const [screenProducer, setScreenProducer] = useState(null);
   const [screenStream, setScreenStream] = useState(null);
@@ -1172,8 +1157,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
   const animationFramesRef = useRef(new Map());
 
   // Добавляем новый ref для хранения состояний mute
-  // Удаляем неиспользуемую переменную
-  // const mutedPeersRef = useRef(new Map());
+  const mutedPeersRef = useRef(new Map());
 
   const [fullscreenShare, setFullscreenShare] = useState(null);
 
@@ -1248,8 +1232,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
         setRemoteScreens(prev => {
           const newScreens = new Map(prev);
           const screenEntry = [...newScreens.entries()].find(
-            // eslint-disable-next-line no-unused-vars
-            ([unused, data]) => data.producerId === producerId
+            ([id, data]) => data.producerId === producerId
           );
           
           if (screenEntry) {
@@ -1273,8 +1256,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
         setRemoteVideos(prev => {
           const newVideos = new Map(prev);
           const videoEntry = [...newVideos.entries()].find(
-            // eslint-disable-next-line no-unused-vars
-            ([unused, data]) => data.producerId === producerId
+            ([id, data]) => data.producerId === producerId
           );
           
           if (videoEntry) {
@@ -1292,8 +1274,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
 
               // Находим и закрываем соответствующий consumer
               const consumer = Array.from(consumersRef.current.entries()).find(
-                // eslint-disable-next-line no-unused-vars
-                ([unused, consumer]) => consumer.producerId === producerId
+                ([id, consumer]) => consumer.producerId === producerId
               );
               if (consumer) {
                 console.log('Found and closing associated consumer:', consumer[0]);
@@ -1388,7 +1369,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
       setRemoteScreens(new Map());
 
       // Cleanup voice detection workers
-      audioRef.current.forEach((peerAudio) => {
+      audioRef.current.forEach((peerAudio, peerId) => {
         if (peerAudio instanceof Map && peerAudio.has('voiceDetector')) {
           const voiceDetector = peerAudio.get('voiceDetector');
           if (voiceDetector) {
@@ -1486,9 +1467,6 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
         noiseSuppressionRef.current = null;
       }
 
-      // Сбрасываем флаг попытки подключения
-      connectionAttemptRef.current = false;
-
     } catch (error) {
       console.error('Cleanup error:', error);
     }
@@ -1500,27 +1478,23 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
       return;
     }
 
-    // Проверяем, не выполняется ли уже попытка подключения
-    if (connectionAttemptRef.current) {
-      console.log('Connection attempt already in progress, skipping join');
-      return;
-    }
-
-    // Если уже подключены, не подключаемся повторно
-    if (isJoined || socketRef.current) {
-      console.log('Already connected or connection in progress, skipping join');
-      return;
-    }
-
-    // Устанавливаем флаг попытки подключения
-    connectionAttemptRef.current = true;
-
     try {
       // Reset states to enabled when joining
       setIsAudioEnabled(true);
       isAudioEnabledRef.current = true;
       setUseEarpiece(true);
       setIsMuted(false); // Reset mute state
+
+      // Clean up old socket if exists
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+
+      socketRef.current = io(config.socketUrl, {
+        transports: ['websocket'],
+        query: { roomId }
+      });
 
       console.log('Connecting to server...');
       const socket = io(config.server.url, {
@@ -1543,7 +1517,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
 
       socket.on('connect', () => {
         console.log('Socket connected successfully');
-        setIsSocketConnected(true);
+        setIsConnected(true);
         // Set initial states
         socket.emit('muteState', { isMuted: false });
         socket.emit('audioState', { isEnabled: isAudioEnabled });
@@ -1552,19 +1526,14 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
       socket.on('connect_error', (error) => {
         console.error('Socket connection error:', error);
         setError('Failed to connect to server: ' + error.message);
-        // Сбрасываем флаг попытки подключения при ошибке
-        connectionAttemptRef.current = false;
       });
 
       socket.on('disconnect', () => {
         console.log('Socket disconnected');
-        setIsSocketConnected(false);
+        setIsConnected(false);
         setIsJoined(false);
         setPeers(new Map());
-        
-        // Не вызываем cleanup здесь, чтобы сохранить состояние при переключении между чатами
-        // cleanup будет вызван только при явном выходе из голосового чата
-        // или при размонтировании компонента
+        cleanup();
       });
 
       // Add handlers for peer events
@@ -1642,8 +1611,6 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
           if (joinError) {
             console.error('Join error:', joinError);
             setError(joinError);
-            // Сбрасываем флаг попытки подключения при ошибке
-            connectionAttemptRef.current = false;
             return;
           }
 
@@ -1679,7 +1646,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
 
             // Load device with router capabilities
             console.log('Loading device with router capabilities...');
-            await loadDevice(routerRtpCapabilities);
+            await device.load({ routerRtpCapabilities });
             console.log('Device loaded successfully');
 
             // Create send transport
@@ -1706,15 +1673,11 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
 
             console.log('Setting joined state to true');
             setIsJoined(true);
-            // Сбрасываем флаг попытки подключения после успешного подключения
-            connectionAttemptRef.current = false;
 
           } catch (err) {
             console.error('Failed to initialize:', err);
             setError('Failed to initialize connection: ' + err.message);
             cleanup();
-            // Сбрасываем флаг попытки подключения при ошибке
-            connectionAttemptRef.current = false;
           }
         });
       });
@@ -1723,28 +1686,6 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
       console.error('Connection error:', err);
       setError('Failed to connect to server: ' + err.message);
       cleanup();
-      // Сбрасываем флаг попытки подключения при ошибке
-      connectionAttemptRef.current = false;
-    }
-  };
-
-  // Исправление линтера: переименуем функцию, чтобы показать, что она используется
-  const loadDevice = async (routerRtpCapabilities) => {
-    try {
-      if (!deviceRef.current) {
-        const device = new Device();
-        if (routerRtpCapabilities) {
-          await device.load({ routerRtpCapabilities });
-        }
-        deviceRef.current = device;
-        console.log('Device initialized', routerRtpCapabilities ? 'with capabilities' : 'without capabilities');
-      } else if (routerRtpCapabilities) {
-        await deviceRef.current.load({ routerRtpCapabilities });
-        console.log('Device reinitialized with capabilities');
-      }
-    } catch (error) {
-      console.error('Failed to initialize device:', error);
-      throw error;
     }
   };
 
@@ -2098,6 +2039,25 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
       return newVolumes;
     });
   }, []);
+
+  const initializeDevice = async (routerRtpCapabilities) => {
+    try {
+      if (!deviceRef.current) {
+        const device = new Device();
+        if (routerRtpCapabilities) {
+          await device.load({ routerRtpCapabilities });
+        }
+        deviceRef.current = device;
+        console.log('Device initialized', routerRtpCapabilities ? 'with capabilities' : 'without capabilities');
+      } else if (routerRtpCapabilities) {
+        await deviceRef.current.load({ routerRtpCapabilities });
+        console.log('Device reinitialized with capabilities');
+      }
+    } catch (error) {
+      console.error('Failed to initialize device:', error);
+      throw error;
+    }
+  };
 
   const createSendTransport = async () => {
     return new Promise((resolve, reject) => {
@@ -3045,6 +3005,143 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
     handleNoiseSuppressionMenuClose();
   };
 
+  const handleConsume = async (producer) => {
+    try {
+      console.log('Handling producer:', producer);
+      
+      if (producer.producerSocketId === socketRef.current.id) {
+        console.log('Skipping own producer');
+        return;
+      }
+      
+      const transport = await createConsumerTransport();
+      console.log('Consumer transport created:', transport.id);
+      
+      const { rtpCapabilities } = deviceRef.current;
+      
+      const { id, producerId, kind, rtpParameters, appData } = await new Promise((resolve, reject) => {
+        socketRef.current.emit('consume', {
+          rtpCapabilities,
+          remoteProducerId: producer.producerId,
+          transportId: transport.id
+        }, (response) => {
+          if (response.error) {
+            console.error('Consume request failed:', response.error);
+            reject(new Error(response.error));
+            return;
+          }
+          resolve(response);
+        });
+      });
+
+      if (!id || !producerId || !kind || !rtpParameters) {
+        throw new Error('Invalid consumer data received from server');
+      }
+
+      const consumer = await transport.consume({
+        id,
+        producerId,
+        kind,
+        rtpParameters,
+        appData
+      });
+
+      console.log('Consumer created:', consumer.id);
+      consumersRef.current.set(consumer.id, consumer);
+
+      const stream = new MediaStream([consumer.track]);
+
+      if (appData?.mediaType === 'screen') {
+        console.log('Processing screen sharing stream:', { kind, appData });
+        
+        if (kind === 'video') {
+          console.log('Setting up screen sharing video');
+          setRemoteScreens(prev => {
+            const newScreens = new Map(prev);
+            newScreens.set(producer.producerSocketId, { 
+              producerId,
+              consumerId: consumer.id,
+              stream
+            });
+            return newScreens;
+          });
+        }
+      } else if (appData?.mediaType === 'webcam') {
+        console.log('Processing webcam stream:', { kind, appData });
+        
+        if (kind === 'video') {
+          console.log('Setting up webcam stream');
+          setRemoteVideos(prev => {
+            const newVideos = new Map(prev);
+            newVideos.set(producer.producerSocketId, {
+              producerId,
+              consumerId: consumer.id,
+              stream
+            });
+            return newVideos;
+          });
+        }
+      } else if (kind === 'audio') {
+        try {
+          const audio = new Audio();
+          audio.srcObject = stream;
+          audio.id = `audio-${producer.producerSocketId}`;
+          audio.autoplay = true;
+          audio.muted = !isAudioEnabledRef.current; // Use ref for current state
+
+          if (isMobile) {
+            await setAudioOutput(audio, useEarpiece);
+          }
+          
+          const audioContext = audioContextRef.current;
+          const source = audioContext.createMediaStreamSource(stream);
+          
+          const analyser = createAudioAnalyser(audioContext);
+          
+          const gainNode = audioContext.createGain();
+          gainNode.gain.value = isAudioEnabledRef.current ? 1.0 : 0.0; // Use ref for current state
+
+          source.connect(analyser);
+          analyser.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+
+          analyserNodesRef.current.set(producer.producerSocketId, analyser);
+          gainNodesRef.current.set(producer.producerSocketId, gainNode);
+          audioRef.current.set(producer.producerSocketId, audio);
+          setVolumes(prev => new Map(prev).set(producer.producerSocketId, 100));
+
+          // Start voice detection with producerId
+          detectSpeaking(analyser, producer.producerSocketId, producer.producerId);
+        } catch (error) {
+          console.error('Error setting up audio:', error);
+        }
+      }
+
+      consumer.on('transportclose', () => {
+        console.log('Consumer transport closed');
+        consumer.close();
+        consumersRef.current.delete(consumer.id);
+      });
+
+      consumer.on('producerclose', () => {
+        console.log('Producer closed');
+        consumer.close();
+        consumersRef.current.delete(consumer.id);
+      });
+
+      consumer.on('trackended', () => {
+        console.log('Track ended');
+        consumer.close();
+        consumersRef.current.delete(consumer.id);
+      });
+
+      return consumer;
+    } catch (error) {
+      console.error('Error consuming producer:', error);
+      throw error;
+    }
+  };
+
   // Update toggleAudio function
   const toggleAudio = useCallback(() => {
     const newState = !isAudioEnabled;
@@ -3134,20 +3231,11 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
   useEffect(() => {
     return () => {
       console.log('VoiceChat component unmounting, cleaning up...');
-      
-      // Проверяем, был ли компонент с showUI=true
-      // Если да, то полностью очищаем соединение
-      // Если нет (фоновый режим), то сохраняем соединение
-      if (showUI) {
       if (isJoined) {
         handleLeaveCall();
-        }
-      } else {
-        console.log('Background voice chat component unmounting, keeping connection');
-        // Не вызываем handleLeaveCall для фонового компонента
       }
     };
-  }, [isJoined, showUI]);
+  }, [isJoined]);
 
   // Подготовка всех нужных пропсов для UI
   const ui = (

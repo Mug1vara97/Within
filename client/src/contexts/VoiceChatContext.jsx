@@ -1,55 +1,73 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { VoiceChatContext } from './voiceChatContextDef';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 
-// Провайдер контекста голосового чата
+const VoiceChatContext = createContext();
+
 export const VoiceChatProvider = ({ children }) => {
-  // НЕ загружаем состояние из localStorage автоматически - пользователь должен явно подключиться
-  const [voiceRoom, setVoiceRoom] = useState(null);
-
-  // Состояние активности голосового чата - всегда начинаем с false
-  const [isVoiceChatActive, setIsVoiceChatActive] = useState(false);
-
-  // НЕ сохраняем состояние в localStorage автоматически - это предотвращает автоматическое подключение
-  // При необходимости можно добавить явное сохранение/восстановление состояния
-
-  // Функция для подключения к голосовому чату
-  const joinVoiceRoom = useCallback((roomData) => {
-    console.log('VoiceChatContext: Joining voice room:', roomData);
+  const [voiceRoom, setVoiceRoom] = useState(() => {
+    // При инициализации пытаемся восстановить состояние из localStorage
+    const savedVoiceRoom = localStorage.getItem('voiceRoom');
+    const savedManuallyLeft = localStorage.getItem('userLeftVoiceManually');
     
-    // Проверяем, не подключены ли мы уже к этой комнате
-    if (voiceRoom && 
-        voiceRoom.roomId === roomData.roomId && 
-        voiceRoom.serverId === roomData.serverId &&
-        isVoiceChatActive) {
-      console.log('VoiceChatContext: Already connected to this room, ignoring join request');
-      return;
+    // Если пользователь вышел вручную, не восстанавливаем состояние
+    if (savedManuallyLeft === 'true') {
+      return null;
     }
     
-    setVoiceRoom(roomData);
+    try {
+      return savedVoiceRoom ? JSON.parse(savedVoiceRoom) : null;
+    } catch (error) {
+      console.error('Ошибка при парсинге сохраненного состояния голосового чата:', error);
+      return null;
+    }
+  });
+  
+  const [isVoiceChatActive, setIsVoiceChatActive] = useState(() => !!voiceRoom);
+  const [showVoiceUI, setShowVoiceUI] = useState(false);
+  const [userLeftVoiceManually, setUserLeftVoiceManually] = useState(() => {
+    return localStorage.getItem('userLeftVoiceManually') === 'true';
+  });
+
+  // Сохраняем состояние в localStorage при изменении
+  useEffect(() => {
+    if (voiceRoom) {
+      localStorage.setItem('voiceRoom', JSON.stringify(voiceRoom));
+    } else {
+      localStorage.removeItem('voiceRoom');
+    }
+  }, [voiceRoom]);
+
+  useEffect(() => {
+    localStorage.setItem('userLeftVoiceManually', userLeftVoiceManually.toString());
+  }, [userLeftVoiceManually]);
+
+  const joinVoiceRoom = (data) => {
+    setVoiceRoom(data);
     setIsVoiceChatActive(true);
-  }, [voiceRoom, isVoiceChatActive]);
+    setUserLeftVoiceManually(false);
+  };
 
-  // Функция для отключения от голосового чата
-  const leaveVoiceRoom = useCallback(() => {
-    console.log('VoiceChatContext: Leaving voice room');
-    setIsVoiceChatActive(false);
-    // Очищаем voiceRoom полностью при выходе
+  const leaveVoiceRoom = () => {
     setVoiceRoom(null);
-  }, []);
+    setIsVoiceChatActive(false);
+    setShowVoiceUI(false);
+    setUserLeftVoiceManually(true);
+  };
 
-  // Значение контекста, которое будет доступно потребителям
-  const contextValue = {
+  return (
+    <VoiceChatContext.Provider
+      value={{
         voiceRoom,
         isVoiceChatActive,
         joinVoiceRoom,
         leaveVoiceRoom,
-  };
-
-  return (
-    <VoiceChatContext.Provider value={contextValue}>
+        showVoiceUI,
+        setShowVoiceUI,
+        userLeftVoiceManually
+      }}
+    >
       {children}
     </VoiceChatContext.Provider>
   );
 };
 
-export default VoiceChatProvider; 
+export const useVoiceChat = () => useContext(VoiceChatContext); 
