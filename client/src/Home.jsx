@@ -5,8 +5,8 @@ import ServerPage from './ServerPage';
 import DiscoverLists from './Discover/DiscoverLists';
 import { Routes, Route, useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useVoiceChat } from './contexts/useVoiceChat';
-import VoiceChat from './VoiceChat';
 import GroupChat from './Chats/GroupChat';
+import VoiceChatUI from './components/VoiceChatUI';
 
 const Home = ({ user }) => {
     const [isDiscoverMode, setIsDiscoverMode] = useState(false);
@@ -75,24 +75,6 @@ const Home = ({ user }) => {
         </div>
     );
 
-    // Компонент для отображения UI голосового чата
-    const VoiceChannelUI = () => {
-        if (!voiceRoom) return null;
-        
-        return (
-            <div style={{ width: '100%', height: '100%' }}>
-                <VoiceChat
-                    roomId={voiceRoom.roomId}
-                    userName={voiceRoom.userName}
-                    userId={voiceRoom.userId}
-                    serverId={voiceRoom.serverId}
-                    autoJoin={false}
-                    showUI={true}
-                    onLeave={handleLeaveVoiceChannel}
-                />
-            </div>
-        );
-    };
 
     return (
         <div className="home-container">
@@ -194,17 +176,8 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, userLeftVoiceManually, voic
             <div style={{ flex: 1, width: 'calc(100% - 240px)', height: '100%' }}>
                 {selectedChat ? (
                     isVoiceChat && voiceRoom && isVoiceChatActive ? (
-                        // Если это голосовой чат и есть активное соединение, показываем UI
-                        <div style={{ width: '100%', height: '100%' }}>
-                            {/* <VoiceChat
-                                roomId={voiceRoom.roomId}
-                                userName={voiceRoom.userName}
-                                userId={voiceRoom.userId}
-                                serverId={voiceRoom.serverId}
-                                autoJoin={false}
-                                showUI={true}
-                            /> */}
-                        </div>
+                        // Голосовой чат управляется глобальным компонентом VoiceChatGlobal
+                        <VoiceChatUI chatName={selectedChat.groupName || selectedChat.name} />
                     ) : isVoiceChat ? (
                         // Если это голосовой чат, но соединение еще не установлено
                         <div className="voice-chat-container" style={{
@@ -316,18 +289,8 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, handleLeaveVoiceChannel, 
                     isVoiceChat ? (
                         // Если это голосовой чат
                         voiceRoom && isVoiceChatActive ? (
-                            // Если у нас есть данные о голосовом чате, показываем его UI
-                            <div style={{ width: '100%', height: '100%' }}>
-                                <VoiceChat
-                                    roomId={voiceRoom.roomId}
-                                    userName={voiceRoom.userName}
-                                    userId={voiceRoom.userId}
-                                    serverId={voiceRoom.serverId}
-                                    autoJoin={true}
-                                    showUI={true}
-                                    onLeave={handleLeaveVoiceChannel}
-                                />
-                            </div>
+                        // Голосовой чат управляется глобальным компонентом VoiceChatGlobal
+                            <VoiceChatUI chatName={selectedChat.name || selectedChat.groupName} />
                         ) : (
                             // Если ещё нет данных о комнате, показываем состояние подключения
                             <div className="voice-chat-container" style={{
