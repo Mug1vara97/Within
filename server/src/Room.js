@@ -11,43 +11,23 @@ class Room {
     }
 
     addPeer(peer) {
-        // Check if peer already exists
-        if (this.peers.has(peer.id)) {
-            console.log(`Peer ${peer.id} already exists in room ${this.id}, replacing...`);
-            const existingPeer = this.peers.get(peer.id);
-            if (existingPeer && existingPeer !== peer) {
-                // Clean up existing peer if it's different
-                existingPeer.close();
-            }
+        if (!this.peers.has(peer.id)) {
+            this.peers.set(peer.id, peer);
+            
+            // Broadcast new peer's state to all peers in the room
+            this.io.to(this.id).emit('peerMuteStateChanged', {
+                peerId: peer.id,
+                isMuted: Boolean(peer.isMuted())
+            });
+
+            // Also broadcast audio state
+            this.io.to(this.id).emit('peerAudioStateChanged', {
+                peerId: peer.id,
+                isEnabled: Boolean(peer.isAudioEnabled())
+            });
+
+            console.log(`Peer ${peer.id} added to room ${this.id}`);
         }
-
-        // Check for peers with the same name but different IDs
-        const duplicateNamePeer = Array.from(this.peers.values())
-            .find(p => p.name === peer.name && p.id !== peer.id);
-        
-        if (duplicateNamePeer) {
-            console.log(`Removing duplicate peer with name ${peer.name} (${duplicateNamePeer.id}) from room ${this.id}`);
-            this.removePeer(duplicateNamePeer.id);
-            if (duplicateNamePeer.socket && duplicateNamePeer.socket.connected) {
-                duplicateNamePeer.socket.disconnect(true);
-            }
-        }
-
-        this.peers.set(peer.id, peer);
-        
-        // Broadcast new peer's state to all peers in the room
-        this.io.to(this.id).emit('peerMuteStateChanged', {
-            peerId: peer.id,
-            isMuted: Boolean(peer.isMuted())
-        });
-
-        // Also broadcast audio state
-        this.io.to(this.id).emit('peerAudioStateChanged', {
-            peerId: peer.id,
-            isEnabled: Boolean(peer.isAudioEnabled())
-        });
-
-        console.log(`Peer ${peer.id} (${peer.name}) added to room ${this.id}`);
     }
 
     removePeer(peerId) {

@@ -25,9 +25,6 @@ export const VoiceChatProvider = ({ children }) => {
     }
   });
 
-  // Состояние активности UI голосового чата
-  const [isVoiceChatUIActive, setIsVoiceChatUIActive] = useState(false);
-
   // Сохраняем состояние в localStorage при изменении
   useEffect(() => {
     try {
@@ -58,34 +55,8 @@ export const VoiceChatProvider = ({ children }) => {
     if (voiceRoom && 
         voiceRoom.roomId === roomData.roomId && 
         voiceRoom.serverId === roomData.serverId &&
-        voiceRoom.userName === roomData.userName &&
-        voiceRoom.userId === roomData.userId &&
         isVoiceChatActive) {
-      console.log('VoiceChatContext: Already connected to this room with same user, ignoring join request');
-      return;
-    }
-    
-    // Если подключаемся под тем же пользователем к той же комнате, но был выход
-    if (voiceRoom && 
-        voiceRoom.roomId === roomData.roomId && 
-        voiceRoom.serverId === roomData.serverId &&
-        voiceRoom.userName === roomData.userName &&
-        voiceRoom.userId === roomData.userId &&
-        !isVoiceChatActive) {
-      console.log('VoiceChatContext: Reconnecting to the same room');
-      setIsVoiceChatActive(true);
-      return;
-    }
-    
-    // Если пытаемся подключиться к новой комнате или под другим пользователем
-    if (isVoiceChatActive) {
-      console.log('VoiceChatContext: Switching to new voice room, leaving current room first');
-      setIsVoiceChatActive(false);
-      // Небольшая задержка для корректного выхода
-      setTimeout(() => {
-        setVoiceRoom(roomData);
-        setIsVoiceChatActive(true);
-      }, 100);
+      console.log('VoiceChatContext: Already connected to this room, ignoring join request');
       return;
     }
     
@@ -101,24 +72,12 @@ export const VoiceChatProvider = ({ children }) => {
     // setVoiceRoom(null);
   }, []);
 
-  // Функции для управления состоянием UI
-  const activateVoiceChatUI = useCallback(() => {
-    setIsVoiceChatUIActive(true);
-  }, []);
-
-  const deactivateVoiceChatUI = useCallback(() => {
-    setIsVoiceChatUIActive(false);
-  }, []);
-
   // Значение контекста, которое будет доступно потребителям
   const contextValue = {
         voiceRoom,
         isVoiceChatActive,
-        isVoiceChatUIActive,
         joinVoiceRoom,
         leaveVoiceRoom,
-        activateVoiceChatUI,
-        deactivateVoiceChatUI,
   };
 
   return (

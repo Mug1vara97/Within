@@ -47,14 +47,6 @@ import { io } from 'socket.io-client';
 import { NoiseSuppressionManager } from './utils/noiseSuppression';
 import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
 import { useVoiceChat } from './contexts/useVoiceChat';
-import { 
-  generateConnectionId, 
-  saveConnectionId, 
-  clearConnectionId, 
-  canJoinVoiceChat, 
-  logConnectionAttempt,
-  debounce 
-} from './utils/voiceChatUtils';
 
 
 const config = {
@@ -1100,7 +1092,7 @@ const VideoView = React.memo(({
 });
 
 function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI = false, onLeave, onManualLeave }) {
-  const { leaveVoiceRoom, activateVoiceChatUI, deactivateVoiceChatUI } = useVoiceChat();
+  const { leaveVoiceRoom } = useVoiceChat();
   const [isJoined, setIsJoined] = useState(false);
   // Префикс _ показывает, что переменная используется, но может не использоваться напрямую
   const [_isSocketConnected, setIsSocketConnected] = useState(false);
@@ -1184,18 +1176,6 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
   // const mutedPeersRef = useRef(new Map());
 
   const [fullscreenShare, setFullscreenShare] = useState(null);
-  const voiceChatRef = useRef();
-
-  useEffect(() => {
-    if (showUI) {
-      activateVoiceChatUI();
-    }
-    return () => {
-      if (showUI) {
-        deactivateVoiceChatUI();
-      }
-    };
-  }, [showUI, activateVoiceChatUI, deactivateVoiceChatUI]);
 
   useEffect(() => {
     const resumeAudioContext = async () => {
@@ -1514,30 +1494,9 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
     }
   };
 
-  const handleJoin = debounce(async () => {
+  const handleJoin = async () => {
     if (!roomId || !userName) {
       setError('Please enter room ID and username');
-      return;
-    }
-
-    // Создаем данные комнаты для проверки
-    const roomData = {
-      roomId,
-      userName,
-      userId,
-      serverId
-    };
-
-    // Логируем попытку подключения
-    logConnectionAttempt(roomData, 'join');
-
-    // Проверяем, можем ли мы подключиться
-    const { canJoin, reason } = canJoinVoiceChat(roomData);
-    if (!canJoin) {
-      console.log('Cannot join voice chat:', reason);
-      if (reason !== 'Already connected to this room') {
-        setError(reason);
-      }
       return;
     }
 
@@ -1552,10 +1511,6 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
       console.log('Already connected or connection in progress, skipping join');
       return;
     }
-
-    // Генерируем и сохраняем уникальный ID соединения
-    const connectionId = generateConnectionId();
-    saveConnectionId(connectionId);
 
     // Устанавливаем флаг попытки подключения
     connectionAttemptRef.current = true;
@@ -1771,7 +1726,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
       // Сбрасываем флаг попытки подключения при ошибке
       connectionAttemptRef.current = false;
     }
-  }, 500); // 500ms debounce
+  };
 
   // Исправление линтера: переименуем функцию, чтобы показать, что она используется
   const loadDevice = async (routerRtpCapabilities) => {
@@ -2479,15 +2434,6 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
 
   const handleLeaveCall = () => {
     console.log('Leaving voice call...');
-    
-    // Логируем попытку выхода
-    if (roomId && userName && userId) {
-      logConnectionAttempt({ roomId, userName, userId, serverId }, 'leave');
-    }
-    
-    // Очищаем ID соединения из localStorage
-    clearConnectionId();
-    
     // Очищаем локальное состояние
     cleanup();
     setIsJoined(false);
@@ -3206,11 +3152,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
   // Подготовка всех нужных пропсов для UI
   const ui = (
     <MuteProvider socket={socketRef.current}>
-      <Box
-        ref={voiceChatRef}
-        data-showui={showUI.toString()}
-        sx={{ ...styles.root, ...(showUI ? { display: 'flex', width: '100%', height: '100%' } : { display: 'none' }) }}
-      >
+      <Box sx={{ ...styles.root, ...(showUI ? { display: 'flex', width: '100%', height: '100%' } : { display: 'none' }) }}>
         <AppBar position="static" sx={styles.appBar}>
           <Toolbar sx={styles.toolbar}>
             <Box sx={styles.channelName}>
