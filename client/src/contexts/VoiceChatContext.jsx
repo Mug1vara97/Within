@@ -58,8 +58,34 @@ export const VoiceChatProvider = ({ children }) => {
     if (voiceRoom && 
         voiceRoom.roomId === roomData.roomId && 
         voiceRoom.serverId === roomData.serverId &&
+        voiceRoom.userName === roomData.userName &&
+        voiceRoom.userId === roomData.userId &&
         isVoiceChatActive) {
-      console.log('VoiceChatContext: Already connected to this room, ignoring join request');
+      console.log('VoiceChatContext: Already connected to this room with same user, ignoring join request');
+      return;
+    }
+    
+    // Если подключаемся под тем же пользователем к той же комнате, но был выход
+    if (voiceRoom && 
+        voiceRoom.roomId === roomData.roomId && 
+        voiceRoom.serverId === roomData.serverId &&
+        voiceRoom.userName === roomData.userName &&
+        voiceRoom.userId === roomData.userId &&
+        !isVoiceChatActive) {
+      console.log('VoiceChatContext: Reconnecting to the same room');
+      setIsVoiceChatActive(true);
+      return;
+    }
+    
+    // Если пытаемся подключиться к новой комнате или под другим пользователем
+    if (isVoiceChatActive) {
+      console.log('VoiceChatContext: Switching to new voice room, leaving current room first');
+      setIsVoiceChatActive(false);
+      // Небольшая задержка для корректного выхода
+      setTimeout(() => {
+        setVoiceRoom(roomData);
+        setIsVoiceChatActive(true);
+      }, 100);
       return;
     }
     

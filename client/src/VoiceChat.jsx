@@ -47,6 +47,14 @@ import { io } from 'socket.io-client';
 import { NoiseSuppressionManager } from './utils/noiseSuppression';
 import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
 import { useVoiceChat } from './contexts/useVoiceChat';
+import { 
+  generateConnectionId, 
+  saveConnectionId, 
+  clearConnectionId, 
+  canJoinVoiceChat, 
+  logConnectionAttempt,
+  debounce 
+} from './utils/voiceChatUtils';
 
 
 const config = {
@@ -1506,9 +1514,30 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
     }
   };
 
-  const handleJoin = async () => {
+  const handleJoin = debounce(async () => {
     if (!roomId || !userName) {
       setError('Please enter room ID and username');
+      return;
+    }
+
+    // Создаем данные комнаты для проверки
+    const roomData = {
+      roomId,
+      userName,
+      userId,
+      serverId
+    };
+
+    // Логируем попытку подключения
+    logConnectionAttempt(roomData, 'join');
+
+    // Проверяем, можем ли мы подключиться
+    const { canJoin, reason } = canJoinVoiceChat(roomData);
+    if (!canJoin) {
+      console.log('Cannot join voice chat:', reason);
+      if (reason !== 'Already connected to this room') {
+        setError(reason);
+      }
       return;
     }
 
@@ -1523,6 +1552,10 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
       console.log('Already connected or connection in progress, skipping join');
       return;
     }
+
+    // Генерируем и сохраняем уникальный ID соединения
+    const connectionId = generateConnectionId();
+    saveConnectionId(connectionId);
 
     // Устанавливаем флаг попытки подключения
     connectionAttemptRef.current = true;
@@ -2446,6 +2479,15 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
 
   const handleLeaveCall = () => {
     console.log('Leaving voice call...');
+    
+    // Логируем попытку выхода
+    if (roomId && userName && userId) {
+      logConnectionAttempt({ roomId, userName, userId, serverId }, 'leave');
+    }
+    
+    // Очищаем ID соединения из localStorage
+    clearConnectionId();
+    
     // Очищаем локальное состояние
     cleanup();
     setIsJoined(false);

@@ -323,7 +323,7 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, handleLeaveVoiceChannel, 
                                     userName={voiceRoom.userName}
                                     userId={voiceRoom.userId}
                                     serverId={voiceRoom.serverId}
-                                    autoJoin={false}
+                                    autoJoin={true}
                                     showUI={true}
                                     onLeave={handleLeaveVoiceChannel}
                                 />

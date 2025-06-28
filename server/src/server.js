@@ -154,12 +154,40 @@ io.on('connection', async (socket) => {
 
     socket.on('join', async ({ roomId, name }, callback) => {
         try {
+            // Check if peer is already connected
+            const existingPeer = peers.get(socket.id);
+            if (existingPeer) {
+                console.log(`Peer ${socket.id} is already connected. Cleaning up old connection.`);
+                // Clean up existing peer
+                const existingRoom = rooms.get(existingPeer.roomId);
+                if (existingRoom) {
+                    existingRoom.removePeer(socket.id);
+                }
+                existingPeer.close();
+                peers.delete(socket.id);
+            }
+
             // Create room if it doesn't exist
             let room = rooms.get(roomId);
             if (!room) {
                 const worker = getMediasoupWorker();
                 room = await createRoom(roomId, worker);
                 rooms.set(roomId, room);
+            }
+
+            // Check if there's already a peer with the same name in the room
+            const duplicatePeer = Array.from(room.getPeers().values())
+                .find(p => p.name === name && p.id !== socket.id);
+            
+            if (duplicatePeer) {
+                console.log(`Removing duplicate peer with name ${name} (${duplicatePeer.id}) from room ${roomId}`);
+                // Clean up duplicate peer
+                room.removePeer(duplicatePeer.id);
+                if (duplicatePeer.socket && duplicatePeer.socket.connected) {
+                    duplicatePeer.socket.disconnect(true);
+                }
+                duplicatePeer.close();
+                peers.delete(duplicatePeer.id);
             }
 
             // Create peer
@@ -875,8 +903,9 @@ io.on('connection', async (socket) => {
         }
     });
 
-    socket.on('disconnect', () => {
-        console.log('Client disconnected:', socket.id);
+    // Handle disconnecting event (triggered before disconnect)
+    socket.on('disconnecting', () => {
+        console.log('Client disconnecting:', socket.id);
         
         const peer = peers.get(socket.id);
         if (!peer) return;
@@ -887,29 +916,42 @@ io.on('connection', async (socket) => {
         // Уведомляем о закрытии всех producers перед удалением пира
         peer.producers.forEach((producer, producerId) => {
             const mediaType = producer.appData?.mediaType || 'unknown';
-            io.to(room.id).emit('producerClosed', {
+            socket.to(room.id).emit('producerClosed', {
                 producerId,
                 producerSocketId: socket.id,
                 mediaType
             });
         });
 
-        // Close all transports, producers, and consumers
-        peer.close();
-
-        // Remove peer from room and peers map
-        room.removePeer(socket.id);
-        peers.delete(socket.id);
-
-        // Notify other peers
+        // Notify other peers about peer leaving
         socket.to(room.id).emit('peerLeft', {
-            peerId: socket.id
+            peerId: socket.id,
+            name: peer.name
         });
+    });
 
-        // If room is empty, remove it
-        if (room.getPeers().size === 0) {
-            rooms.delete(room.id);
+    socket.on('disconnect', (reason) => {
+        console.log(`Client disconnected: ${socket.id}, reason: ${reason}`);
+        
+        const peer = peers.get(socket.id);
+        if (!peer) return;
+
+        const room = rooms.get(socket.data?.roomId);
+        if (room) {
+            // Close all transports, producers, and consumers
+            peer.close();
+
+            // Remove peer from room and peers map
+            room.removePeer(socket.id);
+            
+            // If room is empty, remove it
+            if (room.getPeers().size === 0) {
+                console.log(`Room ${room.id} is empty, removing...`);
+                rooms.delete(room.id);
+            }
         }
+        
+        peers.delete(socket.id);
     });
 });
 
