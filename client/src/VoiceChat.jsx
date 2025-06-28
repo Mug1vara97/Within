@@ -1771,7 +1771,7 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
       // Сбрасываем флаг попытки подключения при ошибке
       connectionAttemptRef.current = false;
     }
-  };
+  }, 500); // 500ms debounce
 
   // Исправление линтера: переименуем функцию, чтобы показать, что она используется
   const loadDevice = async (routerRtpCapabilities) => {
