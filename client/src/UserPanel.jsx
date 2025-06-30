@@ -2,9 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import { BASE_URL } from './config/apiConfig';
 import { Mic, MicOff, Headset, HeadsetOff } from '@mui/icons-material';
 
-const UserPanel = ({ userId, username, isOpen, onClose, voiceRoom, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
+const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
     const [userProfile, setUserProfile] = useState(null);
-    const [avatarColor, setAvatarColor] = useState('#5865F2');
     const [showProfile, setShowProfile] = useState(false);
     const [showBannerEditor, setShowBannerEditor] = useState(false);
     const [bannerInput, setBannerInput] = useState('');
@@ -150,56 +149,54 @@ const UserPanel = ({ userId, username, isOpen, onClose, voiceRoom, isMuted, isAu
             <div className="user-info">
                 <span className="username">{username}</span>
                 
-                {/* Кнопки управления звуком - показываем только если подключен к голосовому каналу */}
-                {voiceRoom && (
-                    <div className="voice-controls" style={{
-                        display: 'flex',
-                        gap: '8px',
-                        marginTop: '4px'
-                    }}>
-                        <button
-                            className="voice-control-button"
-                            onClick={onToggleMute}
-                            title={isMuted ? "Включить микрофон" : "Выключить микрофон"}
-                            style={{
-                                background: isMuted ? '#ed4245' : '#40444b',
-                                border: 'none',
-                                borderRadius: '4px',
-                                width: '32px',
-                                height: '32px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                color: '#ffffff',
-                                transition: 'background-color 0.2s'
-                            }}
-                        >
-                            {isMuted ? <MicOff fontSize="small" /> : <Mic fontSize="small" />}
-                        </button>
-                        
-                        <button
-                            className="voice-control-button"
-                            onClick={onToggleAudio}
-                            title={isAudioEnabled ? "Выключить звук" : "Включить звук"}
-                            style={{
-                                background: !isAudioEnabled ? '#ed4245' : '#40444b',
-                                border: 'none',
-                                borderRadius: '4px',
-                                width: '32px',
-                                height: '32px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                color: '#ffffff',
-                                transition: 'background-color 0.2s'
-                            }}
-                        >
-                            {isAudioEnabled ? <Headset fontSize="small" /> : <HeadsetOff fontSize="small" />}
-                        </button>
-                    </div>
-                )}
+                {/* Кнопки управления звуком - всегда видны */}
+                <div className="voice-controls" style={{
+                    display: 'flex',
+                    gap: '8px',
+                    marginTop: '4px'
+                }}>
+                    <button
+                        className="voice-control-button"
+                        onClick={onToggleMute}
+                        title={isMuted ? "Включить микрофон" : "Выключить микрофон"}
+                        style={{
+                            background: isMuted ? '#ed4245' : '#40444b',
+                            border: 'none',
+                            borderRadius: '4px',
+                            width: '32px',
+                            height: '32px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            color: '#ffffff',
+                            transition: 'background-color 0.2s'
+                        }}
+                    >
+                        {isMuted ? <MicOff fontSize="small" /> : <Mic fontSize="small" />}
+                    </button>
+                    
+                    <button
+                        className="voice-control-button"
+                        onClick={onToggleAudio}
+                        title={isAudioEnabled ? "Выключить звук" : "Включить звук"}
+                        style={{
+                            background: !isAudioEnabled ? '#ed4245' : '#40444b',
+                            border: 'none',
+                            borderRadius: '4px',
+                            width: '32px',
+                            height: '32px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            color: '#ffffff',
+                            transition: 'background-color 0.2s'
+                        }}
+                    >
+                        {isAudioEnabled ? <Headset fontSize="small" /> : <HeadsetOff fontSize="small" />}
+                    </button>
+                </div>
             </div>
 
             {showProfile && (
@@ -311,7 +308,7 @@ const UserPanel = ({ userId, username, isOpen, onClose, voiceRoom, isMuted, isAu
                                             value={bannerInput.startsWith('#') ? bannerInput : '#5865F2'}
                                             onChange={(e) => setBannerInput(e.target.value)}
                                         />
-                                        <button onClick={() => setBannerInput(avatarColor)}>
+                                        <button onClick={() => setBannerInput(userProfile?.avatarColor || '#5865F2')}>
                                             Использовать цвет аватарки
                                         </button>
                                     </div>

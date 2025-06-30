@@ -1092,11 +1092,11 @@ const VideoView = React.memo(({
   );
 });
 
-const VoiceChat = forwardRef(({ roomId, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange }, ref) => {
+const VoiceChat = forwardRef(({ roomId, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true }, ref) => {
   const [isJoined, setIsJoined] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [isMuted, setIsMuted] = useState(initialMuted);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(initialAudioEnabled);
   const [useEarpiece, setUseEarpiece] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(false);

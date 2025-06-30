@@ -29,6 +29,16 @@ const Home = ({ user }) => {
     const [isMuted, setIsMuted] = useState(false);
     const [isAudioEnabled, setIsAudioEnabled] = useState(true);
     
+    // Локальные настройки для кнопок (независимые от активного голосового чата)
+    const [localMuted, setLocalMuted] = useState(() => {
+        const saved = localStorage.getItem('localMuted');
+        return saved ? JSON.parse(saved) : false;
+    });
+    const [localAudioEnabled, setLocalAudioEnabled] = useState(() => {
+        const saved = localStorage.getItem('localAudioEnabled');
+        return saved ? JSON.parse(saved) : true;
+    });
+    
     // Определяем, отображается ли VoiceChat в основной области (только для серверов)
     const isVoiceChatVisible = useMemo(() => {
         if (!voiceRoom) return false;
@@ -74,14 +84,22 @@ const Home = ({ user }) => {
     
     // Функции управления мьютом для UserPanel
     const handleToggleMute = () => {
-        if (voiceChatRef.current && voiceChatRef.current.handleMute) {
+        if (voiceRoom && voiceChatRef.current && voiceChatRef.current.handleMute) {
+            // Если в голосовом чате - управляем реальным мьютом
             voiceChatRef.current.handleMute();
+        } else {
+            // Если не в голосовом чате - управляем локальным состоянием
+            setLocalMuted(!localMuted);
         }
     };
     
     const handleToggleAudio = () => {
-        if (voiceChatRef.current && voiceChatRef.current.toggleAudio) {
+        if (voiceRoom && voiceChatRef.current && voiceChatRef.current.toggleAudio) {
+            // Если в голосовом чате - управляем реальным звуком
             voiceChatRef.current.toggleAudio();
+        } else {
+            // Если не в голосовом чате - управляем локальным состоянием
+            setLocalAudioEnabled(!localAudioEnabled);
         }
     };
     
@@ -102,6 +120,15 @@ const Home = ({ user }) => {
             localStorage.removeItem('voiceRoom');
         }
     }, [voiceRoom]);
+    
+    // Сохраняем локальные настройки в localStorage
+    useEffect(() => {
+        localStorage.setItem('localMuted', JSON.stringify(localMuted));
+    }, [localMuted]);
+    
+    useEffect(() => {
+        localStorage.setItem('localAudioEnabled', JSON.stringify(localAudioEnabled));
+    }, [localAudioEnabled]);
 
     // Синхронизируем состояние с текущим маршрутом
     useEffect(() => {
@@ -143,8 +170,8 @@ const Home = ({ user }) => {
                                     onJoinVoiceChannel={handleJoinVoiceChannel}
                                     voiceRoom={voiceRoom}
                                     leftVoiceChannel={leftVoiceChannel}
-                                    isMuted={isMuted}
-                                    isAudioEnabled={isAudioEnabled}
+                                    isMuted={voiceRoom ? isMuted : localMuted}
+                                    isAudioEnabled={voiceRoom ? isAudioEnabled : localAudioEnabled}
                                     onToggleMute={handleToggleMute}
                                     onToggleAudio={handleToggleAudio}
                                 />
@@ -156,8 +183,8 @@ const Home = ({ user }) => {
                                     voiceRoom={voiceRoom}
                                     isVoiceChatVisible={isVoiceChatVisible}
                                     leftVoiceChannel={leftVoiceChannel}
-                                    isMuted={isMuted}
-                                    isAudioEnabled={isAudioEnabled}
+                                    isMuted={voiceRoom ? isMuted : localMuted}
+                                    isAudioEnabled={voiceRoom ? isAudioEnabled : localAudioEnabled}
                                     onToggleMute={handleToggleMute}
                                     onToggleAudio={handleToggleAudio}
                                 />
@@ -181,6 +208,8 @@ const Home = ({ user }) => {
                                 onLeave={handleLeaveVoiceChannel}
                                 onMuteStateChange={handleMuteStateChange}
                                 onAudioStateChange={handleAudioStateChange}
+                                initialMuted={localMuted}
+                                initialAudioEnabled={localAudioEnabled}
                             />
                         )}                       
 
