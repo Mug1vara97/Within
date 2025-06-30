@@ -156,8 +156,9 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceChan
                 />
             </div>
             <div style={{ flex: 1, width: 'calc(100% - 240px)', height: '100%' }}>
-                {selectedChat ? (
-                    isVoiceChat && isCurrentVoiceRoom ? (
+                {/* Голосовой чат работает в фоне */}
+                {voiceRoom && (
+                    <div style={{ display: isCurrentVoiceRoom ? 'block' : 'none', width: '100%', height: '100%' }}>
                         <VoiceChat
                             key={`${voiceRoom.roomId}-direct`}
                             roomId={voiceRoom.roomId}
@@ -168,7 +169,12 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceChan
                             showUI={true}
                             onLeave={onLeaveVoiceChannel}
                         />
-                    ) : (
+                    </div>
+                )}
+                
+                {/* Текстовые чаты */}
+                {selectedChat ? (
+                    (!isVoiceChat || !isCurrentVoiceRoom) && (
                         <GroupChat
                             username={user?.username}
                             userId={user?.userId}
@@ -178,16 +184,18 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceChan
                         />
                     )
                 ) : (
-                    <div style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        height: '100%',
-                        width: '100%',
-                        color: '#8e9297'
-                    }}>
-                        <h3>Выберите чат для начала общения</h3>
-                    </div>
+                    !voiceRoom && (
+                        <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            height: '100%',
+                            width: '100%',
+                            color: '#8e9297'
+                        }}>
+                            <h3>Выберите чат для начала общения</h3>
+                        </div>
+                    )
                 )}
             </div>
         </div>
@@ -236,8 +244,9 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceCh
             </div>
             
             <div className="server-content" style={{ flex: 1, width: 'calc(100% - 240px)', height: '100%' }}>
-                {selectedChat ? (
-                    isVoiceChat && isCurrentVoiceRoom ? (
+                {/* Голосовой чат работает в фоне */}
+                {voiceRoom && voiceRoom.serverId === serverId && (
+                    <div style={{ display: isCurrentVoiceRoom ? 'block' : 'none', width: '100%', height: '100%' }}>
                         <VoiceChat
                             key={`${voiceRoom.roomId}-${voiceRoom.serverId}`}
                             roomId={voiceRoom.roomId}
@@ -248,7 +257,12 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceCh
                             showUI={true}
                             onLeave={onLeaveVoiceChannel}
                         />
-                    ) : (
+                    </div>
+                )}
+                
+                {/* Текстовые чаты */}
+                {selectedChat ? (
+                    (!isVoiceChat || !isCurrentVoiceRoom) && (
                         <GroupChat
                             username={user?.username}
                             userId={user?.userId}
@@ -261,16 +275,18 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceCh
                         />
                     )
                 ) : (
-                    <div className="no-chat-selected" style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        height: '100%',
-                        width: '100%',
-                        color: '#8e9297'
-                    }}>
-                        <h3>Выберите чат для начала общения</h3>
-                    </div>
+                    !(voiceRoom && voiceRoom.serverId === serverId) && (
+                        <div className="no-chat-selected" style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            height: '100%',
+                            width: '100%',
+                            color: '#8e9297'
+                        }}>
+                            <h3>Выберите чат для начала общения</h3>
+                        </div>
+                    )
                 )}
             </div>
         </div>
