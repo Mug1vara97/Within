@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import ChatList from './ChatList';
 import ServerList from './ServerList';
 import ServerPage from './ServerPage';
@@ -24,6 +24,24 @@ const Home = ({ user }) => {
     
     // Состояние для отображения сообщения о выходе из голосового канала
     const [leftVoiceChannel, setLeftVoiceChannel] = useState(false);
+    
+    // Определяем, отображается ли VoiceChat в основной области
+    const isVoiceChatVisible = useMemo(() => {
+        if (!voiceRoom) return false;
+        
+        // Проверяем, соответствует ли текущий маршрут голосовому каналу
+        if (location.pathname.startsWith('/channels/@me/')) {
+            const chatId = location.pathname.split('/').pop();
+            return chatId && voiceRoom.roomId === chatId;
+        } else if (location.pathname.startsWith('/channels/')) {
+            const pathParts = location.pathname.split('/');
+            const serverId = pathParts[2];
+            const chatId = pathParts[3];
+            return chatId && voiceRoom.roomId === chatId && voiceRoom.serverId === serverId;
+        }
+        
+        return false;
+    }, [voiceRoom, location.pathname]);
     
     // Обработчик подключения к голосовому каналу
     const handleJoinVoiceChannel = (data) => {
@@ -123,8 +141,8 @@ const Home = ({ user }) => {
                         {/* Сообщение о выходе из голосового канала */}
                         {leftVoiceChannel && <LeftVoiceChannelMessage />}
                         
-                        {/* Глобальный голосовой чат работает в фоне */}
-                        {voiceRoom && (
+                        {/* Глобальный голосовой чат работает в фоне только когда не отображается в основной области */}
+                        {voiceRoom && !isVoiceChatVisible && (
                             <div style={{ 
                                 position: 'absolute',
                                 top: 0,
@@ -132,10 +150,11 @@ const Home = ({ user }) => {
                                 width: '100%',
                                 height: '100%',
                                 pointerEvents: 'none',
-                                zIndex: -1
+                                zIndex: -1,
+                                visibility: 'hidden'
                             }}>
                                 <VoiceChat
-                                    key={`${voiceRoom.roomId}-${voiceRoom.serverId || 'direct'}`}
+                                    key={`${voiceRoom.roomId}-${voiceRoom.serverId || 'direct'}-background`}
                                     roomId={voiceRoom.roomId}
                                     userName={voiceRoom.userName}
                                     userId={voiceRoom.userId}
@@ -200,40 +219,16 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceChan
             <div style={{ flex: 1, width: 'calc(100% - 240px)', height: '100%' }}>
                 {selectedChat ? (
                     isVoiceChat && isCurrentVoiceRoom ? (
-                        <div style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            height: '100%',
-                            width: '100%',
-                            backgroundColor: '#36393f',
-                            color: '#dcddde'
-                        }}>
-                            <h2 style={{ marginBottom: '20px' }}>{selectedChat.groupName}</h2>
-                            <div style={{ 
-                                fontSize: '16px',
-                                marginBottom: '20px',
-                                textAlign: 'center'
-                            }}>
-                                Вы находитесь в голосовом канале
-                            </div>
-                            <button
-                                onClick={onLeaveVoiceChannel}
-                                style={{
-                                    backgroundColor: '#ed4245',
-                                    color: 'white',
-                                    border: 'none',
-                                    padding: '10px 20px',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontSize: '14px',
-                                    fontWeight: '500'
-                                }}
-                            >
-                                Отключиться
-                            </button>
-                        </div>
+                        <VoiceChat
+                            key={`${voiceRoom.roomId}-direct-main`}
+                            roomId={voiceRoom.roomId}
+                            userName={voiceRoom.userName}
+                            userId={voiceRoom.userId}
+                            serverId={voiceRoom.serverId}
+                            autoJoin={true}
+                            showUI={true}
+                            onLeave={onLeaveVoiceChannel}
+                        />
                     ) : (
                         <GroupChat
                             username={user?.username}
@@ -304,40 +299,16 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceCh
             <div className="server-content" style={{ flex: 1, width: 'calc(100% - 240px)', height: '100%' }}>
                 {selectedChat ? (
                     isVoiceChat && isCurrentVoiceRoom ? (
-                        <div style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            height: '100%',
-                            width: '100%',
-                            backgroundColor: '#36393f',
-                            color: '#dcddde'
-                        }}>
-                            <h2 style={{ marginBottom: '20px' }}>{selectedChat.groupName || selectedChat.name}</h2>
-                            <div style={{ 
-                                fontSize: '16px',
-                                marginBottom: '20px',
-                                textAlign: 'center'
-                            }}>
-                                Вы находитесь в голосовом канале
-                            </div>
-                            <button
-                                onClick={onLeaveVoiceChannel}
-                                style={{
-                                    backgroundColor: '#ed4245',
-                                    color: 'white',
-                                    border: 'none',
-                                    padding: '10px 20px',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontSize: '14px',
-                                    fontWeight: '500'
-                                }}
-                            >
-                                Отключиться
-                            </button>
-                        </div>
+                        <VoiceChat
+                            key={`${voiceRoom.roomId}-${voiceRoom.serverId}-main`}
+                            roomId={voiceRoom.roomId}
+                            userName={voiceRoom.userName}
+                            userId={voiceRoom.userId}
+                            serverId={voiceRoom.serverId}
+                            autoJoin={true}
+                            showUI={true}
+                            onLeave={onLeaveVoiceChannel}
+                        />
                     ) : (
                         <GroupChat
                             username={user?.username}
