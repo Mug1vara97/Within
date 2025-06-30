@@ -1668,6 +1668,10 @@ const VoiceChat = forwardRef(({ roomId, userName, userId, serverId, autoJoin = t
             socket.emit('audioState', { isEnabled: initialAudioEnabled });
             socket.emit('muteState', { isMuted: initialMuted });
 
+            // Synchronize internal states with initial props after stream creation
+            setIsMuted(initialMuted);
+            setIsAudioEnabled(initialAudioEnabled);
+
             // Handle existing producers
             if (existingProducers && existingProducers.length > 0) {
               console.log('Processing existing producers:', existingProducers);
@@ -2210,8 +2214,14 @@ const VoiceChat = forwardRef(({ roomId, userName, userId, serverId, autoJoin = t
       const settings = track.getSettings();
       console.log('Final audio track settings:', settings);
 
-      // Ensure track is enabled and not muted
-      track.enabled = true; // Always enable the track initially
+      // Set track enabled state based on initial mute state
+      track.enabled = !initialMuted; // Track enabled opposite of mute state
+      
+      // Also set the original stream track to the same state
+      const originalTrack = localStreamRef.current.getAudioTracks()[0];
+      if (originalTrack) {
+        originalTrack.enabled = !initialMuted;
+      }
       
       if (isNoiseSuppressed) {
         const enableResult = await noiseSuppressionRef.current.enable(noiseSuppressionMode);

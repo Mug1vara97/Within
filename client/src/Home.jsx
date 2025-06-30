@@ -25,9 +25,15 @@ const Home = ({ user }) => {
     // Состояние для отображения сообщения о выходе из голосового канала
     const [leftVoiceChannel, setLeftVoiceChannel] = useState(false);
     
-    // Состояния мьюта для UserPanel
-    const [isMuted, setIsMuted] = useState(false);
-    const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+    // Состояния мьюта для UserPanel (инициализируются из localStorage)
+    const [isMuted, setIsMuted] = useState(() => {
+        const saved = localStorage.getItem('localMuted');
+        return saved ? JSON.parse(saved) : false;
+    });
+    const [isAudioEnabled, setIsAudioEnabled] = useState(() => {
+        const saved = localStorage.getItem('localAudioEnabled');
+        return saved ? JSON.parse(saved) : true;
+    });
     
     // Локальные настройки для кнопок (независимые от активного голосового чата)
     const [localMuted, setLocalMuted] = useState(() => {
@@ -92,9 +98,9 @@ const Home = ({ user }) => {
     const handleLeaveVoiceChannel = () => {
         setVoiceRoom(null);
         setLeftVoiceChannel(true);
-        // Сбрасываем состояния мьюта
-        setIsMuted(false);
-        setIsAudioEnabled(true);
+        // НЕ сбрасываем состояния мьюта - сохраняем пользовательские настройки
+        // setIsMuted(false);
+        // setIsAudioEnabled(true);
         
         // Сбрасываем флаг через 5 секунд
         setTimeout(() => {
@@ -144,11 +150,19 @@ const Home = ({ user }) => {
     // Сохраняем локальные настройки в localStorage
     useEffect(() => {
         localStorage.setItem('localMuted', JSON.stringify(localMuted));
-    }, [localMuted]);
+        // Синхронизируем с основными состояниями если не в голосовом чате
+        if (!voiceRoom) {
+            setIsMuted(localMuted);
+        }
+    }, [localMuted, voiceRoom]);
     
     useEffect(() => {
         localStorage.setItem('localAudioEnabled', JSON.stringify(localAudioEnabled));
-    }, [localAudioEnabled]);
+        // Синхронизируем с основными состояниями если не в голосовом чате
+        if (!voiceRoom) {
+            setIsAudioEnabled(localAudioEnabled);
+        }
+    }, [localAudioEnabled, voiceRoom]);
 
     // Синхронизируем состояние с текущим маршрутом
     useEffect(() => {
