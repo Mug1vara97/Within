@@ -85,26 +85,7 @@ const Home = ({ user }) => {
         }
     };
 
-    // Компонент для отображения сообщения о выходе из голосового канала в основной области
-    const LeftVoiceChannelComponent = () => (
-        <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%',
-            width: '100%',
-            backgroundColor: '#36393f',
-            color: '#dcddde'
-        }}>
-            <h2 style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: '600' }}>
-                Вы покинули голосовой канал
-            </h2>
-            <p style={{ margin: 0, fontSize: '16px', color: '#8e9297' }}>
-                Выберите голосовой канал для подключения
-            </p>
-        </div>
-    );
+
 
     return (
         <div className="home-container">
@@ -129,7 +110,6 @@ const Home = ({ user }) => {
                                     voiceRoom={voiceRoom}
                                     isVoiceChatVisible={isVoiceChatVisible}
                                     leftVoiceChannel={leftVoiceChannel}
-                                    LeftVoiceChannelComponent={LeftVoiceChannelComponent}
                                 />
                             } />
                             <Route path="/channels/:serverId/:chatId?" element={
@@ -139,7 +119,6 @@ const Home = ({ user }) => {
                                     voiceRoom={voiceRoom}
                                     isVoiceChatVisible={isVoiceChatVisible}
                                     leftVoiceChannel={leftVoiceChannel}
-                                    LeftVoiceChannelComponent={LeftVoiceChannelComponent}
                                 />
                             } />
                         </Routes>
@@ -168,7 +147,27 @@ const Home = ({ user }) => {
     );
 };
 
-const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible, leftVoiceChannel, LeftVoiceChannelComponent }) => {
+const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible, leftVoiceChannel }) => {
+    // Компонент для отображения сообщения о выходе из голосового канала
+    const LeftVoiceChannelComponent = () => (
+        <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            width: '100%',
+            backgroundColor: '#36393f',
+            color: '#dcddde'
+        }}>
+            <h2 style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: '600' }}>
+                Вы покинули голосовой канал
+            </h2>
+            <p style={{ margin: 0, fontSize: '16px', color: '#8e9297' }}>
+                Выберите голосовой канал для подключения
+            </p>
+        </div>
+    );
     const { chatId } = useParams();
     const chatListRef = useRef(null);
     const [selectedChat, setSelectedChat] = useState(null);
@@ -206,48 +205,70 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisib
                 />
             </div>
             <div style={{ flex: 1, width: 'calc(100% - 240px)', height: '100%' }}>
-                {/* Контейнер для VoiceChat в личных сообщениях */}
-                <div id="voice-chat-container-direct" style={{ 
-                    width: '100%', 
-                    height: '100%',
-                    display: voiceRoom && isVoiceChatVisible && !voiceRoom.serverId ? 'block' : 'none'
-                }} />
-                
-                {/* Сообщение о выходе из голосового канала */}
-                {leftVoiceChannel && !voiceRoom && (
+                {/* Приоритет 1: Сообщение о выходе из голосового канала */}
+                {leftVoiceChannel && !voiceRoom ? (
                     <LeftVoiceChannelComponent />
-                )}
-                
-                {/* Показываем GroupChat если есть выбранный чат И это НЕ голосовой канал ИЛИ голосовой канал не видимый */}
-                {selectedChat && (!voiceRoom || !isVoiceChatVisible || voiceRoom.serverId) && (
-                    <GroupChat
-                        username={user?.username}
-                        userId={user?.userId}
-                        chatId={selectedChat.chatId}
-                        groupName={selectedChat.groupName || selectedChat.name}
-                        isServerChat={false}
-                    />
-                )}
-                
-                {/* Показываем заглушку если нет выбранного чата и нет голосового чата */}
-                {!selectedChat && !voiceRoom && (
-                    <div style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        height: '100%',
-                        width: '100%',
-                        color: '#8e9297'
-                    }}>
-                        <h3>Выберите чат для начала общения</h3>
-                    </div>
+                ) : (
+                    <>
+                        {/* Контейнер для VoiceChat в личных сообщениях */}
+                        <div id="voice-chat-container-direct" style={{ 
+                            width: '100%', 
+                            height: '100%',
+                            display: voiceRoom && isVoiceChatVisible && !voiceRoom.serverId ? 'block' : 'none'
+                        }} />
+                        
+                        {/* Показываем GroupChat если есть выбранный чат И это НЕ голосовой канал ИЛИ голосовой канал не видимый */}
+                        {selectedChat && (!voiceRoom || !isVoiceChatVisible || voiceRoom.serverId) && (
+                            <GroupChat
+                                username={user?.username}
+                                userId={user?.userId}
+                                chatId={selectedChat.chatId}
+                                groupName={selectedChat.groupName || selectedChat.name}
+                                isServerChat={false}
+                            />
+                        )}
+                        
+                        {/* Показываем заглушку если нет выбранного чата и нет голосового чата */}
+                        {!selectedChat && !voiceRoom && (
+                            <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                height: '100%',
+                                width: '100%',
+                                color: '#8e9297'
+                            }}>
+                                <h3>Выберите чат для начала общения</h3>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>
     );
 };
 
-const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible, leftVoiceChannel, LeftVoiceChannelComponent }) => {
+const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible, leftVoiceChannel }) => {
+    // Компонент для отображения сообщения о выходе из голосового канала
+    const LeftVoiceChannelComponent = () => (
+        <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            width: '100%',
+            backgroundColor: '#36393f',
+            color: '#dcddde'
+        }}>
+            <h2 style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: '600' }}>
+                Вы покинули голосовой канал
+            </h2>
+            <p style={{ margin: 0, fontSize: '16px', color: '#8e9297' }}>
+                Выберите голосовой канал для подключения
+            </p>
+        </div>
+    );
     const { serverId, chatId } = useParams();
     const [selectedChat, setSelectedChat] = useState(null);
     
@@ -281,44 +302,46 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVis
             </div>
             
             <div className="server-content" style={{ flex: 1, width: 'calc(100% - 240px)', height: '100%' }}>
-                {/* Контейнер для VoiceChat на сервере */}
-                <div id="voice-chat-container-server" style={{ 
-                    width: '100%', 
-                    height: '100%',
-                    display: voiceRoom && isVoiceChatVisible && voiceRoom.serverId === serverId ? 'block' : 'none'
-                }} />
-                
-                {/* Сообщение о выходе из голосового канала */}
-                {leftVoiceChannel && !voiceRoom && (
+                {/* Приоритет 1: Сообщение о выходе из голосового канала */}
+                {leftVoiceChannel && !voiceRoom ? (
                     <LeftVoiceChannelComponent />
-                )}
-                
-                {/* Показываем GroupChat если есть выбранный чат И это НЕ голосовой канал ИЛИ голосовой канал не видимый */}
-                {selectedChat && (!voiceRoom || !isVoiceChatVisible || voiceRoom.serverId !== serverId) && (
-                    <GroupChat
-                        username={user?.username}
-                        userId={user?.userId}
-                        chatId={selectedChat.chatId}
-                        groupName={selectedChat.groupName || selectedChat.name}
-                        isServerChat={true}
-                        serverId={serverId}
-                        userPermissions={selectedChat.userPermissions}
-                        isServerOwner={selectedChat.isServerOwner}
-                    />
-                )}
-                
-                {/* Показываем заглушку если нет выбранного чата и нет голосового чата */}
-                {!selectedChat && !(voiceRoom && voiceRoom.serverId === serverId) && (
-                    <div className="no-chat-selected" style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        height: '100%',
-                        width: '100%',
-                        color: '#8e9297'
-                    }}>
-                        <h3>Выберите чат для начала общения</h3>
-                    </div>
+                ) : (
+                    <>
+                        {/* Контейнер для VoiceChat на сервере */}
+                        <div id="voice-chat-container-server" style={{ 
+                            width: '100%', 
+                            height: '100%',
+                            display: voiceRoom && isVoiceChatVisible && voiceRoom.serverId === serverId ? 'block' : 'none'
+                        }} />
+                        
+                        {/* Показываем GroupChat если есть выбранный чат И это НЕ голосовой канал ИЛИ голосовой канал не видимый */}
+                        {selectedChat && (!voiceRoom || !isVoiceChatVisible || voiceRoom.serverId !== serverId) && (
+                            <GroupChat
+                                username={user?.username}
+                                userId={user?.userId}
+                                chatId={selectedChat.chatId}
+                                groupName={selectedChat.groupName || selectedChat.name}
+                                isServerChat={true}
+                                serverId={serverId}
+                                userPermissions={selectedChat.userPermissions}
+                                isServerOwner={selectedChat.isServerOwner}
+                            />
+                        )}
+                        
+                        {/* Показываем заглушку если нет выбранного чата и нет голосового чата */}
+                        {!selectedChat && !(voiceRoom && voiceRoom.serverId === serverId) && (
+                            <div className="no-chat-selected" style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                height: '100%',
+                                width: '100%',
+                                color: '#8e9297'
+                            }}>
+                                <h3>Выберите чат для начала общения</h3>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>
