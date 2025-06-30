@@ -1362,6 +1362,23 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     setUseEarpiece(true);
     setIsMuted(initialMuted); // Reset to initial mute state
     
+    // Reset all UI states
+    setPeers(new Map());
+    setVolumes(new Map());
+    setSpeakingStates(new Map());
+    setAudioStates(new Map());
+    setRemoteVideos(new Map());
+    setRemoteScreens(new Map());
+    setIsConnected(false);
+    setIsJoined(false);
+    setError('');
+    
+    // Clear all refs
+    individualMutedPeersRef.current.clear();
+    volumesRef.current.clear();
+    speakingStatesRef.current.clear();
+    mutedPeersRef.current.clear();
+    
     // Close all media streams
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => track.stop());
