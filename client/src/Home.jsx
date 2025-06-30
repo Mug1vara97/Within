@@ -27,19 +27,38 @@ const Home = ({ user }) => {
     
     // Определяем, отображается ли VoiceChat в основной области
     const isVoiceChatVisible = useMemo(() => {
-        if (!voiceRoom) return false;
+        if (!voiceRoom) {
+            console.log('isVoiceChatVisible: false - no voiceRoom');
+            return false;
+        }
+        
+        console.log('Checking voice chat visibility:', {
+            voiceRoom,
+            pathname: location.pathname
+        });
         
         // Проверяем, соответствует ли текущий маршрут голосовому каналу
         if (location.pathname.startsWith('/channels/@me/')) {
             const chatId = location.pathname.split('/').pop();
-            return chatId && voiceRoom.roomId === chatId;
+            const result = chatId && voiceRoom.roomId === chatId;
+            console.log('Direct message voice check:', { chatId, roomId: voiceRoom.roomId, result });
+            return result;
         } else if (location.pathname.startsWith('/channels/')) {
             const pathParts = location.pathname.split('/');
             const serverId = pathParts[2];
             const chatId = pathParts[3];
-            return chatId && voiceRoom.roomId === chatId && voiceRoom.serverId === serverId;
+            const result = chatId && voiceRoom.roomId === chatId && voiceRoom.serverId === serverId;
+            console.log('Server voice check:', { 
+                serverId, 
+                chatId, 
+                roomId: voiceRoom.roomId, 
+                voiceServerId: voiceRoom.serverId, 
+                result 
+            });
+            return result;
         }
         
+        console.log('isVoiceChatVisible: false - no matching path');
         return false;
     }, [voiceRoom, location.pathname]);
     
@@ -299,6 +318,16 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceCh
             
             <div className="server-content" style={{ flex: 1, width: 'calc(100% - 240px)', height: '100%' }}>
                 {/* Показываем VoiceChat если это серверный голосовой канал и он видимый */}
+                {(() => {
+                    console.log('ServerPageWrapper render check:', {
+                        voiceRoom,
+                        isVoiceChatVisible,
+                        serverId,
+                        voiceRoomServerId: voiceRoom?.serverId,
+                        shouldShowVoiceChat: voiceRoom && isVoiceChatVisible && voiceRoom.serverId === serverId
+                    });
+                    return null;
+                })()}
                 {voiceRoom && isVoiceChatVisible && voiceRoom.serverId === serverId && (
                     <VoiceChat
                         key={`${voiceRoom.roomId}-${voiceRoom.serverId}`}
