@@ -131,12 +131,19 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
       if (!isOpen) return null;    
 
     return (
-        <div className="user-panel">
+        <>
+        <div className="user-panel" style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            width: '100%'
+        }}>
              <div 
                 className="user-avatar" 
                 style={{ 
                     backgroundColor: userProfile?.avatarColor || '#5865F2', 
-                    cursor: 'pointer' 
+                    cursor: 'pointer',
+                    flexShrink: 0
                 }}
                 onClick={toggleProfile}
             >
@@ -146,23 +153,20 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
                     username.charAt(0).toUpperCase()
                 )}
             </div>
-            <div className="user-info" style={{
+            
+            <span className="username" style={{
+                textAlign: 'center',
+                flex: 1,
+                color: '#dcddde'
+            }}>{username}</span>
+            
+            {/* Кнопки управления звуком - справа */}
+            <div className="voice-controls" style={{
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                width: '100%'
+                gap: '6px',
+                flexShrink: 0
             }}>
-                <span className="username" style={{
-                    textAlign: 'center',
-                    flex: 1
-                }}>{username}</span>
-                
-                {/* Кнопки управления звуком - справа */}
-                <div className="voice-controls" style={{
-                    display: 'flex',
-                    gap: '6px'
-                }}>
-                    <button
+                <button
                         className="voice-control-button"
                         onClick={onToggleMute}
                         title={isMuted ? "Включить микрофон" : "Выключить микрофон"}
@@ -204,9 +208,9 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
                         {isAudioEnabled ? <Headset fontSize="small" /> : <HeadsetOff fontSize="small" />}
                     </button>
                 </div>
-            </div>
+        </div>
 
-            {showProfile && (
+        {showProfile && (
                 <div className="profile-modal">
                     <div className="profile-modal-content">
                         <div className="profile-banner" style={{ 
@@ -367,7 +371,7 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
                     <div className="profile-modal-overlay" onClick={toggleProfile}></div>
                 </div>
             )}
-        </div>
+        </>
     );
 };
 
