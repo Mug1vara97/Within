@@ -133,7 +133,6 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
     return (
         <>
         <div className="user-panel" style={{
-            position: 'relative',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
@@ -161,13 +160,11 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
                 color: '#dcddde'
             }}>{username}</span>
             
-            {/* Кнопки управления звуком - абсолютно по центру UserPanel */}
+            {/* Кнопки управления звуком - справа, но выровнены по центру */}
             <div className="voice-controls" style={{
-                position: 'absolute',
-                left: '50%',
-                transform: 'translateX(-50%)',
                 display: 'flex',
                 gap: '6px',
+                flexShrink: 0,
                 alignItems: 'center'
             }}>
                 <button
