@@ -149,7 +149,7 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
             <div className="user-info" style={{
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
+                gap: '8px',
                 width: '100%'
             }}>
                 <span className="username">{username}</span>
@@ -157,7 +157,8 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
                 {/* Кнопки управления звуком - справа от имени */}
                 <div className="voice-controls" style={{
                     display: 'flex',
-                    gap: '6px'
+                    gap: '6px',
+                    marginLeft: 'auto'
                 }}>
                     <button
                         className="voice-control-button"
