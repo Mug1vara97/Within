@@ -283,18 +283,19 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel
     // Обработчик для получения выбранного чата из ChatList
     const handleChatSelected = (chat) => {
         if (chat) {
-            setSelectedChat({
-                chatId: chat.chat_id,
-                groupName: chat.username,
-                chatType: chat.isGroupChat ? 2 : 1,
-                typeId: chat.chatType
-            });
+                    setSelectedChat({
+            chatId: chat.chat_id,
+            groupName: chat.username,
+            name: chat.name,
+            chatType: chat.isGroupChat ? 2 : 1,
+            typeId: chat.chatType
+        });
             
             // Если это голосовой канал, подключаемся к нему
             if (chat.chatType === 4 || chat.typeId === 4) {
                 onJoinVoiceChannel({
                     roomId: chat.chat_id,
-                    roomName: chat.username || chat.name, // Добавляем название комнаты
+                    roomName: selectedChat.groupName || selectedChat.name, // Используем ту же логику как в GroupChat
                     userName: user.username,
                     userId: user.userId
                 });
@@ -390,7 +391,7 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVis
             if (chat.chatType === 4 || chat.typeId === 4) {
                 onJoinVoiceChannel({
                     roomId: chat.chatId,
-                    roomName: chat.name || chat.chatName, // Добавляем название комнаты
+                    roomName: selectedChat.groupName || selectedChat.name, // Используем ту же логику как в GroupChat
                     userName: user.username,
                     userId: user.userId,
                     serverId: serverId
