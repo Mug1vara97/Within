@@ -88,54 +88,22 @@ const Home = ({ user }) => {
                                 <ChatListWrapper 
                                     user={user} 
                                     onJoinVoiceChannel={handleJoinVoiceChannel}
+                                    voiceRoom={voiceRoom}
+                                    onLeaveVoiceChannel={handleLeaveVoiceChannel}
                                 />
                             } />
                             <Route path="/channels/:serverId/:chatId?" element={
                                 <ServerPageWrapper 
                                     user={user} 
                                     onJoinVoiceChannel={handleJoinVoiceChannel}
+                                    voiceRoom={voiceRoom}
+                                    onLeaveVoiceChannel={handleLeaveVoiceChannel}
                                 />
                             } />
                         </Routes>
                         
                         {/* Сообщение о выходе из голосового канала */}
                         {leftVoiceChannel && <LeftVoiceChannelMessage />}
-                        
-                        {/* Глобальный VoiceChat */}
-                        {voiceRoom && (
-                            <div style={{
-                                position: 'fixed',
-                                top: 0,
-                                left: 0,
-                                width: '100%',
-                                height: '100%',
-                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                zIndex: 1000,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                            }}>
-                                <div style={{
-                                    width: '90%',
-                                    height: '90%',
-                                    maxWidth: '1200px',
-                                    maxHeight: '800px',
-                                    backgroundColor: '#36393f',
-                                    borderRadius: '8px',
-                                    overflow: 'hidden'
-                                }}>
-                                    <VoiceChat
-                                        key={`${voiceRoom.roomId}-${voiceRoom.serverId || 'direct'}`}
-                                        roomId={voiceRoom.roomId}
-                                        userName={voiceRoom.userName}
-                                        userId={voiceRoom.userId}
-                                        serverId={voiceRoom.serverId}
-                                        autoJoin={true}
-                                        onLeave={handleLeaveVoiceChannel}
-                                    />
-                                </div>
-                            </div>
-                        )}
                     </>
                 )}
             </div>
@@ -143,7 +111,7 @@ const Home = ({ user }) => {
     );
 };
 
-const ChatListWrapper = ({ user, onJoinVoiceChannel }) => {
+const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceChannel }) => {
     const { chatId } = useParams();
     const chatListRef = useRef(null);
     const [selectedChat, setSelectedChat] = useState(null);
@@ -172,6 +140,10 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel }) => {
         }
     };
     
+    // Проверяем, является ли текущий выбранный чат голосовым
+    const isVoiceChat = selectedChat && (selectedChat.chatType === 4 || selectedChat.typeId === 4);
+    const isCurrentVoiceRoom = voiceRoom && selectedChat && voiceRoom.roomId === selectedChat.chatId;
+    
     return (
         <div style={{ display: 'flex', width: '100%', height: '100%' }}>
             <div style={{ width: '240px', minWidth: '240px', borderRight: '1px solid #2f3136' }}>
@@ -185,13 +157,26 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel }) => {
             </div>
             <div style={{ flex: 1, width: 'calc(100% - 240px)', height: '100%' }}>
                 {selectedChat ? (
-                    <GroupChat
-                        username={user?.username}
-                        userId={user?.userId}
-                        chatId={selectedChat.chatId}
-                        groupName={selectedChat.groupName || selectedChat.name}
-                        isServerChat={false}
-                    />
+                    isVoiceChat && isCurrentVoiceRoom ? (
+                        <VoiceChat
+                            key={`${voiceRoom.roomId}-direct`}
+                            roomId={voiceRoom.roomId}
+                            userName={voiceRoom.userName}
+                            userId={voiceRoom.userId}
+                            serverId={voiceRoom.serverId}
+                            autoJoin={true}
+                            showUI={true}
+                            onLeave={onLeaveVoiceChannel}
+                        />
+                    ) : (
+                        <GroupChat
+                            username={user?.username}
+                            userId={user?.userId}
+                            chatId={selectedChat.chatId}
+                            groupName={selectedChat.groupName || selectedChat.name}
+                            isServerChat={false}
+                        />
+                    )
                 ) : (
                     <div style={{ 
                         display: 'flex', 
@@ -209,7 +194,7 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel }) => {
     );
 };
 
-const ServerPageWrapper = ({ user, onJoinVoiceChannel }) => {
+const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceChannel }) => {
     const { serverId, chatId } = useParams();
     const [selectedChat, setSelectedChat] = useState(null);
     
@@ -234,6 +219,10 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel }) => {
         }
     };
     
+    // Проверяем, является ли текущий выбранный чат голосовым
+    const isVoiceChat = selectedChat && (selectedChat.chatType === 4 || selectedChat.typeId === 4);
+    const isCurrentVoiceRoom = voiceRoom && selectedChat && voiceRoom.roomId === selectedChat.chatId;
+    
     return (
         <div style={{ display: 'flex', width: '100%', height: '100%' }}>
             <div style={{ width: '240px', minWidth: '240px', borderRight: '1px solid #2f3136' }}>
@@ -248,16 +237,29 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel }) => {
             
             <div className="server-content" style={{ flex: 1, width: 'calc(100% - 240px)', height: '100%' }}>
                 {selectedChat ? (
-                    <GroupChat
-                        username={user?.username}
-                        userId={user?.userId}
-                        chatId={selectedChat.chatId}
-                        groupName={selectedChat.groupName || selectedChat.name}
-                        isServerChat={true}
-                        serverId={serverId}
-                        userPermissions={selectedChat.userPermissions}
-                        isServerOwner={selectedChat.isServerOwner}
-                    />
+                    isVoiceChat && isCurrentVoiceRoom ? (
+                        <VoiceChat
+                            key={`${voiceRoom.roomId}-${voiceRoom.serverId}`}
+                            roomId={voiceRoom.roomId}
+                            userName={voiceRoom.userName}
+                            userId={voiceRoom.userId}
+                            serverId={voiceRoom.serverId}
+                            autoJoin={true}
+                            showUI={true}
+                            onLeave={onLeaveVoiceChannel}
+                        />
+                    ) : (
+                        <GroupChat
+                            username={user?.username}
+                            userId={user?.userId}
+                            chatId={selectedChat.chatId}
+                            groupName={selectedChat.groupName || selectedChat.name}
+                            isServerChat={true}
+                            serverId={serverId}
+                            userPermissions={selectedChat.userPermissions}
+                            isServerOwner={selectedChat.isServerOwner}
+                        />
+                    )
                 ) : (
                     <div className="no-chat-selected" style={{ 
                         display: 'flex', 
