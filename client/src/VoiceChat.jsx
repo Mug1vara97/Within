@@ -1143,6 +1143,11 @@ const VoiceChat = forwardRef(({ roomId, userName, userId, serverId, autoJoin = t
   const isAudioEnabledRef = useRef(isAudioEnabled);
   const individualMutedPeersRef = useRef(new Map());
 
+  // Sync isAudioEnabled state with ref
+  useEffect(() => {
+    isAudioEnabledRef.current = isAudioEnabled;
+  }, [isAudioEnabled]);
+
   const socketRef = useRef();
   const deviceRef = useRef();
   const producerTransportRef = useRef();
@@ -1341,11 +1346,11 @@ const VoiceChat = forwardRef(({ roomId, userName, userId, serverId, autoJoin = t
   }, [socketRef.current]);
 
   const cleanup = () => {
-    // Reset states to enabled
-    setIsAudioEnabled(true);
-    isAudioEnabledRef.current = true;
+    // Reset states to initial values
+    setIsAudioEnabled(initialAudioEnabled);
+    isAudioEnabledRef.current = initialAudioEnabled;
     setUseEarpiece(true);
-    setIsMuted(false); // Reset mute state
+    setIsMuted(initialMuted); // Reset to initial mute state
     
     // Close all media streams
     if (localStreamRef.current) {
@@ -1479,11 +1484,11 @@ const VoiceChat = forwardRef(({ roomId, userName, userId, serverId, autoJoin = t
     }
 
     try {
-      // Reset states to enabled when joining
-      setIsAudioEnabled(true);
-      isAudioEnabledRef.current = true;
+      // Set states to initial values when joining
+      setIsAudioEnabled(initialAudioEnabled);
+      isAudioEnabledRef.current = initialAudioEnabled;
       setUseEarpiece(true);
-      setIsMuted(false); // Reset mute state
+      setIsMuted(initialMuted); // Use initial mute state
 
       // Clean up old socket if exists
       if (socketRef.current) {
@@ -1519,8 +1524,8 @@ const VoiceChat = forwardRef(({ roomId, userName, userId, serverId, autoJoin = t
         console.log('Socket connected successfully');
         setIsConnected(true);
         // Set initial states
-        socket.emit('muteState', { isMuted: false });
-        socket.emit('audioState', { isEnabled: isAudioEnabled });
+        socket.emit('muteState', { isMuted: initialMuted });
+        socket.emit('audioState', { isEnabled: initialAudioEnabled });
       });
 
       socket.on('connect_error', (error) => {
