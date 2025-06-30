@@ -390,7 +390,7 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVis
             if (chat.chatType === 4 || chat.typeId === 4) {
                 onJoinVoiceChannel({
                     roomId: chat.chatId,
-                    roomName: chat.name || chat.chatName, // Добавляем название комнаты
+                    roomName: chat.groupName, // Название голосового канала это groupName
                     userName: user.username,
                     userId: user.userId,
                     serverId: serverId
