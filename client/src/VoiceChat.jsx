@@ -1142,11 +1142,21 @@ const VoiceChat = forwardRef(({ roomId, userName, userId, serverId, autoJoin = t
   const noiseSuppressionRef = useRef(null);
   const isAudioEnabledRef = useRef(isAudioEnabled);
   const individualMutedPeersRef = useRef(new Map());
+  const volumesRef = useRef(new Map());
+  const speakingStatesRef = useRef(new Map());
 
-  // Sync isAudioEnabled state with ref
+  // Sync states with refs
   useEffect(() => {
     isAudioEnabledRef.current = isAudioEnabled;
   }, [isAudioEnabled]);
+
+  useEffect(() => {
+    volumesRef.current = volumes;
+  }, [volumes]);
+
+  useEffect(() => {
+    speakingStatesRef.current = speakingStates;
+  }, [speakingStates]);
 
   const socketRef = useRef();
   const deviceRef = useRef();
@@ -1924,6 +1934,13 @@ const VoiceChat = forwardRef(({ roomId, userName, userId, serverId, autoJoin = t
               newStates.set(socketRef.current.id, false);
               return newStates;
             });
+          } else {
+            // Когда микрофон включается, перезапускаем детекцию голоса
+            const analyser = analyserNodesRef.current.get(socketRef.current.id);
+            if (analyser) {
+              console.log('Restarting voice detection after unmute');
+              detectSpeaking(analyser, socketRef.current.id);
+            }
           }
         }
 
@@ -2711,6 +2728,18 @@ const VoiceChat = forwardRef(({ roomId, userName, userId, serverId, autoJoin = t
         return;
       }
 
+      // Очищаем старый voice detector если существует
+      const existingPeerAudio = audioRef.current.get(peerId);
+      if (existingPeerAudio instanceof Map && existingPeerAudio.has('voiceDetector')) {
+        const oldVoiceDetector = existingPeerAudio.get('voiceDetector');
+        if (oldVoiceDetector) {
+          console.log('Cleaning up old voice detector for peer:', peerId);
+          oldVoiceDetector.port.close();
+          oldVoiceDetector.disconnect();
+          existingPeerAudio.delete('voiceDetector');
+        }
+      }
+
       // Загружаем воркер если еще не загружен
       try {
         await audioContextRef.current.audioWorklet.addModule(voiceDetectorWorklet);
@@ -2795,10 +2824,21 @@ const VoiceChat = forwardRef(({ roomId, userName, userId, serverId, autoJoin = t
         const { speaking } = event.data;
         console.log('Voice detection event:', { peerId, speaking });
         
-        // Проверяем состояние мьюта
-        if ((peerId === socketRef.current?.id && isMuted) || 
-            (peerId !== socketRef.current?.id && (volumes.get(peerId) || 100) === 0)) {
-          if (speakingStates.get(peerId)) {
+        // Проверяем реальное состояние мьюта через трек, а не только через состояние
+        let actuallyMuted = false;
+        if (peerId === socketRef.current?.id) {
+          // Для локального пользователя проверяем трек
+          const processedStream = noiseSuppressionRef.current?.getProcessedStream();
+          const localStream = localStreamRef.current;
+          const track = processedStream?.getAudioTracks()[0] || localStream?.getAudioTracks()[0];
+          actuallyMuted = !track || !track.enabled;
+                 } else {
+           // Для удаленных пользователей проверяем volume через ref
+           actuallyMuted = (volumesRef.current.get(peerId) || 100) === 0;
+         }
+         
+         if (actuallyMuted) {
+           if (speakingStatesRef.current.get(peerId)) {
             setSpeakingStates(prev => {
               const newStates = new Map(prev);
               newStates.set(peerId, false);
