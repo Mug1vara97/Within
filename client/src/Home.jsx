@@ -205,9 +205,6 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceChan
         }
     };
     
-    // Проверяем, является ли текущий выбранный чат активным голосовым каналом
-    const isCurrentVoiceRoom = voiceRoom && selectedChat && voiceRoom.roomId === selectedChat.chatId;
-    
     return (
         <div style={{ display: 'flex', width: '100%', height: '100%' }}>
             <div style={{ width: '240px', minWidth: '240px', borderRight: '1px solid #2f3136' }}>
@@ -234,8 +231,8 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceChan
                     />
                 )}
                 
-                {/* Показываем GroupChat если это не голосовой канал или голосовой канал не видимый */}
-                {selectedChat && (!isVoiceChatVisible || !isCurrentVoiceRoom) && (
+                {/* Показываем GroupChat если есть выбранный чат И это НЕ голосовой канал ИЛИ голосовой канал не видимый */}
+                {selectedChat && (!voiceRoom || !isVoiceChatVisible || voiceRoom.serverId) && (
                     <GroupChat
                         username={user?.username}
                         userId={user?.userId}
@@ -288,9 +285,6 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceCh
         }
     };
     
-    // Проверяем, является ли текущий выбранный чат активным голосовым каналом
-    const isCurrentVoiceRoom = voiceRoom && selectedChat && voiceRoom.roomId === selectedChat.chatId;
-    
     return (
         <div style={{ display: 'flex', width: '100%', height: '100%' }}>
             <div style={{ width: '240px', minWidth: '240px', borderRight: '1px solid #2f3136' }}>
@@ -318,8 +312,8 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceCh
                     />
                 )}
                 
-                {/* Показываем GroupChat если это не голосовой канал или голосовой канал не видимый */}
-                {selectedChat && (!isVoiceChatVisible || !isCurrentVoiceRoom) && (
+                {/* Показываем GroupChat если есть выбранный чат И это НЕ голосовой канал ИЛИ голосовой канал не видимый */}
+                {selectedChat && (!voiceRoom || !isVoiceChatVisible || voiceRoom.serverId !== serverId) && (
                     <GroupChat
                         username={user?.username}
                         userId={user?.userId}
