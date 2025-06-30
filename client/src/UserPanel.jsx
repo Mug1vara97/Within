@@ -154,23 +154,19 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
                 )}
             </div>
             
-            <div className="user-info" style={{
+            <span className="username" style={{
+                textAlign: 'center',
+                flex: 1,
+                color: '#dcddde'
+            }}>{username}</span>
+            
+            {/* Кнопки управления звуком - справа, но выровнены по центру */}
+            <div className="voice-controls" style={{
                 display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '4px',
-                flex: 1
+                gap: '6px',
+                flexShrink: 0,
+                alignItems: 'center'
             }}>
-                <span className="username" style={{
-                    textAlign: 'center',
-                    color: '#dcddde'
-                }}>{username}</span>
-                
-                {/* Кнопки управления звуком - под именем по центру */}
-                <div className="voice-controls" style={{
-                    display: 'flex',
-                    gap: '6px'
-                }}>
                 <button
                         className="voice-control-button"
                         onClick={onToggleMute}
@@ -213,7 +209,6 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
                         {isAudioEnabled ? <Headset fontSize="small" /> : <HeadsetOff fontSize="small" />}
                     </button>
                 </div>
-            </div>
         </div>
 
         {showProfile && (
