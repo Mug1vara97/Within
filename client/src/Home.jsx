@@ -27,51 +27,30 @@ const Home = ({ user }) => {
     
     // Определяем, отображается ли VoiceChat в основной области
     const isVoiceChatVisible = useMemo(() => {
-        if (!voiceRoom) {
-            console.log('isVoiceChatVisible: false - no voiceRoom');
-            return false;
-        }
-        
-        console.log('Checking voice chat visibility:', {
-            voiceRoom,
-            pathname: location.pathname
-        });
+        if (!voiceRoom) return false;
         
         // Проверяем, соответствует ли текущий маршрут голосовому каналу
         if (location.pathname.startsWith('/channels/@me/')) {
             const chatId = location.pathname.split('/').pop();
-            const result = chatId && voiceRoom.roomId === chatId;
-            console.log('Direct message voice check:', { chatId, roomId: voiceRoom.roomId, result });
-            return result;
+            return chatId && String(voiceRoom.roomId) === String(chatId);
         } else if (location.pathname.startsWith('/channels/')) {
             const pathParts = location.pathname.split('/');
             const serverId = pathParts[2];
             const chatId = pathParts[3];
-            const result = chatId && voiceRoom.roomId === chatId && voiceRoom.serverId === serverId;
-            console.log('Server voice check:', { 
-                serverId, 
-                chatId, 
-                roomId: voiceRoom.roomId, 
-                voiceServerId: voiceRoom.serverId, 
-                result 
-            });
-            return result;
+            return chatId && String(voiceRoom.roomId) === String(chatId) && String(voiceRoom.serverId) === String(serverId);
         }
         
-        console.log('isVoiceChatVisible: false - no matching path');
         return false;
     }, [voiceRoom, location.pathname]);
     
     // Обработчик подключения к голосовому каналу
     const handleJoinVoiceChannel = (data) => {
-        console.log('Joining voice channel with data:', data);
         setVoiceRoom(data);
         setLeftVoiceChannel(false);
     };
     
     // Обработчик выхода из голосового канала
     const handleLeaveVoiceChannel = () => {
-        console.log('Leaving voice channel');
         setVoiceRoom(null);
         setLeftVoiceChannel(true);
         
@@ -202,8 +181,6 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceChan
     
     // Обработчик для получения выбранного чата из ChatList
     const handleChatSelected = (chat) => {
-        console.log('Home ChatListWrapper handleChatSelected received:', chat);
-        
         if (chat) {
             setSelectedChat({
                 chatId: chat.chat_id,
@@ -214,7 +191,6 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceChan
             
             // Если это голосовой канал, подключаемся к нему
             if (chat.chatType === 4 || chat.typeId === 4) {
-                console.log('Connecting to voice channel:', chat);
                 onJoinVoiceChannel({
                     roomId: chat.chat_id,
                     userName: user.username,
@@ -285,23 +261,17 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceCh
     
     // Обработчик для получения выбранного чата из ServerPage
     const handleChatSelected = (chat) => {
-        console.log('Home ServerPageWrapper handleChatSelected received:', chat);
-        
         if (chat) {
             setSelectedChat(chat);
-            console.log('Home ServerPageWrapper setSelectedChat with:', chat);
             
             // Если это голосовой канал, подключаемся к нему
             if (chat.chatType === 4 || chat.typeId === 4) {
-                console.log('Connecting to voice channel:', chat);
-                const voiceChannelData = {
+                onJoinVoiceChannel({
                     roomId: chat.chatId,
                     userName: user.username,
                     userId: user.userId,
                     serverId: serverId
-                };
-                console.log('Voice channel data being set:', voiceChannelData);
-                onJoinVoiceChannel(voiceChannelData);
+                });
             }
         }
     };
@@ -320,16 +290,6 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceCh
             
             <div className="server-content" style={{ flex: 1, width: 'calc(100% - 240px)', height: '100%' }}>
                 {/* Показываем VoiceChat если это серверный голосовой канал и он видимый */}
-                {(() => {
-                    console.log('ServerPageWrapper render check:', {
-                        voiceRoom,
-                        isVoiceChatVisible,
-                        serverId,
-                        voiceRoomServerId: voiceRoom?.serverId,
-                        shouldShowVoiceChat: voiceRoom && isVoiceChatVisible && voiceRoom.serverId === serverId
-                    });
-                    return null;
-                })()}
                 {voiceRoom && isVoiceChatVisible && voiceRoom.serverId === serverId && (
                     <VoiceChat
                         key={`${voiceRoom.roomId}-${voiceRoom.serverId}`}
