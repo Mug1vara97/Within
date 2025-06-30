@@ -85,20 +85,24 @@ const Home = ({ user }) => {
         }
     };
 
-    // Компонент для отображения сообщения о выходе из голосового канала
-    const LeftVoiceChannelMessage = () => (
-        <div className="left-voice-channel-message" style={{
-            position: 'fixed',
-            bottom: '20px',
-            right: '20px',
+    // Компонент для отображения сообщения о выходе из голосового канала в основной области
+    const LeftVoiceChannelComponent = () => (
+        <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            width: '100%',
             backgroundColor: '#36393f',
-            color: '#dcddde',
-            padding: '10px 15px',
-            borderRadius: '5px',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
-            zIndex: 1000
+            color: '#dcddde'
         }}>
-            <h3>Вы покинули голосовой канал</h3>
+            <h2 style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: '600' }}>
+                Вы покинули голосовой канал
+            </h2>
+            <p style={{ margin: 0, fontSize: '16px', color: '#8e9297' }}>
+                Выберите голосовой канал для подключения
+            </p>
         </div>
     );
 
@@ -124,6 +128,8 @@ const Home = ({ user }) => {
                                     onJoinVoiceChannel={handleJoinVoiceChannel}
                                     voiceRoom={voiceRoom}
                                     isVoiceChatVisible={isVoiceChatVisible}
+                                    leftVoiceChannel={leftVoiceChannel}
+                                    LeftVoiceChannelComponent={LeftVoiceChannelComponent}
                                 />
                             } />
                             <Route path="/channels/:serverId/:chatId?" element={
@@ -132,12 +138,13 @@ const Home = ({ user }) => {
                                     onJoinVoiceChannel={handleJoinVoiceChannel}
                                     voiceRoom={voiceRoom}
                                     isVoiceChatVisible={isVoiceChatVisible}
+                                    leftVoiceChannel={leftVoiceChannel}
+                                    LeftVoiceChannelComponent={LeftVoiceChannelComponent}
                                 />
                             } />
                         </Routes>
                         
-                        {/* Сообщение о выходе из голосового канала */}
-                        {leftVoiceChannel && <LeftVoiceChannelMessage />}
+
                         
                         {/* Единственный VoiceChat - позиционируется динамически */}
                         {voiceRoom && (
@@ -161,7 +168,7 @@ const Home = ({ user }) => {
     );
 };
 
-const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible }) => {
+const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible, leftVoiceChannel, LeftVoiceChannelComponent }) => {
     const { chatId } = useParams();
     const chatListRef = useRef(null);
     const [selectedChat, setSelectedChat] = useState(null);
@@ -206,6 +213,11 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisib
                     display: voiceRoom && isVoiceChatVisible && !voiceRoom.serverId ? 'block' : 'none'
                 }} />
                 
+                {/* Сообщение о выходе из голосового канала */}
+                {leftVoiceChannel && !voiceRoom && (
+                    <LeftVoiceChannelComponent />
+                )}
+                
                 {/* Показываем GroupChat если есть выбранный чат И это НЕ голосовой канал ИЛИ голосовой канал не видимый */}
                 {selectedChat && (!voiceRoom || !isVoiceChatVisible || voiceRoom.serverId) && (
                     <GroupChat
@@ -235,7 +247,7 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisib
     );
 };
 
-const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible }) => {
+const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible, leftVoiceChannel, LeftVoiceChannelComponent }) => {
     const { serverId, chatId } = useParams();
     const [selectedChat, setSelectedChat] = useState(null);
     
@@ -275,6 +287,11 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVis
                     height: '100%',
                     display: voiceRoom && isVoiceChatVisible && voiceRoom.serverId === serverId ? 'block' : 'none'
                 }} />
+                
+                {/* Сообщение о выходе из голосового канала */}
+                {leftVoiceChannel && !voiceRoom && (
+                    <LeftVoiceChannelComponent />
+                )}
                 
                 {/* Показываем GroupChat если есть выбранный чат И это НЕ голосовой канал ИЛИ голосовой канал не видимый */}
                 {selectedChat && (!voiceRoom || !isVoiceChatVisible || voiceRoom.serverId !== serverId) && (
