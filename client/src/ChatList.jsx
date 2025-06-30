@@ -194,7 +194,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
         
         if (connection) {
             try {
-                await connection.invoke("SearchUsers", value.trim());
+                await connection.invoke("SearchUsers", value.trim(), parseInt(userId, 10));
             } catch (error) {
                 console.error('Error searching users:', error);
             }
