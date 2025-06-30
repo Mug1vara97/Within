@@ -294,12 +294,14 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceCh
             // Если это голосовой канал, подключаемся к нему
             if (chat.chatType === 4 || chat.typeId === 4) {
                 console.log('Connecting to voice channel:', chat);
-                onJoinVoiceChannel({
+                const voiceChannelData = {
                     roomId: chat.chatId,
                     userName: user.username,
                     userId: user.userId,
                     serverId: serverId
-                });
+                };
+                console.log('Voice channel data being set:', voiceChannelData);
+                onJoinVoiceChannel(voiceChannelData);
             }
         }
     };
