@@ -47,10 +47,13 @@ const Home = ({ user }) => {
             voiceRoomData: voiceRoom 
         });
         
-        if (!voiceRoom) return false;
+        if (!voiceRoom) {
+            console.log('No voice room - hiding voice chat');
+            return false;
+        }
         
-        // В личных сообщениях голосовой чат всегда скрыт
-        if (location.pathname.startsWith('/channels/@me/')) {
+        // В личных сообщениях голосовой чат всегда скрыт (даже если подключен к серверному каналу)
+        if (location.pathname.startsWith('/channels/@me')) {
             console.log('Personal messages - hiding voice chat');
             return false;
         }
@@ -60,11 +63,19 @@ const Home = ({ user }) => {
             const pathParts = location.pathname.split('/');
             const serverId = pathParts[2];
             const chatId = pathParts[3];
+            
+            // Проверяем что это не личные сообщения (serverId не должен быть @me)
+            if (serverId === '@me') {
+                console.log('Personal messages detected by serverId - hiding voice chat');
+                return false;
+            }
+            
             const isVisible = chatId && String(voiceRoom.roomId) === String(chatId) && String(voiceRoom.serverId) === String(serverId);
             console.log('Server voice chat visibility:', { serverId, chatId, voiceRoom, isVisible });
             return isVisible;
         }
         
+        console.log('Default case - hiding voice chat');
         return false;
     }, [voiceRoom, location.pathname]);
     

@@ -3481,19 +3481,14 @@ const VoiceChat = forwardRef(({ roomId, userName, userId, serverId, autoJoin = t
 
   // Определяем целевой контейнер для портала
   const getTargetContainer = () => {
-    console.log('VoiceChat getTargetContainer:', { isVisible, serverId, pathname: window.location.pathname });
-    
     if (!isVisible) return null;
     
     // Только для серверных голосовых каналов создаем портал
     if (serverId) {
-      const container = document.getElementById('voice-chat-container-server');
-      console.log('Server container found:', !!container);
-      return container;
+      return document.getElementById('voice-chat-container-server');
     }
     
     // Для личных сообщений не создаем портал (работаем в фоне)
-    console.log('Personal messages - no portal container');
     return null;
   };
 
