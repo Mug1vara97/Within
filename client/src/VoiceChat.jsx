@@ -3314,7 +3314,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     }
   };
 
-  // Удален дублирующий useEffect для autoJoin - обрабатывается в useEffect для roomId выше
+  // Первоначальное подключение к голосовому каналу
+  useEffect(() => {
+    if (autoJoin && roomId && userName && !isJoined && !prevRoomIdRef.current) {
+      console.log('Initial connection to voice channel:', roomId);
+      handleJoin();
+    }
+  }, [autoJoin, roomId, userName, isJoined]);
 
   // Автоматический выход при размонтировании компонента
   useEffect(() => {
