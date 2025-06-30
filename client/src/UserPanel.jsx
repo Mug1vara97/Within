@@ -155,7 +155,6 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
             </div>
             
             <span className="username" style={{
-                textAlign: 'center',
                 flex: 1,
                 color: '#dcddde'
             }}>{username}</span>

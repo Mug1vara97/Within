@@ -189,7 +189,7 @@ const styles = {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
     gap: '16px',
-    padding: '20px',
+    padding: '0',
     width: '100%',
     flex: 1,
     margin: 0,
@@ -209,7 +209,7 @@ const styles = {
     justifyContent: 'center',
     alignItems: 'center',
     transition: 'all 0.2s ease-in-out',
-    padding: '16px',
+    padding: '0',
     '&:hover': {
       transform: 'translateY(-2px)',
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
