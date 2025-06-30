@@ -1119,7 +1119,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   useEffect(() => {
     if (prevRoomIdRef.current && prevRoomIdRef.current !== roomId) {
       console.log('Room ID changed, reconnecting to new room:', roomId);
-      handleLeaveCall();
+      handleLeaveCall(true); // Указываем что это переключение канала
       // Небольшая задержка перед подключением к новому каналу
       setTimeout(() => {
         if (autoJoin) {
@@ -1507,6 +1507,12 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const handleJoin = async () => {
     if (!roomId || !userName) {
       setError('Please enter room ID and username');
+      return;
+    }
+
+    // Предотвращаем двойное подключение к тому же каналу
+    if (isJoined && socketRef.current && socketRef.current.connected) {
+      console.log('Already joined to this room, skipping...');
       return;
     }
 
@@ -2446,8 +2452,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     }
   };
 
-  const handleLeaveCall = () => {
-    console.log('Leaving voice call...');
+  const handleLeaveCall = (isChannelSwitch = false) => {
+    console.log('Leaving voice call...', isChannelSwitch ? '(switching channels)' : '(fully leaving)');
     // Очищаем локальное состояние
     cleanup();
     setIsJoined(false);
@@ -2459,13 +2465,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       socketRef.current.disconnect();
       socketRef.current = null;
     }
-    // Вызываем callback если есть
-    if (onManualLeave) {
-      onManualLeave();
-    }
-    // Вызываем callback если есть
-    if (onLeave) {
-      onLeave();
+    // Вызываем callback только при полном выходе, не при переключении каналов
+    if (!isChannelSwitch) {
+      if (onManualLeave) {
+        onManualLeave();
+      }
+      if (onLeave) {
+        onLeave();
+      }
     }
     console.log('Voice call left successfully');
   };
@@ -3307,11 +3314,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     }
   };
 
-  useEffect(() => {
-    if (autoJoin && roomId && userName && !isJoined) {
-      handleJoin();
-    }
-  }, [autoJoin, roomId, userName]);
+  // Удален дублирующий useEffect для autoJoin - обрабатывается в useEffect для roomId выше
 
   // Автоматический выход при размонтировании компонента
   useEffect(() => {
