@@ -102,10 +102,7 @@ const Home = ({ user }) => {
         // setIsMuted(false);
         // setIsAudioEnabled(true);
         
-        // Сбрасываем флаг через 5 секунд
-        setTimeout(() => {
-            setLeftVoiceChannel(false);
-        }, 0);
+        // Убираем автоматический сброс - надпись будет висеть до переключения
     };
     
     // Функции управления мьютом для UserPanel
@@ -204,6 +201,7 @@ const Home = ({ user }) => {
                                     onJoinVoiceChannel={handleJoinVoiceChannel}
                                     voiceRoom={voiceRoom}
                                     leftVoiceChannel={leftVoiceChannel}
+                                    setLeftVoiceChannel={setLeftVoiceChannel}
                                     isMuted={voiceRoom ? isMuted : localMuted}
                                     isAudioEnabled={voiceRoom ? isAudioEnabled : localAudioEnabled}
                                     onToggleMute={handleToggleMute}
@@ -217,6 +215,7 @@ const Home = ({ user }) => {
                                     voiceRoom={voiceRoom}
                                     isVoiceChatVisible={isVoiceChatVisible}
                                     leftVoiceChannel={leftVoiceChannel}
+                                    setLeftVoiceChannel={setLeftVoiceChannel}
                                     isMuted={voiceRoom ? isMuted : localMuted}
                                     isAudioEnabled={voiceRoom ? isAudioEnabled : localAudioEnabled}
                                     onToggleMute={handleToggleMute}
@@ -255,7 +254,7 @@ const Home = ({ user }) => {
     );
 };
 
-const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
+const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
     // Компонент для отображения сообщения о выходе из голосового канала
     const LeftVoiceChannelComponent = () => (
         <div style={{
@@ -289,6 +288,9 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel
                 chatType: chat.isGroupChat ? 2 : 1,
                 typeId: chat.chatType
             });
+            
+            // Убираем надпись о выходе из голосового канала при выборе любого чата
+            setLeftVoiceChannel(false);
             
             // Если это голосовой канал, подключаемся к нему
             if (chat.chatType === 4 || chat.typeId === 4) {
@@ -357,7 +359,7 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel
     );
 };
 
-const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible, leftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
+const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
     // Компонент для отображения сообщения о выходе из голосового канала
     const LeftVoiceChannelComponent = () => (
         <div style={{
@@ -385,6 +387,9 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVis
     const handleChatSelected = (chat) => {
         if (chat) {
             setSelectedChat(chat);
+            
+            // Убираем надпись о выходе из голосового канала при выборе любого чата
+            setLeftVoiceChannel(false);
             
             // Если это голосовой канал, подключаемся к нему
             if (chat.chatType === 4 || chat.typeId === 4) {
