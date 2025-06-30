@@ -41,10 +41,17 @@ const Home = ({ user }) => {
     
     // Определяем, отображается ли VoiceChat в основной области (только для серверов)
     const isVoiceChatVisible = useMemo(() => {
+        console.log('isVoiceChatVisible calculation:', { 
+            voiceRoom: !!voiceRoom, 
+            pathname: location.pathname,
+            voiceRoomData: voiceRoom 
+        });
+        
         if (!voiceRoom) return false;
         
         // В личных сообщениях голосовой чат всегда скрыт
         if (location.pathname.startsWith('/channels/@me/')) {
+            console.log('Personal messages - hiding voice chat');
             return false;
         }
         
@@ -53,7 +60,9 @@ const Home = ({ user }) => {
             const pathParts = location.pathname.split('/');
             const serverId = pathParts[2];
             const chatId = pathParts[3];
-            return chatId && String(voiceRoom.roomId) === String(chatId) && String(voiceRoom.serverId) === String(serverId);
+            const isVisible = chatId && String(voiceRoom.roomId) === String(chatId) && String(voiceRoom.serverId) === String(serverId);
+            console.log('Server voice chat visibility:', { serverId, chatId, voiceRoom, isVisible });
+            return isVisible;
         }
         
         return false;
