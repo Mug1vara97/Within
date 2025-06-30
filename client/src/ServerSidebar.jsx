@@ -18,6 +18,11 @@ const ServerSidebar = ({
     connection,
     userId,
     userRoles,
+    voiceRoom,
+    isMuted,
+    isAudioEnabled,
+    onToggleMute,
+    onToggleAudio,
     ...props
 }) => {
     const [showDropdown, setShowDropdown] = useState(false);
@@ -196,7 +201,16 @@ const ServerSidebar = ({
                 />
             </div>
             
-            <UserPanel userId={userId} username={props.username} isOpen={true}/>
+            <UserPanel 
+                userId={userId} 
+                username={props.username} 
+                isOpen={true}
+                voiceRoom={voiceRoom}
+                isMuted={isMuted}
+                isAudioEnabled={isAudioEnabled}
+                onToggleMute={onToggleMute}
+                onToggleAudio={onToggleAudio}
+            />
         </div>
     );
 };

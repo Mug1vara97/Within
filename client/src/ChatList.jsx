@@ -8,7 +8,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import * as signalR from '@microsoft/signalr';
 import './styles/ChatList.css';
 
-const ChatList = ({ userId, username, initialChatId, onChatSelected }) => {
+const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
     const [chats, setChats] = useState([]);
     const { chatId: urlChatId } = useParams();
     const navigate = useNavigate();
@@ -372,7 +372,16 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected }) => {
                         connection={connection}
                     />
                 )}
-                <UserPanel userId={userId} username={username} isOpen={true}/>
+                <UserPanel 
+                    userId={userId} 
+                    username={username} 
+                    isOpen={true}
+                    voiceRoom={voiceRoom}
+                    isMuted={isMuted}
+                    isAudioEnabled={isAudioEnabled}
+                    onToggleMute={onToggleMute}
+                    onToggleAudio={onToggleAudio}
+                />
             </div>
         </div>
     );

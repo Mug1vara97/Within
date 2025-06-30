@@ -4,7 +4,7 @@ import { BASE_URL } from './config/apiConfig';
 import Modals from './Modals/Modals';
 import { HubConnectionBuilder, LogLevel, HttpTransportType } from '@microsoft/signalr';
 
-const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected }) => {
+const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected, voiceRoom, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
     const [server, setServer] = useState(null);
     const [selectedChat, setSelectedChat] = useState(null);
     const [users, setUsers] = useState([]);
@@ -803,6 +803,11 @@ return (
                 onContextMenu={handleContextMenu}
                 onChatContextMenu={handleChatContextMenu}
                 onCategoryContextMenu={handleCategoryContextMenu}
+                voiceRoom={voiceRoom}
+                isMuted={isMuted}
+                isAudioEnabled={isAudioEnabled}
+                onToggleMute={onToggleMute}
+                onToggleAudio={onToggleAudio}
             />
 
             <Modals

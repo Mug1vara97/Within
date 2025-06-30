@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback, useContext } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, useContext, forwardRef, useImperativeHandle } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Container,
@@ -1092,7 +1092,7 @@ const VideoView = React.memo(({
   );
 });
 
-function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave }) {
+const VoiceChat = forwardRef(({ roomId, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange }, ref) => {
   const [isJoined, setIsJoined] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -1917,9 +1917,14 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
             });
           }
         }
+
+        // Вызываем коллбек для уведомления внешних компонентов
+        if (onMuteStateChange) {
+          onMuteStateChange(newMuteState);
+        }
       }
     }
-  }, [isMuted, setMuteState]);
+  }, [isMuted, setMuteState, onMuteStateChange]);
 
   useEffect(() => {
     const socket = socketRef.current;
@@ -3164,7 +3169,18 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
         gainNode.gain.value = newState ? 1.0 : 0.0;
       }
     });
-  }, [isAudioEnabled]);
+
+    // Вызываем коллбек для уведомления внешних компонентов
+    if (onAudioStateChange) {
+      onAudioStateChange(newState);
+    }
+  }, [isAudioEnabled, onAudioStateChange]);
+
+  // Предоставляем внешним компонентам доступ к функциям управления
+  useImperativeHandle(ref, () => ({
+    handleMute,
+    toggleAudio
+  }), [handleMute, toggleAudio]);
 
   // Add initial audio state when joining
   useEffect(() => {
@@ -3467,11 +3483,13 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
   const getTargetContainer = () => {
     if (!isVisible) return null;
     
+    // Только для серверных голосовых каналов создаем портал
     if (serverId) {
       return document.getElementById('voice-chat-container-server');
-    } else {
-      return document.getElementById('voice-chat-container-direct');
     }
+    
+    // Для личных сообщений не создаем портал (работаем в фоне)
+    return null;
   };
 
   const targetContainer = getTargetContainer();
@@ -3481,8 +3499,8 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
     return createPortal(ui, targetContainer);
   }
   
-  // Если не видимый, возвращаем ui напрямую (будет скрыт через стили)
+  // Если не видимый или нет контейнера, возвращаем ui напрямую (будет скрыт через стили)
   return ui;
-}
+});
 
 export default VoiceChat;
