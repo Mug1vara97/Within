@@ -233,6 +233,7 @@ const Home = ({ user }) => {
                                 ref={voiceChatRef}
                                 key={`${voiceRoom.roomId}-${voiceRoom.serverId || 'direct'}-unified`}
                                 roomId={voiceRoom.roomId}
+                                roomName={voiceRoom.roomName}
                                 userName={voiceRoom.userName}
                                 userId={voiceRoom.userId}
                                 serverId={voiceRoom.serverId}
@@ -293,6 +294,7 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel
             if (chat.chatType === 4 || chat.typeId === 4) {
                 onJoinVoiceChannel({
                     roomId: chat.chat_id,
+                    roomName: chat.username || chat.name, // Добавляем название комнаты
                     userName: user.username,
                     userId: user.userId
                 });
@@ -388,6 +390,7 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVis
             if (chat.chatType === 4 || chat.typeId === 4) {
                 onJoinVoiceChannel({
                     roomId: chat.chatId,
+                    roomName: chat.name || chat.chatName, // Добавляем название комнаты
                     userName: user.username,
                     userId: user.userId,
                     serverId: serverId

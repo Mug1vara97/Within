@@ -1092,7 +1092,7 @@ const VideoView = React.memo(({
   );
 });
 
-const VoiceChat = forwardRef(({ roomId, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true }, ref) => {
+const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true }, ref) => {
   const [isJoined, setIsJoined] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(initialMuted);
@@ -3334,7 +3334,7 @@ const VoiceChat = forwardRef(({ roomId, userName, userId, serverId, autoJoin = t
             <Box sx={styles.channelName}>
               <Tag />
               <Typography variant="subtitle1">
-                {roomId}
+                {roomName || roomId}
               </Typography>
             </Box>
           </Toolbar>
@@ -3446,13 +3446,6 @@ const VoiceChat = forwardRef(({ roomId, userName, userId, serverId, autoJoin = t
                 </IconButton>
                 <IconButton
                   sx={styles.iconButton}
-                  onClick={isVideoEnabled ? stopVideo : startVideo}
-                  title={isVideoEnabled ? "Stop camera" : "Start camera"}
-                >
-                  {isVideoEnabled ? <VideocamOff /> : <Videocam />}
-                </IconButton>
-                <IconButton
-                  sx={styles.iconButton}
                   onClick={toggleAudio}
                   title={isAudioEnabled ? "Disable audio output" : "Enable audio output"}
                 >
@@ -3502,6 +3495,13 @@ const VoiceChat = forwardRef(({ roomId, userName, userId, serverId, autoJoin = t
                 </Box>
               </Box>
               <Box sx={styles.controlGroup}>
+                <IconButton
+                  sx={styles.iconButton}
+                  onClick={isVideoEnabled ? stopVideo : startVideo}
+                  title={isVideoEnabled ? "Stop camera" : "Start camera"}
+                >
+                  {isVideoEnabled ? <VideocamOff /> : <Videocam />}
+                </IconButton>
                 <IconButton
                   sx={styles.iconButton}
                   onClick={isScreenSharing ? stopScreenSharing : startScreenSharing}
