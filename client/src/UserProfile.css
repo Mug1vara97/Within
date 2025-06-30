@@ -3,9 +3,6 @@
     background-color: #292b2f;
     padding: 12px 10px;
     margin: -10px -10px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
     margin-top: auto;
 }
 
@@ -29,18 +26,11 @@
     object-fit: cover;
 }
 
-.user-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    min-width: 0;
-}
+/* .user-info - больше не используется, стили перенесены в JSX */
 
 .username {
     font-size: 14px;
     font-weight: 600;
-    color: #fff;
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
