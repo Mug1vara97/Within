@@ -25,15 +25,17 @@ const Home = ({ user }) => {
     // Состояние для отображения сообщения о выходе из голосового канала
     const [leftVoiceChannel, setLeftVoiceChannel] = useState(false);
     
-    // Определяем, отображается ли VoiceChat в основной области
+    // Определяем, отображается ли VoiceChat в основной области (только для серверов)
     const isVoiceChatVisible = useMemo(() => {
         if (!voiceRoom) return false;
         
-        // Проверяем, соответствует ли текущий маршрут голосовому каналу
+        // В личных сообщениях голосовой чат всегда скрыт
         if (location.pathname.startsWith('/channels/@me/')) {
-            const chatId = location.pathname.split('/').pop();
-            return chatId && String(voiceRoom.roomId) === String(chatId);
-        } else if (location.pathname.startsWith('/channels/')) {
+            return false;
+        }
+        
+        // На серверах проверяем соответствие маршрута голосовому каналу
+        if (location.pathname.startsWith('/channels/')) {
             const pathParts = location.pathname.split('/');
             const serverId = pathParts[2];
             const chatId = pathParts[3];
@@ -57,7 +59,7 @@ const Home = ({ user }) => {
         // Сбрасываем флаг через 5 секунд
         setTimeout(() => {
             setLeftVoiceChannel(false);
-        }, 5000);
+        }, 0);
     };
 
     // Сохраняем состояние голосового чата в localStorage
@@ -108,7 +110,6 @@ const Home = ({ user }) => {
                                     user={user} 
                                     onJoinVoiceChannel={handleJoinVoiceChannel}
                                     voiceRoom={voiceRoom}
-                                    isVoiceChatVisible={isVoiceChatVisible}
                                     leftVoiceChannel={leftVoiceChannel}
                                 />
                             } />
@@ -147,7 +148,7 @@ const Home = ({ user }) => {
     );
 };
 
-const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible, leftVoiceChannel }) => {
+const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel }) => {
     // Компонент для отображения сообщения о выходе из голосового канала
     const LeftVoiceChannelComponent = () => (
         <div style={{
@@ -210,15 +211,13 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisib
                     <LeftVoiceChannelComponent />
                 ) : (
                     <>
-                        {/* Контейнер для VoiceChat в личных сообщениях */}
+                        {/* Контейнер для VoiceChat в личных сообщениях - всегда скрыт */}
                         <div id="voice-chat-container-direct" style={{ 
-                            width: '100%', 
-                            height: '100%',
-                            display: voiceRoom && isVoiceChatVisible && !voiceRoom.serverId ? 'block' : 'none'
+                            display: 'none'
                         }} />
                         
-                        {/* Показываем GroupChat если есть выбранный чат И это НЕ голосовой канал ИЛИ голосовой канал не видимый */}
-                        {selectedChat && (!voiceRoom || !isVoiceChatVisible || voiceRoom.serverId) && (
+                        {/* Показываем GroupChat если есть выбранный чат */}
+                        {selectedChat && (
                             <GroupChat
                                 username={user?.username}
                                 userId={user?.userId}
@@ -228,8 +227,8 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisib
                             />
                         )}
                         
-                        {/* Показываем заглушку если нет выбранного чата и нет голосового чата */}
-                        {!selectedChat && !voiceRoom && (
+                        {/* Показываем заглушку если нет выбранного чата */}
+                        {!selectedChat && (
                             <div style={{ 
                                 display: 'flex', 
                                 alignItems: 'center', 
