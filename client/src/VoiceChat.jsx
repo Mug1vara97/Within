@@ -1607,7 +1607,7 @@ const VoiceChat = forwardRef(({ roomId, userName, userId, serverId, autoJoin = t
       socket.emit('createRoom', { roomId }, async ({ error: createError }) => {
         console.log('Create room response:', createError ? `Error: ${createError}` : 'Success');
         
-        socket.emit('join', { roomId, name: userName }, async ({ error: joinError, routerRtpCapabilities, existingPeers, existingProducers }) => {
+        socket.emit('join', { roomId, name: userName, initialMuted, initialAudioEnabled }, async ({ error: joinError, routerRtpCapabilities, existingPeers, existingProducers }) => {
           if (joinError) {
             console.error('Join error:', joinError);
             setError(joinError);
@@ -1659,9 +1659,9 @@ const VoiceChat = forwardRef(({ roomId, userName, userId, serverId, autoJoin = t
             await createLocalStream();
             console.log('Local stream created successfully');
 
-            // Send initial states to server
-            socket.emit('audioState', { isEnabled: true });
-            socket.emit('muteState', { isMuted: false });
+            // Send initial states to server based on props
+            socket.emit('audioState', { isEnabled: initialAudioEnabled });
+            socket.emit('muteState', { isMuted: initialMuted });
 
             // Handle existing producers
             if (existingProducers && existingProducers.length > 0) {

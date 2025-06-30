@@ -152,7 +152,7 @@ io.on('connection', async (socket) => {
         }
     });
 
-    socket.on('join', async ({ roomId, name }, callback) => {
+    socket.on('join', async ({ roomId, name, initialMuted = false, initialAudioEnabled = true }, callback) => {
         try {
             // Create room if it doesn't exist
             let room = rooms.get(roomId);
@@ -162,10 +162,10 @@ io.on('connection', async (socket) => {
                 rooms.set(roomId, room);
             }
 
-            // Create peer
+            // Create peer with initial states
             const peer = new Peer(socket, roomId, name);
-            peer.setMuted(false); // Ensure peer starts unmuted
-            peer.setAudioEnabled(true); // Ensure audio starts enabled
+            peer.setMuted(initialMuted); // Use initial mute state
+            peer.setAudioEnabled(initialAudioEnabled); // Use initial audio state
             peers.set(socket.id, peer);
             room.addPeer(peer);
 
