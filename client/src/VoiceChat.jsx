@@ -189,7 +189,7 @@ const styles = {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
     gap: '16px',
-    padding: '0',
+    padding: '20px',
     width: '100%',
     flex: 1,
     margin: 0,
