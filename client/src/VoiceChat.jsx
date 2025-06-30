@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, useContext } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Container,
   Paper,
@@ -1091,7 +1092,7 @@ const VideoView = React.memo(({
   );
 });
 
-function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI = false, onLeave, onManualLeave }) {
+function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave }) {
   const [isJoined, setIsJoined] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -3237,7 +3238,26 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
   // Подготовка всех нужных пропсов для UI
   const ui = (
     <MuteProvider socket={socketRef.current}>
-      <Box sx={{ ...styles.root, ...(showUI ? { display: 'flex', width: '100%', height: '100%' } : { display: 'none' }) }}>
+      <Box sx={{ 
+      ...styles.root, 
+      ...(showUI ? { 
+        display: 'flex', 
+        width: '100%', 
+        height: '100%',
+        ...(isVisible ? {
+          position: 'relative',
+          zIndex: 1
+        } : {
+          position: 'absolute',
+          top: '-10000px',
+          left: '-10000px',
+          visibility: 'hidden',
+          pointerEvents: 'none'
+        })
+      } : { 
+        display: 'none' 
+      }) 
+    }}>
         <AppBar position="static" sx={styles.appBar}>
           <Toolbar sx={styles.toolbar}>
             <Box sx={styles.channelName}>
@@ -3443,6 +3463,25 @@ function VoiceChat({ roomId, userName, userId, serverId, autoJoin = true, showUI
     </MuteProvider>
   );
 
+  // Определяем целевой контейнер для портала
+  const getTargetContainer = () => {
+    if (!isVisible) return null;
+    
+    if (serverId) {
+      return document.getElementById('voice-chat-container-server');
+    } else {
+      return document.getElementById('voice-chat-container-direct');
+    }
+  };
+
+  const targetContainer = getTargetContainer();
+  
+  // Если видимый и есть контейнер, используем портал
+  if (isVisible && targetContainer) {
+    return createPortal(ui, targetContainer);
+  }
+  
+  // Если не видимый, возвращаем ui напрямую (будет скрыт через стили)
   return ui;
 }
 

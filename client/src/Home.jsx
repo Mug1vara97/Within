@@ -123,7 +123,6 @@ const Home = ({ user }) => {
                                     user={user} 
                                     onJoinVoiceChannel={handleJoinVoiceChannel}
                                     voiceRoom={voiceRoom}
-                                    onLeaveVoiceChannel={handleLeaveVoiceChannel}
                                     isVoiceChatVisible={isVoiceChatVisible}
                                 />
                             } />
@@ -132,7 +131,6 @@ const Home = ({ user }) => {
                                     user={user} 
                                     onJoinVoiceChannel={handleJoinVoiceChannel}
                                     voiceRoom={voiceRoom}
-                                    onLeaveVoiceChannel={handleLeaveVoiceChannel}
                                     isVoiceChatVisible={isVoiceChatVisible}
                                 />
                             } />
@@ -141,30 +139,19 @@ const Home = ({ user }) => {
                         {/* Сообщение о выходе из голосового канала */}
                         {leftVoiceChannel && <LeftVoiceChannelMessage />}
                         
-                        {/* Фоновый VoiceChat - работает когда подключен к голосовому каналу, но не просматривает его */}
-                        {voiceRoom && !isVoiceChatVisible && (
-                            <div style={{ 
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                width: '100%',
-                                height: '100%',
-                                pointerEvents: 'none',
-                                zIndex: -1,
-                                visibility: 'hidden',
-                                display: 'none'
-                            }}>
-                                <VoiceChat
-                                    key={`${voiceRoom.roomId}-${voiceRoom.serverId || 'direct'}-background`}
-                                    roomId={voiceRoom.roomId}
-                                    userName={voiceRoom.userName}
-                                    userId={voiceRoom.userId}
-                                    serverId={voiceRoom.serverId}
-                                    autoJoin={true}
-                                    showUI={false}
-                                    onLeave={handleLeaveVoiceChannel}
-                                />
-                            </div>
+                        {/* Единственный VoiceChat - позиционируется динамически */}
+                        {voiceRoom && (
+                            <VoiceChat
+                                key={`${voiceRoom.roomId}-${voiceRoom.serverId || 'direct'}-unified`}
+                                roomId={voiceRoom.roomId}
+                                userName={voiceRoom.userName}
+                                userId={voiceRoom.userId}
+                                serverId={voiceRoom.serverId}
+                                autoJoin={true}
+                                showUI={true}
+                                isVisible={isVoiceChatVisible}
+                                onLeave={handleLeaveVoiceChannel}
+                            />
                         )}                       
 
                     </>
@@ -174,7 +161,7 @@ const Home = ({ user }) => {
     );
 };
 
-const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceChannel, isVoiceChatVisible }) => {
+const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible }) => {
     const { chatId } = useParams();
     const chatListRef = useRef(null);
     const [selectedChat, setSelectedChat] = useState(null);
@@ -212,19 +199,12 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceChan
                 />
             </div>
             <div style={{ flex: 1, width: 'calc(100% - 240px)', height: '100%' }}>
-                {/* Показываем VoiceChat если это голосовой канал и он видимый */}
-                {voiceRoom && isVoiceChatVisible && !voiceRoom.serverId && (
-                    <VoiceChat
-                        key={`${voiceRoom.roomId}-direct`}
-                        roomId={voiceRoom.roomId}
-                        userName={voiceRoom.userName}
-                        userId={voiceRoom.userId}
-                        serverId={voiceRoom.serverId}
-                        autoJoin={true}
-                        showUI={true}
-                        onLeave={onLeaveVoiceChannel}
-                    />
-                )}
+                {/* Контейнер для VoiceChat в личных сообщениях */}
+                <div id="voice-chat-container-direct" style={{ 
+                    width: '100%', 
+                    height: '100%',
+                    display: voiceRoom && isVoiceChatVisible && !voiceRoom.serverId ? 'block' : 'none'
+                }} />
                 
                 {/* Показываем GroupChat если есть выбранный чат И это НЕ голосовой канал ИЛИ голосовой канал не видимый */}
                 {selectedChat && (!voiceRoom || !isVoiceChatVisible || voiceRoom.serverId) && (
@@ -255,7 +235,7 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceChan
     );
 };
 
-const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceChannel, isVoiceChatVisible }) => {
+const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible }) => {
     const { serverId, chatId } = useParams();
     const [selectedChat, setSelectedChat] = useState(null);
     
@@ -289,19 +269,12 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, onLeaveVoiceCh
             </div>
             
             <div className="server-content" style={{ flex: 1, width: 'calc(100% - 240px)', height: '100%' }}>
-                {/* Показываем VoiceChat если это серверный голосовой канал и он видимый */}
-                {voiceRoom && isVoiceChatVisible && voiceRoom.serverId === serverId && (
-                    <VoiceChat
-                        key={`${voiceRoom.roomId}-${voiceRoom.serverId}`}
-                        roomId={voiceRoom.roomId}
-                        userName={voiceRoom.userName}
-                        userId={voiceRoom.userId}
-                        serverId={voiceRoom.serverId}
-                        autoJoin={true}
-                        showUI={true}
-                        onLeave={onLeaveVoiceChannel}
-                    />
-                )}
+                {/* Контейнер для VoiceChat на сервере */}
+                <div id="voice-chat-container-server" style={{ 
+                    width: '100%', 
+                    height: '100%',
+                    display: voiceRoom && isVoiceChatVisible && voiceRoom.serverId === serverId ? 'block' : 'none'
+                }} />
                 
                 {/* Показываем GroupChat если есть выбранный чат И это НЕ голосовой канал ИЛИ голосовой канал не видимый */}
                 {selectedChat && (!voiceRoom || !isVoiceChatVisible || voiceRoom.serverId !== serverId) && (
