@@ -146,14 +146,18 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
                     username.charAt(0).toUpperCase()
                 )}
             </div>
-            <div className="user-info">
+            <div className="user-info" style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '100%'
+            }}>
                 <span className="username">{username}</span>
                 
-                {/* Кнопки управления звуком - всегда видны */}
+                {/* Кнопки управления звуком - справа от имени */}
                 <div className="voice-controls" style={{
                     display: 'flex',
-                    gap: '8px',
-                    marginTop: '4px'
+                    gap: '6px'
                 }}>
                     <button
                         className="voice-control-button"
@@ -163,8 +167,8 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
                             background: isMuted ? '#ed4245' : '#40444b',
                             border: 'none',
                             borderRadius: '4px',
-                            width: '32px',
-                            height: '32px',
+                            width: '28px',
+                            height: '28px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -184,8 +188,8 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
                             background: !isAudioEnabled ? '#ed4245' : '#40444b',
                             border: 'none',
                             borderRadius: '4px',
-                            width: '32px',
-                            height: '32px',
+                            width: '28px',
+                            height: '28px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
