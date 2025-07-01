@@ -1092,7 +1092,7 @@ const VideoView = React.memo(({
   );
 });
 
-const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true }, ref) => {
+const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true, onVoiceChannelUsersChange }, ref) => {
   const [isJoined, setIsJoined] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(initialMuted);
@@ -1114,6 +1114,32 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       socketRef.current.emit('setUserInfo', { userId, serverId });
     }
   }, [userId, serverId]);
+
+  // Notify parent component about voice channel users changes
+  useEffect(() => {
+    if (onVoiceChannelUsersChange && roomId) {
+      const currentUsers = Array.from(peers.values()).map(peer => ({
+        id: peer.id,
+        name: peer.name,
+        isMuted: peer.isMuted,
+        isSpeaking: speakingStates.get(peer.id) || false,
+        isAudioEnabled: audioStates.get(peer.id) || true
+      }));
+
+      // Add local user if joined
+      if (isJoined) {
+        currentUsers.push({
+          id: socketRef.current?.id || 'local',
+          name: userName,
+          isMuted: isMuted,
+          isSpeaking: speakingStates.get(socketRef.current?.id) || false,
+          isAudioEnabled: isAudioEnabled
+        });
+      }
+
+      onVoiceChannelUsersChange(roomId, currentUsers);
+    }
+  }, [peers, speakingStates, audioStates, isJoined, isMuted, isAudioEnabled, roomId, userName, onVoiceChannelUsersChange]);
 
   // Обработка изменения roomId
   useEffect(() => {

@@ -119,14 +119,13 @@ const CategoriesList = ({
   handleCategoryContextMenu,
   handleChatContextMenu,
   setModalsState,
-  fetchServerData,
   serverId,
   userPermissions,
   connection,
   isServerOwner,
   userRoles,
-  userAccess,
   userId,
+  voiceChannelUsers = {},
   ...props 
 }) => {
   const [localCategories, setLocalCategories] = useState(initialCategories || []);
@@ -408,6 +407,8 @@ const CategoriesList = ({
                       isServerOwner={isServerOwner}
                       handleGroupChatClick={props.handleGroupChatClick}
                       selectedChat={props.selectedChat}
+                      voiceChannelUsers={voiceChannelUsers[chat.chatId] || []}
+                      currentUserId={userId}
                     />
                   ))}
                   {provided.placeholder}
@@ -430,6 +431,8 @@ const CategoriesList = ({
                   isServerOwner={isServerOwner}
                   handleGroupChatClick={props.handleGroupChatClick}
                   selectedChat={props.selectedChat}
+                  voiceChannelUsers={voiceChannelUsers}
+                  currentUserId={userId}
                 />
             ))}
             {provided.placeholder}

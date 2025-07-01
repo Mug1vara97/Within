@@ -1,0 +1,123 @@
+.voice-channel-users {
+    margin-left: 20px;
+    margin-top: 4px;
+    border-left: 1px solid rgba(79, 84, 92, 0.32);
+    padding-left: 8px;
+}
+
+.voice-user {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    margin: 2px 0;
+    border-radius: 4px;
+    transition: background-color 0.15s ease;
+    cursor: pointer;
+}
+
+.voice-user:hover {
+    background-color: var(--hover-bg, rgba(79, 84, 92, 0.16));
+}
+
+.voice-user.current-user {
+    background-color: rgba(88, 101, 242, 0.15);
+}
+
+.voice-user.current-user:hover {
+    background-color: rgba(88, 101, 242, 0.25);
+}
+
+.voice-user-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #5865f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.voice-user-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.voice-user-name {
+    color: #dcddde;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 16px;
+}
+
+.voice-user-indicators {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 1px;
+}
+
+.voice-indicator {
+    font-size: 10px;
+    opacity: 0.8;
+    transition: all 0.15s ease;
+}
+
+.voice-indicator.muted {
+    color: #f04747;
+    animation: mutePulse 2s infinite;
+}
+
+.voice-indicator.speaking {
+    color: #43b581;
+    animation: speakPulse 1s infinite;
+}
+
+.voice-indicator.idle {
+    color: #72767d;
+}
+
+.voice-indicator.audio-disabled {
+    color: #f04747;
+}
+
+.voice-indicator.audio-enabled {
+    color: #43b581;
+}
+
+@keyframes mutePulse {
+    0%, 100% {
+        opacity: 0.8;
+    }
+    50% {
+        opacity: 0.4;
+    }
+}
+
+@keyframes speakPulse {
+    0%, 100% {
+        opacity: 0.8;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+}
+
+/* Dark theme adjustments */
+:root {
+    --voice-user-bg: #2f3136;
+    --voice-user-hover: rgba(79, 84, 92, 0.16);
+    --voice-user-text: #dcddde;
+    --voice-user-border: rgba(79, 84, 92, 0.32);
+} 
