@@ -759,13 +759,8 @@
 }
 
 .voice-record-button.recording {
+    background: linear-gradient(135deg, #F04747, #C93333);
     animation: recording-pulse 1.5s infinite;
-}
-
-.voice-record-button.cancel {
-    background: linear-gradient(135deg, #F04747, #C93333) !important;
-    transform: scale(0.9) !important;
-    opacity: 0.7;
 }
 
 @keyframes recording-pulse {
@@ -792,13 +787,6 @@
     white-space: nowrap;
     animation: slide-in 0.3s ease;
     z-index: 10;
-    transition: all 0.2s ease;
-}
-
-.recording-indicator.cancel {
-    background: rgba(240, 71, 71, 0.2);
-    border-color: rgba(240, 71, 71, 0.5);
-    transform: translateY(-50%) scale(0.95);
 }
 
 @keyframes slide-in {
@@ -837,12 +825,29 @@
     margin-left: 8px;
 }
 
+.cancel-recording-button {
+    background: none;
+    border: none;
+    color: #949BA4;
+    cursor: pointer;
+    font-size: 18px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    margin-left: 8px;
+}
+
+.cancel-recording-button:hover {
+    color: #F04747;
+    background: rgba(240, 71, 71, 0.1);
+}
+
 /* Адаптация для мобильных устройств */
 @media (max-width: 768px) {
-    .recording-hint {
-        display: none;
-    }
-    
     .recording-indicator {
         left: 50px;
         padding: 6px 10px;

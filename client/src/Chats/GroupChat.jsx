@@ -57,15 +57,9 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     recordingTime, 
     fileInputRef, 
     handleSendMedia,
-    handleMouseDown,
-    handleMouseMove,
-    handleMouseUp,
-    handleMouseLeave,
-    handleTouchStart,
-    handleTouchMove,
-    handleTouchEnd,
+    handleAudioRecording,
     formatRecordingTime,
-    isDragCancel
+    cancelRecording
   } = useMediaHandlers(connection, username, chatId);
   const { messagesEndRef, scrollToBottom } = useScrollToBottom();
   const {
@@ -730,25 +724,25 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
               <div className="voice-message-container">
                 <button
                   type="button"
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseLeave}
-                  onTouchStart={handleTouchStart}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
-                  className={`voice-record-button ${isRecording ? 'recording' : ''} ${isDragCancel ? 'cancel' : ''}`}
-                  title={isRecording ? "Отпустите для отправки" : "Нажмите и удерживайте для записи"}
+                  onClick={handleAudioRecording}
+                  className={`voice-record-button ${isRecording ? 'recording' : ''}`}
+                  title={isRecording ? "Нажмите для остановки и отправки" : "Нажмите для начала записи"}
                 >
-                  🎤
+                  {isRecording ? '⏹️' : '🎤'}
                 </button>
                 {isRecording && (
-                  <div className={`recording-indicator ${isDragCancel ? 'cancel' : ''}`}>
+                  <div className="recording-indicator">
                     <span className="recording-dot">●</span>
                     <span className="recording-time">{formatRecordingTime(recordingTime)}</span>
-                    <span className="recording-hint">
-                      {isDragCancel ? "Отпустите для отмены" : "◀ Проведите влево для отмены"}
-                    </span>
+                    <span className="recording-hint">Запись... (ESC для отмены)</span>
+                    <button 
+                      type="button"
+                      onClick={cancelRecording}
+                      className="cancel-recording-button"
+                      title="Отменить запись"
+                    >
+                      ×
+                    </button>
                   </div>
                 )}
               </div>

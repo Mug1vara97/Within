@@ -8,8 +8,6 @@ export const useMediaHandlers = (connection, username, chatId) => {
   const audioRecorder = useRef(null);
   const recordingTimer = useRef(null);
   const recordingStartTime = useRef(null);
-  const startPosition = useRef({ x: 0, y: 0 });
-  const [isDragCancel, setIsDragCancel] = useState(false);
 
   const handleSendMedia = async (file) => {
     try {
@@ -37,7 +35,7 @@ export const useMediaHandlers = (connection, username, chatId) => {
     }
   }, []);
 
-  const stopRecording = useCallback(async (shouldSend = true) => {
+  const stopRecording = useCallback(async () => {
     try {
       if (!audioRecorder.current) return;
       
@@ -48,8 +46,8 @@ export const useMediaHandlers = (connection, username, chatId) => {
       
       const audioBlob = await audioRecorder.current.stop();
       
-      // Отправляем только если запись длилась больше 1 секунды и shouldSend = true
-      if (shouldSend && recordingTime >= 1) {
+      // Отправляем только если запись длилась больше 1 секунды
+      if (recordingTime >= 1) {
         const { url } = await uploadFile(audioBlob, '/api/upload/audio');
         await connection.invoke('SendAudioMessage', username, url, chatId);
       }
@@ -63,88 +61,27 @@ export const useMediaHandlers = (connection, username, chatId) => {
   }, [connection, username, chatId, recordingTime]);
 
   const cancelRecording = useCallback(async () => {
-    await stopRecording(false);
-  }, [stopRecording]);
+    try {
+      if (!audioRecorder.current) return;
+      
+      if (recordingTimer.current) {
+        clearInterval(recordingTimer.current);
+        recordingTimer.current = null;
+      }
+      
+      await audioRecorder.current.stop();
+    } catch (error) {
+      console.error('Recording cancel failed:', error);
+    } finally {
+      setIsRecording(false);
+      setRecordingTime(0);
+      audioRecorder.current = null;
+    }
+  }, []);
 
   const handleAudioRecording = () => {
     isRecording ? stopRecording() : startRecording();
   };
-
-  // Новые функции для поддержки нажатия и удержания
-  const handleMouseDown = useCallback((e) => {
-    e.preventDefault();
-    startPosition.current = { x: e.clientX, y: e.clientY };
-    setIsDragCancel(false);
-    startRecording();
-  }, [startRecording]);
-
-  const handleMouseMove = useCallback((e) => {
-    if (!isRecording) return;
-    
-    const deltaX = e.clientX - startPosition.current.x;
-    
-    // Если пользователь провел влево больше чем на 100px, отменяем запись
-    if (deltaX < -100) {
-      setIsDragCancel(true);
-    } else {
-      setIsDragCancel(false);
-    }
-  }, [isRecording]);
-
-  const handleMouseUp = useCallback((e) => {
-    e.preventDefault();
-    if (isRecording) {
-      if (isDragCancel) {
-        cancelRecording();
-      } else {
-        stopRecording();
-      }
-    }
-    setIsDragCancel(false);
-  }, [isRecording, isDragCancel, stopRecording, cancelRecording]);
-
-  const handleMouseLeave = useCallback((e) => {
-    e.preventDefault();
-    if (isRecording) {
-      cancelRecording();
-    }
-    setIsDragCancel(false);
-  }, [isRecording, cancelRecording]);
-
-  // Для поддержки тач-устройств
-  const handleTouchStart = useCallback((e) => {
-    e.preventDefault();
-    const touch = e.touches[0];
-    startPosition.current = { x: touch.clientX, y: touch.clientY };
-    setIsDragCancel(false);
-    startRecording();
-  }, [startRecording]);
-
-  const handleTouchMove = useCallback((e) => {
-    if (!isRecording) return;
-    
-    const touch = e.touches[0];
-    const deltaX = touch.clientX - startPosition.current.x;
-    
-    // Если пользователь провел влево больше чем на 100px, отменяем запись
-    if (deltaX < -100) {
-      setIsDragCancel(true);
-    } else {
-      setIsDragCancel(false);
-    }
-  }, [isRecording]);
-
-  const handleTouchEnd = useCallback((e) => {
-    e.preventDefault();
-    if (isRecording) {
-      if (isDragCancel) {
-        cancelRecording();
-      } else {
-        stopRecording();
-      }
-    }
-    setIsDragCancel(false);
-  }, [isRecording, isDragCancel, stopRecording, cancelRecording]);
 
   const formatRecordingTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -152,59 +89,22 @@ export const useMediaHandlers = (connection, username, chatId) => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Глобальные обработчики для отслеживания движения за пределами кнопки
+  // Обработчик клавиши Escape для отмены записи
   useEffect(() => {
-    if (!isRecording) return;
-
-    const handleGlobalMouseMove = (e) => {
-      const deltaX = e.clientX - startPosition.current.x;
-      if (deltaX < -100) {
-        setIsDragCancel(true);
-      } else {
-        setIsDragCancel(false);
-      }
-    };
-
-    const handleGlobalMouseUp = () => {
-      if (isDragCancel) {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && isRecording) {
         cancelRecording();
-      } else {
-        stopRecording();
-      }
-      setIsDragCancel(false);
-    };
-
-    const handleGlobalTouchMove = (e) => {
-      const touch = e.touches[0];
-      const deltaX = touch.clientX - startPosition.current.x;
-      if (deltaX < -100) {
-        setIsDragCancel(true);
-      } else {
-        setIsDragCancel(false);
       }
     };
 
-    const handleGlobalTouchEnd = () => {
-      if (isDragCancel) {
-        cancelRecording();
-      } else {
-        stopRecording();
-      }
-      setIsDragCancel(false);
-    };
-
-    document.addEventListener('mousemove', handleGlobalMouseMove);
-    document.addEventListener('mouseup', handleGlobalMouseUp);
-    document.addEventListener('touchmove', handleGlobalTouchMove);
-    document.addEventListener('touchend', handleGlobalTouchEnd);
+    if (isRecording) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
 
     return () => {
-      document.removeEventListener('mousemove', handleGlobalMouseMove);
-      document.removeEventListener('mouseup', handleGlobalMouseUp);
-      document.removeEventListener('touchmove', handleGlobalTouchMove);
-      document.removeEventListener('touchend', handleGlobalTouchEnd);
+      document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isRecording, isDragCancel, stopRecording, cancelRecording]);
+  }, [isRecording, cancelRecording]);
 
   return {
     isRecording,
@@ -212,15 +112,7 @@ export const useMediaHandlers = (connection, username, chatId) => {
     fileInputRef,
     handleSendMedia,
     handleAudioRecording,
-    handleMouseDown,
-    handleMouseMove,
-    handleMouseUp, 
-    handleMouseLeave,
-    handleTouchStart,
-    handleTouchMove,
-    handleTouchEnd,
     formatRecordingTime,
-    cancelRecording,
-    isDragCancel
+    cancelRecording
   };
 };
