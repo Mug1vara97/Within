@@ -52,7 +52,21 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const { isRecording, fileInputRef, handleSendMedia, handleAudioRecording } = useMediaHandlers(connection, username, chatId);
+  const { 
+    isRecording, 
+    recordingTime, 
+    fileInputRef, 
+    handleSendMedia,
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp,
+    handleMouseLeave,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    formatRecordingTime,
+    isDragCancel
+  } = useMediaHandlers(connection, username, chatId);
   const { messagesEndRef, scrollToBottom } = useScrollToBottom();
   const {
     isSettingsOpen,
@@ -65,7 +79,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     handleAddMember
   } = useGroupSettings(chatId, userId);
   const connectionRef = useRef(null);
-  const chatListConnectionRef = useRef(null);
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [replyingToMessage, setReplyingToMessage] = useState(null);
   const [messageToForward, setMessageToForward] = useState(null);
@@ -712,14 +725,36 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         
         {!editingMessageId && (
           <>
+            {/* Голосовые сообщения - кнопка записи как в Telegram */}
             {((!isServerChat || userPermissions?.sendVoiceMessages) || isServerOwner) && (
-              <button
-                onClick={handleAudioRecording}
-                className={`record-button ${isRecording ? 'recording' : ''}`}
-              >
-                {isRecording ? 'Stop Recording' : 'Start Recording'}
-              </button>
+              <div className="voice-message-container">
+                <button
+                  type="button"
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseLeave}
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  className={`voice-record-button ${isRecording ? 'recording' : ''} ${isDragCancel ? 'cancel' : ''}`}
+                  title={isRecording ? "Отпустите для отправки" : "Нажмите и удерживайте для записи"}
+                >
+                  🎤
+                </button>
+                {isRecording && (
+                  <div className={`recording-indicator ${isDragCancel ? 'cancel' : ''}`}>
+                    <span className="recording-dot">●</span>
+                    <span className="recording-time">{formatRecordingTime(recordingTime)}</span>
+                    <span className="recording-hint">
+                      {isDragCancel ? "Отпустите для отмены" : "◀ Проведите влево для отмены"}
+                    </span>
+                  </div>
+                )}
+              </div>
             )}
+            
+            {/* Загрузка файлов */}
             <input
               type="file"
               ref={fileInputRef}
