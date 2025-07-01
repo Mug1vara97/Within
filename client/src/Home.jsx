@@ -210,13 +210,10 @@ const Home = ({ user }) => {
         }
     }, [location.pathname, isDiscoverMode]);
     
-    // Сбрасываем выбранный чат сервера при смене сервера или выходе с сервера
+    // Сбрасываем выбранный чат сервера при изменении маршрута
     useEffect(() => {
-        const pathParts = location.pathname.split('/');
-        if (!location.pathname.startsWith('/channels/') || pathParts[2] === '@me') {
-            // Если не на сервере - сбрасываем выбранный чат сервера
-            setSelectedServerChat(null);
-        }
+        // Всегда сбрасываем при смене маршрута для упрощения логики
+        setSelectedServerChat(null);
     }, [location.pathname]);
 
     const handleDiscoverModeChange = (mode) => {
@@ -439,7 +436,11 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVis
     const handleChatSelected = (chat) => {
         if (chat) {
             setSelectedChat(chat);
-            onServerChatSelected(chat);
+            // Добавляем serverId к данным чата для правильной логики сброса
+            onServerChatSelected({
+                ...chat,
+                serverId: serverId
+            });
             
             // Убираем надпись о выходе из голосового канала при выборе любого чата
             setLeftVoiceChannel(false);
