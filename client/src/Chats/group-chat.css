@@ -719,11 +719,18 @@
 }
 
 /* Голосовые сообщения в стиле Telegram */
-.voice-message-container {
+.voice-message-wrapper {
     position: relative;
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.voice-message-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
 }
 
 .voice-record-button {
@@ -780,10 +787,6 @@
     padding: 8px 12px;
     border-radius: 20px;
     border: 1px solid rgba(240, 71, 71, 0.3);
-    position: absolute;
-    left: 60px;
-    top: 50%;
-    transform: translateY(-50%);
     white-space: nowrap;
     animation: slide-in 0.3s ease;
     z-index: 10;
@@ -846,10 +849,42 @@
     background: rgba(240, 71, 71, 0.1);
 }
 
+.cancel-recording-button-top {
+    background: rgba(240, 71, 71, 0.8);
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    animation: slide-down 0.3s ease;
+    z-index: 11;
+}
+
+.cancel-recording-button-top:hover {
+    background: rgba(240, 71, 71, 1);
+    transform: scale(1.1);
+}
+
+@keyframes slide-down {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Адаптация для мобильных устройств */
 @media (max-width: 768px) {
     .recording-indicator {
-        left: 50px;
         padding: 6px 10px;
     }
     
@@ -857,6 +892,17 @@
         width: 40px;
         height: 40px;
         font-size: 16px;
+    }
+    
+    .cancel-recording-button-top {
+        width: 20px;
+        height: 20px;
+        font-size: 12px;
+    }
+    
+    .voice-message-wrapper {
+        flex-direction: column;
+        gap: 4px;
     }
 }
 

@@ -721,15 +721,27 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           <>
             {/* Голосовые сообщения - кнопка записи как в Telegram */}
             {((!isServerChat || userPermissions?.sendVoiceMessages) || isServerOwner) && (
-              <div className="voice-message-container">
-                <button
-                  type="button"
-                  onClick={handleAudioRecording}
-                  className={`voice-record-button ${isRecording ? 'recording' : ''}`}
-                  title={isRecording ? "Нажмите для остановки и отправки" : "Нажмите для начала записи"}
-                >
-                  {isRecording ? '⏹️' : '🎤'}
-                </button>
+              <div className="voice-message-wrapper">
+                <div className="voice-message-container">
+                  {isRecording && (
+                    <button 
+                      type="button"
+                      onClick={cancelRecording}
+                      className="cancel-recording-button-top"
+                      title="Отменить запись"
+                    >
+                      ×
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleAudioRecording}
+                    className={`voice-record-button ${isRecording ? 'recording' : ''}`}
+                    title={isRecording ? "Нажмите для остановки и отправки" : "Нажмите для начала записи"}
+                  >
+                    {isRecording ? '⏹️' : '🎤'}
+                  </button>
+                </div>
                 {isRecording && (
                   <div className="recording-indicator">
                     <span className="recording-dot">●</span>
