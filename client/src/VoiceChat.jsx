@@ -3581,27 +3581,50 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   // Определяем целевой контейнер для портала
   const getTargetContainer = () => {
-    if (!isVisible) return null;
+    console.log('VoiceChat getTargetContainer:', { isVisible, serverId });
+    if (!isVisible) {
+      console.log('VoiceChat not visible, returning null');
+      return null;
+    }
     
     // Только для серверных голосовых каналов создаем портал
     if (serverId) {
-      return document.getElementById('voice-chat-container-server');
+      const container = document.getElementById('voice-chat-container-server');
+      console.log('VoiceChat container found:', !!container);
+      return container;
     }
     
     // Для личных сообщений не создаем портал (работаем в фоне)
+    console.log('VoiceChat personal messages, returning null');
     return null;
   };
 
   const targetContainer = getTargetContainer();
   
+  console.log('VoiceChat render decision:', { 
+    isVisible, 
+    hasTargetContainer: !!targetContainer, 
+    serverId,
+    roomId,
+    showUI 
+  });
+  
   // Если видимый и есть контейнер, используем портал
   if (isVisible && targetContainer) {
+    console.log('VoiceChat rendering via portal');
     return createPortal(ui, targetContainer);
   }
   
-  // Если не видимый или нет контейнера, возвращаем ui напрямую со скрытием
+  // Если видимый но контейнер не найден (серверный канал), рендерим напрямую
+  if (isVisible && serverId) {
+    console.log('VoiceChat rendering directly (server, no container yet)');
+    return ui;
+  }
+  
+  // Если не видимый или личные сообщения, скрываем
+  console.log('VoiceChat hidden');
   return (
-    <div style={{ display: isVisible ? 'block' : 'none' }}>
+    <div style={{ display: 'none' }}>
       {ui}
     </div>
   );

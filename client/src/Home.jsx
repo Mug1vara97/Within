@@ -80,7 +80,15 @@ const Home = ({ user }) => {
             }
             
             const isVisible = chatId && String(voiceRoom.roomId) === String(chatId) && String(voiceRoom.serverId) === String(serverId);
-            console.log('Server voice chat visibility:', { serverId, chatId, voiceRoom, isVisible });
+            console.log('Server voice chat visibility check:', { 
+                serverId, 
+                chatId, 
+                voiceRoomId: voiceRoom.roomId, 
+                voiceServerId: voiceRoom.serverId,
+                roomIdMatch: String(voiceRoom.roomId) === String(chatId),
+                serverIdMatch: String(voiceRoom.serverId) === String(serverId),
+                isVisible 
+            });
             return isVisible;
         }
         
