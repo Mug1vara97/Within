@@ -138,32 +138,32 @@ const CategoriesList = ({
 
   // Фильтрация категорий и чатов на основе ролей пользователя и прямого доступа
   const filteredCategories = useMemo(() => {
-    console.log('CategoriesList filtering with:', {
-      categories: localCategories,
-      userRoles,
-      isServerOwner,
-      userId
-    });
+    // console.log('CategoriesList filtering with:', {
+    //   categories: localCategories,
+    //   userRoles,
+    //   isServerOwner,
+    //   userId
+    // });
 
     return localCategories
       .filter(category => {
-        console.log('Checking category:', {
-          categoryId: category.categoryId,
-          categoryName: category.categoryName,
-          isPrivate: category.isPrivate,
-          allowedRoleIds: category.allowedRoleIds,
-          allowedUserIds: category.allowedUserIds,
-          userId: userId,
-          isServerOwner: isServerOwner,
-          userRoles: userRoles
-        });
+        // console.log('Checking category:', {
+        //   categoryId: category.categoryId,
+        //   categoryName: category.categoryName,
+        //   isPrivate: category.isPrivate,
+        //   allowedRoleIds: category.allowedRoleIds,
+        //   allowedUserIds: category.allowedUserIds,
+        //   userId: userId,
+        //   isServerOwner: isServerOwner,
+        //   userRoles: userRoles
+        // });
 
         if (!category.isPrivate) {
-          console.log('Category is not private, allowing access');
+          // console.log('Category is not private, allowing access');
           return true;
         }
         if (isServerOwner) {
-          console.log('User is server owner, allowing access');
+          // console.log('User is server owner, allowing access');
           return true;
         }
 
@@ -171,17 +171,17 @@ const CategoriesList = ({
           try {
             // Удаляем кавычки, если они есть
             const cleanRoleIds = category.allowedRoleIds.replace(/"/g, '');
-            console.log('Clean roleIds:', cleanRoleIds);
+            // console.log('Clean roleIds:', cleanRoleIds);
             const allowedRoles = JSON.parse(cleanRoleIds);
-            console.log('Parsed allowedRoles:', allowedRoles);
+            // console.log('Parsed allowedRoles:', allowedRoles);
             
             // Проверяем, является ли allowedRoles массивом
             const roleArray = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
-            console.log('Role array:', roleArray);
-            console.log('User roles:', userRoles);
+            // console.log('Role array:', roleArray);
+            // console.log('User roles:', userRoles);
             
             if (roleArray.some(roleId => userRoles?.includes(roleId))) {
-              console.log('User has required role, allowing access');
+              // console.log('User has required role, allowing access');
               return true;
             }
           } catch (error) {
@@ -193,18 +193,18 @@ const CategoriesList = ({
           try {
             // Удаляем кавычки, если они есть
             const cleanUserIds = category.allowedUserIds.replace(/"/g, '');
-            console.log('Clean userIds:', cleanUserIds);
+            // console.log('Clean userIds:', cleanUserIds);
             const allowedUsers = JSON.parse(cleanUserIds);
-            console.log('Parsed allowedUsers:', allowedUsers);
+            // console.log('Parsed allowedUsers:', allowedUsers);
             
             // Проверяем, является ли allowedUsers массивом
             const userArray = Array.isArray(allowedUsers) ? allowedUsers : [allowedUsers];
-            console.log('User array:', userArray);
-            console.log('Current userId:', userId);
-            console.log('Includes check:', userArray.includes(userId));
+            // console.log('User array:', userArray);
+            // console.log('Current userId:', userId);
+            // console.log('Includes check:', userArray.includes(userId));
             
             if (userArray.includes(userId)) {
-              console.log('User has direct access, allowing access');
+              // console.log('User has direct access, allowing access');
               return true;
             }
           } catch (error) {
@@ -212,7 +212,7 @@ const CategoriesList = ({
           }
         }
 
-        console.log('No access granted to category');
+        // console.log('No access granted to category');
         return false;
       })
       .map(category => ({
@@ -289,7 +289,7 @@ const CategoriesList = ({
 
   const handleDragEnd = async (result) => {
     if (!isServerOwner && !userPermissions?.manageChannels) {
-      console.log('У пользователя нет прав на управление каналами');
+      // console.log('У пользователя нет прав на управление каналами');
       return;
     }
 
@@ -326,7 +326,7 @@ const CategoriesList = ({
             destination.index
           );
         } catch (err) {
-          console.error('Category move error:', err);
+          // console.error('Category move error:', err);
           setLocalCategories(originalCategories);
           throw err;
         }
@@ -360,13 +360,13 @@ const CategoriesList = ({
             destination.index
           );
         } catch (err) {
-          console.error('Chat move error:', err);
+          // console.error('Chat move error:', err);
           setLocalCategories(originalCategories);
           throw err;
         }
       }
     } catch (error) {
-      console.error('Move operation failed:', error);
+      // console.error('Move operation failed:', error);
       alert(`Ошибка перемещения: ${error.message}`);
     }
   };

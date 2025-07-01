@@ -19,10 +19,10 @@ const DeleteCategoryModal = ({
         setError(null);
         
         try {
-            console.log('Deleting category with params:', {
-                serverId: Number(serverId),
-                categoryId: Number(categoryId)
-            });
+            // console.log('Deleting category with params:', {
+            //     serverId: Number(serverId),
+            //     categoryId: Number(categoryId)
+            // });
     
             if (!serverId || !categoryId) {
                 throw new Error("Недостаточно данных для удаления");

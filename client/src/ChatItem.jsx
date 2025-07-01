@@ -17,13 +17,13 @@ const ChatItem = ({
 }) => {
     const isDragDisabled = !(isServerOwner || userPermissions?.manageChannels);
 
-    console.log('ChatItem render:', {
-        chatId: chat.chatId,
-        index,
-        isDragDisabled,
-        hasManageChannels: userPermissions?.manageChannels,
-        isServerOwner
-    });
+    // console.log('ChatItem render:', {
+    //     chatId: chat.chatId,
+    //     index,
+    //     isDragDisabled,
+    //     hasManageChannels: userPermissions?.manageChannels,
+    //     isServerOwner
+    // });
 
     return (
         <Draggable
@@ -32,13 +32,13 @@ const ChatItem = ({
             isDragDisabled={isDragDisabled}
         >
             {(provided, snapshot) => {
-                console.log('Draggable render:', {
-                    chatId: chat.chatId,
-                    isDragging: snapshot.isDragging,
-                    draggingOver: snapshot.draggingOver,
-                    dragHandleProps: provided.dragHandleProps ? 'present' : 'missing',
-                    isDragDisabled
-                });
+                // console.log('Draggable render:', {
+                //     chatId: chat.chatId,
+                //     isDragging: snapshot.isDragging,
+                //     draggingOver: snapshot.draggingOver,
+                //     dragHandleProps: provided.dragHandleProps ? 'present' : 'missing',
+                //     isDragDisabled
+                // });
 
                 return (
                     <>
@@ -48,12 +48,12 @@ const ChatItem = ({
                             {...provided.dragHandleProps}
                             className={`channel ${selectedChat?.chatId === chat.chatId ? 'active' : ''} ${snapshot.isDragging ? 'dragging' : ''} ${chat.isPrivate ? 'private' : ''}`}
                             onClick={() => {
-                                console.log('ChatItem clicked:', { 
-                                    chatId: chat.chatId, 
-                                    name: chat.name, 
-                                    typeId: chat.typeId,
-                                    chat: chat
-                                });
+                                // console.log('ChatItem clicked:', { 
+                                //     chatId: chat.chatId, 
+                                //     name: chat.name, 
+                                //     typeId: chat.typeId,
+                                //     chat: chat
+                                // });
                                 handleGroupChatClick(chat.chatId, chat.name, chat.typeId);
                             }}
                             onContextMenu={(e) => onContextMenu(e, chat.chatId, chat.name, chat.typeId)}

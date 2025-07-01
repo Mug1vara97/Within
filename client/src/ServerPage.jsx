@@ -106,7 +106,7 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
 
         const handlers = {
             "CategoriesReordered": (updatedCategories) => {
-                console.log('CategoriesReordered received:', updatedCategories);
+                // console.log('CategoriesReordered received:', updatedCategories);
                 setServer(prev => {
                     const newState = { 
                         ...prev, 
@@ -119,12 +119,12 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
                             }))
                         }))
                     };
-                    console.log('New server state:', newState);
+                    // console.log('New server state:', newState);
                     return newState;
                 });
             },
             "ChatsReordered": (updatedCategories) => {
-                console.log('ChatsReordered received:', updatedCategories);
+                // console.log('ChatsReordered received:', updatedCategories);
                 setServer(prev => {
                     const newState = { 
                         ...prev, 
@@ -137,7 +137,7 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
                             }))
                         }))
                     };
-                    console.log('New server state:', newState);
+                    // console.log('New server state:', newState);
                     return newState;
                 });
             },
