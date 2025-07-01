@@ -700,64 +700,67 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
             </button>
           </div>
         )}
-        <input
-          type="text"
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          placeholder={
-            editingMessageId 
-              ? "Редактируйте сообщение..." 
-              : replyingToMessage 
-                ? "Напишите ответ..." 
-                : "Введите сообщение..."
-          }
-          className="message-input"
-        />
-        <button type="submit" className="send-button">
-          {editingMessageId ? 'Сохранить' : replyingToMessage ? 'Отправить' : 'Отправить'}
-        </button>
+        {isRecording ? (
+          <div className="recording-indicator-input">
+            <span className="recording-dot">●</span>
+            <span className="recording-time">{formatRecordingTime(recordingTime)}</span>
+            <span className="recording-hint">Запись... (ESC для отмены)</span>
+            <button 
+              type="button"
+              onClick={cancelRecording}
+              className="cancel-recording-button"
+              title="Отменить запись"
+            >
+              ×
+            </button>
+          </div>
+        ) : (
+          <>
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder={
+                editingMessageId 
+                  ? "Редактируйте сообщение..." 
+                  : replyingToMessage 
+                    ? "Напишите ответ..." 
+                    : "Введите сообщение..."
+              }
+              className="message-input"
+            />
+            <button type="submit" className="send-button">
+              {editingMessageId ? 'Сохранить' : replyingToMessage ? 'Отправить' : 'Отправить'}
+            </button>
+          </>
+        )}
         
         {!editingMessageId && (
           <>
             {/* Голосовые сообщения - кнопка записи как в Telegram */}
             {((!isServerChat || userPermissions?.sendVoiceMessages) || isServerOwner) && (
-              <div className="voice-message-wrapper">
-                <div className="voice-message-container">
-                  {isRecording && (
-                    <button 
+                              <div className="voice-message-wrapper">
+                  <div className="voice-message-container">
+                    {isRecording && (
+                      <button 
+                        type="button"
+                        onClick={cancelRecording}
+                        className="cancel-recording-button-top"
+                        title="Отменить запись"
+                      >
+                        ×
+                      </button>
+                    )}
+                    <button
                       type="button"
-                      onClick={cancelRecording}
-                      className="cancel-recording-button-top"
-                      title="Отменить запись"
+                      onClick={handleAudioRecording}
+                      className={`voice-record-button ${isRecording ? 'recording' : ''}`}
+                      title={isRecording ? "Нажмите для остановки и отправки" : "Нажмите для начала записи"}
                     >
-                      ×
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={handleAudioRecording}
-                    className={`voice-record-button ${isRecording ? 'recording' : ''}`}
-                    title={isRecording ? "Нажмите для остановки и отправки" : "Нажмите для начала записи"}
-                  >
-                    {isRecording ? '⏹️' : '🎤'}
-                  </button>
-                </div>
-                {isRecording && (
-                  <div className="recording-indicator">
-                    <span className="recording-dot">●</span>
-                    <span className="recording-time">{formatRecordingTime(recordingTime)}</span>
-                    <span className="recording-hint">Запись... (ESC для отмены)</span>
-                    <button 
-                      type="button"
-                      onClick={cancelRecording}
-                      className="cancel-recording-button"
-                      title="Отменить запись"
-                    >
-                      ×
+                      {isRecording ? '⏹️' : '🎤'}
                     </button>
                   </div>
-                )}
-              </div>
+                </div>
             )}
             
             {/* Загрузка файлов */}

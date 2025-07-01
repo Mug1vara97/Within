@@ -849,6 +849,20 @@
     background: rgba(240, 71, 71, 0.1);
 }
 
+.recording-indicator-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(240, 71, 71, 0.1);
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(240, 71, 71, 0.3);
+    white-space: nowrap;
+    animation: slide-in 0.3s ease;
+    flex: 1;
+    margin-right: 8px;
+}
+
 .cancel-recording-button-top {
     background: rgba(240, 71, 71, 0.8);
     border: none;
@@ -886,6 +900,15 @@
 @media (max-width: 768px) {
     .recording-indicator {
         padding: 6px 10px;
+    }
+    
+    .recording-indicator-input {
+        padding: 10px;
+        gap: 6px;
+    }
+    
+    .recording-hint {
+        display: none;
     }
     
     .voice-record-button {
