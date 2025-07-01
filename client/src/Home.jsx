@@ -71,7 +71,6 @@ const Home = ({ user }) => {
         if (location.pathname.startsWith('/channels/')) {
             const pathParts = location.pathname.split('/');
             const serverId = pathParts[2];
-            const chatId = pathParts[3];
             
             // Проверяем что это не личные сообщения (serverId не должен быть @me)
             if (serverId === '@me') {
@@ -79,13 +78,12 @@ const Home = ({ user }) => {
                 return false;
             }
             
-            const isVisible = chatId && String(voiceRoom.roomId) === String(chatId) && String(voiceRoom.serverId) === String(serverId);
+            // Голосовой чат видимый если пользователь на том же сервере, где подключен к голосовому каналу
+            const isVisible = voiceRoom.serverId && String(voiceRoom.serverId) === String(serverId);
             console.log('Server voice chat visibility check:', { 
                 serverId, 
-                chatId, 
                 voiceRoomId: voiceRoom.roomId, 
                 voiceServerId: voiceRoom.serverId,
-                roomIdMatch: String(voiceRoom.roomId) === String(chatId),
                 serverIdMatch: String(voiceRoom.serverId) === String(serverId),
                 isVisible 
             });
@@ -455,11 +453,11 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVis
                         <div id="voice-chat-container-server" style={{ 
                             width: '100%', 
                             height: '100%',
-                            display: voiceRoom && isVoiceChatVisible && voiceRoom.serverId === serverId ? 'block' : 'none'
+                            display: isVoiceChatVisible ? 'block' : 'none'
                         }} />
                         
-                        {/* Показываем GroupChat если есть выбранный чат И это НЕ голосовой канал ИЛИ голосовой канал не видимый */}
-                        {selectedChat && (!voiceRoom || !isVoiceChatVisible || voiceRoom.serverId !== serverId) && (
+                        {/* Показываем GroupChat если есть выбранный чат И голосовой чат не видимый */}
+                        {selectedChat && !isVoiceChatVisible && (
                             <GroupChat
                                 username={user?.username}
                                 userId={user?.userId}
@@ -472,8 +470,8 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVis
                             />
                         )}
                         
-                        {/* Показываем заглушку если нет выбранного чата и нет голосового чата */}
-                        {!selectedChat && !(voiceRoom && voiceRoom.serverId === serverId) && (
+                        {/* Показываем заглушку если нет выбранного чата и голосовой чат не видимый */}
+                        {!selectedChat && !isVoiceChatVisible && (
                             <div className="no-chat-selected" style={{ 
                                 display: 'flex', 
                                 alignItems: 'center', 
