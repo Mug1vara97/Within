@@ -1,6 +1,7 @@
 import React from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import { FaHashtag, FaMicrophone, FaCog, FaLock } from 'react-icons/fa';
+import VoiceChannelUsers from './VoiceChannelUsers';
 
 const ChatItem = ({ 
     chat, 
@@ -10,7 +11,9 @@ const ChatItem = ({
     index,
     userPermissions,
     isServerOwner,
-    handleGroupChatClick
+    handleGroupChatClick,
+    voiceChannelUsers = [],
+    currentUserId
 }) => {
     const isDragDisabled = !(isServerOwner || userPermissions?.manageChannels);
 
@@ -89,6 +92,13 @@ const ChatItem = ({
                                 </div>
                             )}
                         </li>
+                        {/* Show voice channel users for voice channels (typeId === 4) */}
+                        {chat.typeId === 4 && voiceChannelUsers.length > 0 && (
+                            <VoiceChannelUsers 
+                                users={voiceChannelUsers}
+                                currentUserId={currentUserId}
+                            />
+                        )}
                     </>
                 );
             }}

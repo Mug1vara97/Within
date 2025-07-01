@@ -35,6 +35,9 @@ const Home = ({ user }) => {
         return saved ? JSON.parse(saved) : true;
     });
     
+    // Состояние для отслеживания пользователей в голосовых каналах
+    const [voiceChannelUsers, setVoiceChannelUsers] = useState({});
+    
     // Локальные настройки для кнопок (независимые от активного голосового чата)
     const [localMuted, setLocalMuted] = useState(() => {
         const saved = localStorage.getItem('localMuted');
@@ -135,6 +138,14 @@ const Home = ({ user }) => {
         setIsAudioEnabled(enabled);
     };
 
+    // Коллбек для обновления данных о пользователях в голосовом канале
+    const handleVoiceChannelUsersChange = (roomId, users) => {
+        setVoiceChannelUsers(prev => ({
+            ...prev,
+            [roomId]: users
+        }));
+    };
+
 
 
     // Сохраняем состояние голосового чата в localStorage
@@ -222,6 +233,7 @@ const Home = ({ user }) => {
                                     isAudioEnabled={voiceRoom ? isAudioEnabled : localAudioEnabled}
                                     onToggleMute={handleToggleMute}
                                     onToggleAudio={handleToggleAudio}
+                                    voiceChannelUsers={voiceChannelUsers}
                                 />
                             } />
                         </Routes>
@@ -246,6 +258,7 @@ const Home = ({ user }) => {
                                 onAudioStateChange={handleAudioStateChange}
                                 initialMuted={localMuted}
                                 initialAudioEnabled={localAudioEnabled}
+                                onVoiceChannelUsersChange={handleVoiceChannelUsersChange}
                             />
                         )}                       
 
@@ -361,7 +374,7 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel
     );
 };
 
-const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
+const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio, voiceChannelUsers }) => {
     // Компонент для отображения сообщения о выходе из голосового канала
     const LeftVoiceChannelComponent = () => (
         <div style={{
@@ -420,6 +433,7 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVis
                     isAudioEnabled={isAudioEnabled}
                     onToggleMute={onToggleMute}
                     onToggleAudio={onToggleAudio}
+                    voiceChannelUsers={voiceChannelUsers}
                 />
             </div>
             
