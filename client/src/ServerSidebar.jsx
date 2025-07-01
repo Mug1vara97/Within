@@ -23,7 +23,6 @@ const ServerSidebar = ({
     isAudioEnabled,
     onToggleMute,
     onToggleAudio,
-    voiceChannelUsers = {},
     ...props
 }) => {
     const [showDropdown, setShowDropdown] = useState(false);
@@ -199,7 +198,6 @@ const ServerSidebar = ({
                     isServerOwner={isServerOwner}
                     userRoles={userRoles}
                     userId={userId}
-                    voiceChannelUsers={voiceChannelUsers}
                 />
             </div>
             

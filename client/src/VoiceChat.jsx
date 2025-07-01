@@ -1092,7 +1092,7 @@ const VideoView = React.memo(({
   );
 });
 
-const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true, onVoiceChannelUsersChange }, ref) => {
+const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true }, ref) => {
   const [isJoined, setIsJoined] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(initialMuted);
@@ -1114,32 +1114,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       socketRef.current.emit('setUserInfo', { userId, serverId });
     }
   }, [userId, serverId]);
-
-  // Notify parent component about voice channel users changes
-  useEffect(() => {
-    if (onVoiceChannelUsersChange && roomId) {
-      const currentUsers = Array.from(peers.values()).map(peer => ({
-        id: peer.id,
-        name: peer.name,
-        isMuted: peer.isMuted,
-        isSpeaking: speakingStates.get(peer.id) || false,
-        isAudioEnabled: audioStates.get(peer.id) || true
-      }));
-
-      // Add local user if joined
-      if (isJoined) {
-        currentUsers.push({
-          id: socketRef.current?.id || 'local',
-          name: userName,
-          isMuted: isMuted,
-          isSpeaking: speakingStates.get(socketRef.current?.id) || false,
-          isAudioEnabled: isAudioEnabled
-        });
-      }
-
-      onVoiceChannelUsersChange(roomId, currentUsers);
-    }
-  }, [peers, speakingStates, audioStates, isJoined, isMuted, isAudioEnabled, roomId, userName, onVoiceChannelUsersChange]);
 
 
 
@@ -3581,59 +3555,30 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   // Определяем целевой контейнер для портала
   const getTargetContainer = () => {
-    console.log('VoiceChat getTargetContainer:', { isVisible, serverId });
-    if (!isVisible) {
-      console.log('VoiceChat not visible, returning null');
-      return null;
-    }
+    if (!isVisible) return null;
     
     // Только для серверных голосовых каналов создаем портал
     if (serverId) {
-      const container = document.getElementById('voice-chat-container-server');
-      console.log('VoiceChat container found:', !!container);
-      return container;
+      return document.getElementById('voice-chat-container-server');
     }
     
     // Для личных сообщений не создаем портал (работаем в фоне)
-    console.log('VoiceChat personal messages, returning null');
     return null;
   };
 
   const targetContainer = getTargetContainer();
   
-  console.log('VoiceChat render decision:', { 
-    isVisible, 
-    hasTargetContainer: !!targetContainer, 
-    serverId,
-    roomId,
-    showUI 
-  });
-  
   // Если видимый и есть контейнер, используем портал
   if (isVisible && targetContainer) {
-    console.log('VoiceChat rendering via portal');
     return createPortal(ui, targetContainer);
   }
   
-  // Если видимый но контейнер не найден (серверный канал), рендерим напрямую
-  if (isVisible && serverId) {
-    console.log('VoiceChat rendering directly (server, no container yet)');
-    return ui;
-  }
-  
-  // Если это личные сообщения (нет serverId), всегда рендерим в фоне
-  if (!serverId) {
-    console.log('VoiceChat personal messages, rendering in background');
-    return (
-      <div style={{ display: 'none' }}>
-        {ui}
-      </div>
-    );
-  }
-  
-  // Если серверный голосовой чат не видимый, полностью скрываем (не рендерим)
-  console.log('VoiceChat hidden (server, not visible)');
-  return null;
+  // Если не видимый или нет контейнера, возвращаем ui напрямую со скрытием
+  return (
+    <div style={{ display: isVisible ? 'block' : 'none' }}>
+      {ui}
+    </div>
+  );
 });
 
 export default VoiceChat;

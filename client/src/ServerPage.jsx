@@ -4,7 +4,7 @@ import { BASE_URL } from './config/apiConfig';
 import Modals from './Modals/Modals';
 import { HubConnectionBuilder, LogLevel, HttpTransportType } from '@microsoft/signalr';
 
-const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected, voiceRoom, isMuted, isAudioEnabled, onToggleMute, onToggleAudio, voiceChannelUsers = {} }) => {
+const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected, voiceRoom, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
     const [server, setServer] = useState(null);
     const [selectedChat, setSelectedChat] = useState(null);
     const [users, setUsers] = useState([]);
@@ -106,7 +106,7 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
 
         const handlers = {
             "CategoriesReordered": (updatedCategories) => {
-                // console.log('CategoriesReordered received:', updatedCategories);
+                console.log('CategoriesReordered received:', updatedCategories);
                 setServer(prev => {
                     const newState = { 
                         ...prev, 
@@ -119,12 +119,12 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
                             }))
                         }))
                     };
-                    // console.log('New server state:', newState);
+                    console.log('New server state:', newState);
                     return newState;
                 });
             },
             "ChatsReordered": (updatedCategories) => {
-                // console.log('ChatsReordered received:', updatedCategories);
+                console.log('ChatsReordered received:', updatedCategories);
                 setServer(prev => {
                     const newState = { 
                         ...prev, 
@@ -137,7 +137,7 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
                             }))
                         }))
                     };
-                    // console.log('New server state:', newState);
+                    console.log('New server state:', newState);
                     return newState;
                 });
             },
@@ -808,7 +808,6 @@ return (
                 isAudioEnabled={isAudioEnabled}
                 onToggleMute={onToggleMute}
                 onToggleAudio={onToggleAudio}
-                voiceChannelUsers={voiceChannelUsers}
             />
 
             <Modals

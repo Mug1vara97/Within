@@ -35,12 +35,6 @@ const Home = ({ user }) => {
         return saved ? JSON.parse(saved) : true;
     });
     
-    // Состояние для отслеживания пользователей в голосовых каналах
-    const [voiceChannelUsers, setVoiceChannelUsers] = useState({});
-    
-    // Состояние для выбранного чата на сервере (нужно для правильной логики отображения VoiceChat)
-    const [selectedServerChat, setSelectedServerChat] = useState(null);
-    
     // Локальные настройки для кнопок (независимые от активного голосового чата)
     const [localMuted, setLocalMuted] = useState(() => {
         const saved = localStorage.getItem('localMuted');
@@ -53,11 +47,10 @@ const Home = ({ user }) => {
     
     // Определяем, отображается ли VoiceChat в основной области (только для серверов)
     const isVoiceChatVisible = useMemo(() => {
-        console.log('🔍 isVoiceChatVisible calculation:', { 
+        console.log('isVoiceChatVisible calculation:', { 
             voiceRoom: !!voiceRoom, 
             pathname: location.pathname,
-            voiceRoomData: voiceRoom,
-            selectedServerChat
+            voiceRoomData: voiceRoom 
         });
         
         if (!voiceRoom) {
@@ -75,6 +68,7 @@ const Home = ({ user }) => {
         if (location.pathname.startsWith('/channels/')) {
             const pathParts = location.pathname.split('/');
             const serverId = pathParts[2];
+            const chatId = pathParts[3];
             
             // Проверяем что это не личные сообщения (serverId не должен быть @me)
             if (serverId === '@me') {
@@ -82,41 +76,14 @@ const Home = ({ user }) => {
                 return false;
             }
             
-            // Проверяем что мы на том же сервере
-            const onSameServer = voiceRoom.serverId && String(voiceRoom.serverId) === String(serverId);
-            if (!onSameServer) {
-                console.log('Not on same server as voice room');
-                return false;
-            }
-            
-            // Если выбран текстовый канал - скрываем голосовой чат
-            if (selectedServerChat && (selectedServerChat.chatType === 3 || selectedServerChat.typeId === 3)) {
-                console.log('Text channel selected - hiding voice chat');
-                return false;
-            }
-            
-            // Показываем голосовой чат если:
-            // 1. Выбран голосовой канал ИЛИ
-            // 2. Не выбран никакой канал, но подключен к голосовому
-            const isVisible = !selectedServerChat || (selectedServerChat.chatType === 4 || selectedServerChat.typeId === 4);
-            
-            console.log('Server voice chat visibility check:', { 
-                serverId, 
-                voiceRoomId: voiceRoom.roomId, 
-                voiceServerId: voiceRoom.serverId,
-                serverIdMatch: onSameServer,
-                selectedServerChat,
-                selectedChatType: selectedServerChat?.chatType || selectedServerChat?.typeId,
-                isVisible 
-            });
+            const isVisible = chatId && String(voiceRoom.roomId) === String(chatId) && String(voiceRoom.serverId) === String(serverId);
+            console.log('Server voice chat visibility:', { serverId, chatId, voiceRoom, isVisible });
             return isVisible;
         }
         
         console.log('Default case - hiding voice chat');
         return false;
-    }, [voiceRoom, location.pathname, selectedServerChat]);
-    
-    console.log('🎙️ Final isVoiceChatVisible:', isVoiceChatVisible);
+    }, [voiceRoom, location.pathname]);
     
     // Ref для VoiceChat
     const voiceChatRef = useRef(null);
@@ -168,14 +135,6 @@ const Home = ({ user }) => {
         setIsAudioEnabled(enabled);
     };
 
-    // Коллбек для обновления данных о пользователях в голосовом канале
-    const handleVoiceChannelUsersChange = (roomId, users) => {
-        setVoiceChannelUsers(prev => ({
-            ...prev,
-            [roomId]: users
-        }));
-    };
-
 
 
     // Сохраняем состояние голосового чата в localStorage
@@ -212,12 +171,6 @@ const Home = ({ user }) => {
             setIsDiscoverMode(false);
         }
     }, [location.pathname, isDiscoverMode]);
-    
-    // Сбрасываем выбранный чат сервера при изменении маршрута
-    useEffect(() => {
-        // Всегда сбрасываем при смене маршрута для упрощения логики
-        setSelectedServerChat(null);
-    }, [location.pathname]);
 
     const handleDiscoverModeChange = (mode) => {
         setIsDiscoverMode(mode);
@@ -269,8 +222,6 @@ const Home = ({ user }) => {
                                     isAudioEnabled={voiceRoom ? isAudioEnabled : localAudioEnabled}
                                     onToggleMute={handleToggleMute}
                                     onToggleAudio={handleToggleAudio}
-                                    voiceChannelUsers={voiceChannelUsers}
-                                    onServerChatSelected={setSelectedServerChat}
                                 />
                             } />
                         </Routes>
@@ -295,7 +246,6 @@ const Home = ({ user }) => {
                                 onAudioStateChange={handleAudioStateChange}
                                 initialMuted={localMuted}
                                 initialAudioEnabled={localAudioEnabled}
-                                onVoiceChannelUsersChange={handleVoiceChannelUsersChange}
                             />
                         )}                       
 
@@ -307,7 +257,6 @@ const Home = ({ user }) => {
 };
 
 const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
-    console.log('📱 ChatListWrapper rendering:', { voiceRoom: !!voiceRoom, leftVoiceChannel });
     // Компонент для отображения сообщения о выходе из голосового канала
     const LeftVoiceChannelComponent = () => (
         <div style={{
@@ -412,8 +361,7 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel
     );
 };
 
-const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio, voiceChannelUsers, onServerChatSelected }) => {
-    console.log('🖥️ ServerPageWrapper rendering:', { voiceRoom: !!voiceRoom, isVoiceChatVisible, leftVoiceChannel });
+const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
     // Компонент для отображения сообщения о выходе из голосового канала
     const LeftVoiceChannelComponent = () => (
         <div style={{
@@ -441,11 +389,6 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVis
     const handleChatSelected = (chat) => {
         if (chat) {
             setSelectedChat(chat);
-            // Добавляем serverId к данным чата для правильной логики сброса
-            onServerChatSelected({
-                ...chat,
-                serverId: serverId
-            });
             
             // Убираем надпись о выходе из голосового канала при выборе любого чата
             setLeftVoiceChannel(false);
@@ -477,7 +420,6 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVis
                     isAudioEnabled={isAudioEnabled}
                     onToggleMute={onToggleMute}
                     onToggleAudio={onToggleAudio}
-                    voiceChannelUsers={voiceChannelUsers}
                 />
             </div>
             
@@ -491,11 +433,11 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVis
                         <div id="voice-chat-container-server" style={{ 
                             width: '100%', 
                             height: '100%',
-                            display: isVoiceChatVisible ? 'block' : 'none'
+                            display: voiceRoom && isVoiceChatVisible && voiceRoom.serverId === serverId ? 'block' : 'none'
                         }} />
                         
-                        {/* Показываем GroupChat если есть выбранный чат И голосовой чат не видимый */}
-                        {selectedChat && !isVoiceChatVisible && (
+                        {/* Показываем GroupChat если есть выбранный чат И это НЕ голосовой канал ИЛИ голосовой канал не видимый */}
+                        {selectedChat && (!voiceRoom || !isVoiceChatVisible || voiceRoom.serverId !== serverId) && (
                             <GroupChat
                                 username={user?.username}
                                 userId={user?.userId}
@@ -508,8 +450,8 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVis
                             />
                         )}
                         
-                        {/* Показываем заглушку если нет выбранного чата и голосовой чат не видимый */}
-                        {!selectedChat && !isVoiceChatVisible && (
+                        {/* Показываем заглушку если нет выбранного чата и нет голосового чата */}
+                        {!selectedChat && !(voiceRoom && voiceRoom.serverId === serverId) && (
                             <div className="no-chat-selected" style={{ 
                                 display: 'flex', 
                                 alignItems: 'center', 
