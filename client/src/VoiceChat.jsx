@@ -3621,13 +3621,19 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     return ui;
   }
   
-  // Если не видимый или личные сообщения, скрываем
-  console.log('VoiceChat hidden');
-  return (
-    <div style={{ display: 'none' }}>
-      {ui}
-    </div>
-  );
+  // Если это личные сообщения (нет serverId), всегда рендерим в фоне
+  if (!serverId) {
+    console.log('VoiceChat personal messages, rendering in background');
+    return (
+      <div style={{ display: 'none' }}>
+        {ui}
+      </div>
+    );
+  }
+  
+  // Если серверный голосовой чат не видимый, полностью скрываем (не рендерим)
+  console.log('VoiceChat hidden (server, not visible)');
+  return null;
 });
 
 export default VoiceChat;

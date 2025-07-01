@@ -53,10 +53,11 @@ const Home = ({ user }) => {
     
     // Определяем, отображается ли VoiceChat в основной области (только для серверов)
     const isVoiceChatVisible = useMemo(() => {
-        console.log('isVoiceChatVisible calculation:', { 
+        console.log('🔍 isVoiceChatVisible calculation:', { 
             voiceRoom: !!voiceRoom, 
             pathname: location.pathname,
-            voiceRoomData: voiceRoom 
+            voiceRoomData: voiceRoom,
+            selectedServerChat
         });
         
         if (!voiceRoom) {
@@ -114,6 +115,8 @@ const Home = ({ user }) => {
         console.log('Default case - hiding voice chat');
         return false;
     }, [voiceRoom, location.pathname, selectedServerChat]);
+    
+    console.log('🎙️ Final isVoiceChatVisible:', isVoiceChatVisible);
     
     // Ref для VoiceChat
     const voiceChatRef = useRef(null);
@@ -304,6 +307,7 @@ const Home = ({ user }) => {
 };
 
 const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
+    console.log('📱 ChatListWrapper rendering:', { voiceRoom: !!voiceRoom, leftVoiceChannel });
     // Компонент для отображения сообщения о выходе из голосового канала
     const LeftVoiceChannelComponent = () => (
         <div style={{
@@ -409,6 +413,7 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel
 };
 
 const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio, voiceChannelUsers, onServerChatSelected }) => {
+    console.log('🖥️ ServerPageWrapper rendering:', { voiceRoom: !!voiceRoom, isVoiceChatVisible, leftVoiceChannel });
     // Компонент для отображения сообщения о выходе из голосового канала
     const LeftVoiceChannelComponent = () => (
         <div style={{
