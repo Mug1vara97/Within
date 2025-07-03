@@ -19,8 +19,6 @@ import {
   Switch,
   Menu,
   MenuItem,
-  Tooltip,
-  Popover,
 } from '@mui/material';
 import {
   Mic,
@@ -43,9 +41,7 @@ import {
   HeadsetOff,
   Headset,
   Fullscreen,
-  FullscreenExit,
-  VolumeDown,
-  Settings,
+  FullscreenExit
 } from '@mui/icons-material';
 import { Device } from 'mediasoup-client';
 import { io } from 'socket.io-client';
@@ -920,14 +916,11 @@ const VideoOverlay = React.memo(({
   isAudioEnabled,
   isLocal,
   onVolumeClick,
-  onVolumeSliderChange,
   volume,
   isAudioMuted,
   children
 }) => {
   const [isVolumeOff, setIsVolumeOff] = useState(isAudioMuted || volume === 0);
-  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
-  const [volumeAnchorEl, setVolumeAnchorEl] = useState(null);
 
   useEffect(() => {
     setIsVolumeOff(isAudioMuted || volume === 0);
@@ -935,29 +928,9 @@ const VideoOverlay = React.memo(({
 
   const handleVolumeIconClick = (e) => {
     e.stopPropagation();
-    if (e.button === 2 || e.detail === 2) { // Правый клик или двойной клик для слайдера
-      setVolumeAnchorEl(e.currentTarget);
-      setShowVolumeSlider(true);
-    } else {
-      setIsVolumeOff(prev => !prev);
-      if (onVolumeClick) {
-        onVolumeClick();
-      }
-    }
-  };
-
-  const handleVolumePopoverClose = () => {
-    setShowVolumeSlider(false);
-    setVolumeAnchorEl(null);
-  };
-
-  const handleSliderChange = (event, newValue) => {
-    console.log('🎚️ VideoOverlay: Slider changed to:', newValue);
-    if (onVolumeSliderChange) {
-      console.log('📞 VideoOverlay: Calling onVolumeSliderChange');
-      onVolumeSliderChange(newValue);
-    } else {
-      console.warn('⚠️ VideoOverlay: onVolumeSliderChange not available');
+    setIsVolumeOff(prev => !prev);
+    if (onVolumeClick) {
+      onVolumeClick();
     }
   };
 
@@ -1003,131 +976,55 @@ const VideoOverlay = React.memo(({
       </Box>
       
       {!isLocal && (
-        <>
-          <Tooltip title="Левый клик: вкл/выкл, Правый клик: регулировка громкости" placement="top">
-            <IconButton
-              onClick={handleVolumeIconClick}
-              onContextMenu={handleVolumeIconClick}
-              className={`volumeControl ${
-                isVolumeOff
-                  ? 'muted'
-                  : isSpeaking
-                  ? 'speaking'
-                  : 'silent'
-              }`}
-              sx={{
-                position: 'absolute',
-                bottom: 8,
-                right: 8,
-                backgroundColor: 'rgba(0,0,0,0.5)',
-                borderRadius: '50%',
-                transition: 'all 0.2s ease',
-                zIndex: 10,
-                '&:hover': {
-                  backgroundColor: 'rgba(0,0,0,0.7)',
-                  transform: 'scale(1.1)'
-                },
-                '&.muted': {
-                  backgroundColor: 'rgba(237, 66, 69, 0.1) !important',
-                  animation: 'mutePulse 2s infinite !important',
-                  '&:hover': {
-                    backgroundColor: 'rgba(237, 66, 69, 0.2) !important',
-                    transform: 'scale(1.1)'
-                  }
-                },
-                '&.speaking': {
-                  backgroundColor: 'transparent',
-                  '& .MuiSvgIcon-root': {
-                    color: '#3ba55c'
-                  }
-                },
-                '&.silent': {
-                  backgroundColor: 'transparent',
-                  '& .MuiSvgIcon-root': {
-                    color: '#B5BAC1'
-                  }
-                }
-              }}
-            >
-              {isVolumeOff ? (
-                <VolumeOff sx={{ fontSize: 20, color: '#ed4245' }} />
-              ) : volume <= 30 ? (
-                <VolumeDown sx={{ fontSize: 20 }} />
-              ) : (
-                <VolumeUp sx={{ fontSize: 20 }} />
-              )}
-            </IconButton>
-          </Tooltip>
-          <Popover
-            open={showVolumeSlider}
-            anchorEl={volumeAnchorEl}
-            onClose={handleVolumePopoverClose}
-            anchorOrigin={{
-              vertical: 'top',
-              horizontal: 'center',
-            }}
-            transformOrigin={{
-              vertical: 'bottom',
-              horizontal: 'center',
-            }}
-            slotProps={{
-              paper: {
-                sx: {
-                  backgroundColor: '#2f3136',
-                  border: '1px solid #40444b',
-                  borderRadius: '8px',
-                  padding: '12px 8px',
-                  minWidth: '200px',
-                }
+        <IconButton
+          onClick={handleVolumeIconClick}
+          className={`volumeControl ${
+            isVolumeOff
+              ? 'muted'
+              : isSpeaking
+              ? 'speaking'
+              : 'silent'
+          }`}
+          sx={{
+            position: 'absolute',
+            bottom: 8,
+            right: 8,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            borderRadius: '50%',
+            transition: 'all 0.2s ease',
+            zIndex: 10,
+            '&:hover': {
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              transform: 'scale(1.1)'
+            },
+            '&.muted': {
+              backgroundColor: 'rgba(237, 66, 69, 0.1) !important',
+              animation: 'mutePulse 2s infinite !important',
+              '&:hover': {
+                backgroundColor: 'rgba(237, 66, 69, 0.2) !important',
+                transform: 'scale(1.1)'
               }
-            }}
-          >
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center',
-              gap: 1,
-              color: '#dcddde'
-            }}>
-              <VolumeDown sx={{ fontSize: 16, color: '#72767d' }} />
-              <Slider
-                value={volume}
-                onChange={handleSliderChange}
-                min={0}
-                max={100}
-                step={1}
-                sx={{
-                  flex: 1,
-                  height: 8,
-                  '& .MuiSlider-track': {
-                    backgroundColor: '#5865f2',
-                    border: 'none',
-                  },
-                  '& .MuiSlider-rail': {
-                    backgroundColor: '#4f545c',
-                  },
-                  '& .MuiSlider-thumb': {
-                    backgroundColor: '#5865f2',
-                    width: 16,
-                    height: 16,
-                    border: '2px solid #ffffff',
-                    '&:hover': {
-                      boxShadow: '0 0 0 8px rgba(88, 101, 242, 0.16)',
-                    }
-                  }
-                }}
-              />
-              <VolumeUp sx={{ fontSize: 16, color: '#72767d' }} />
-              <Typography variant="caption" sx={{ 
-                color: '#dcddde', 
-                minWidth: '35px',
-                textAlign: 'center',
-                fontSize: '12px'
-              }}>
-                {volume}%
-              </Typography>
-            </Box>
-          </Popover>
-        </>
+            },
+            '&.speaking': {
+              backgroundColor: 'transparent',
+              '& .MuiSvgIcon-root': {
+                color: '#3ba55c'
+              }
+            },
+            '&.silent': {
+              backgroundColor: 'transparent',
+              '& .MuiSvgIcon-root': {
+                color: '#B5BAC1'
+              }
+            }
+          }}
+        >
+          {isVolumeOff ? (
+            <VolumeOff sx={{ fontSize: 20, color: '#ed4245' }} />
+          ) : (
+            <VolumeUp sx={{ fontSize: 20 }} />
+          )}
+        </IconButton>
       )}
       
       {children}
@@ -1154,7 +1051,6 @@ const VideoView = React.memo(({
   isAudioEnabled,
   isLocal,
   onVolumeClick,
-  onVolumeSliderChange,
   volume,
   isAudioMuted,
   children 
@@ -1176,7 +1072,6 @@ const VideoView = React.memo(({
         isAudioEnabled={isAudioEnabled}
         isLocal={isLocal}
         onVolumeClick={onVolumeClick}
-        onVolumeSliderChange={onVolumeSliderChange}
         volume={volume}
         isAudioMuted={isAudioMuted}
       >
@@ -1191,7 +1086,6 @@ const VideoView = React.memo(({
     prevProps.isMuted === nextProps.isMuted &&
     prevProps.isSpeaking === nextProps.isSpeaking &&
     prevProps.isAudioEnabled === nextProps.isAudioEnabled &&
-    prevProps.onVolumeSliderChange === nextProps.onVolumeSliderChange &&
     prevProps.volume === nextProps.volume &&
     prevProps.isAudioMuted === nextProps.isAudioMuted &&
     prevProps.children === nextProps.children
@@ -2172,71 +2066,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         newVolumes.set(peerId, newVolume);
         return newVolumes;
       });
-    }
-  };
-
-  // Новая функция для управления громкостью слайдером
-  const handleVolumeSliderChange = (peerId, newVolume) => {
-    console.log('🎚️ Volume slider change for peer:', peerId, 'to:', newVolume);
-    console.log('🗂️ All available peers:', Array.from(peers.keys()));
-    console.log('🎛️ All available GainNodes:', Array.from(gainNodesRef.current.keys()));
-    console.log('🔊 All available AudioElements:', Array.from(audioRef.current.keys()));
-    
-    // Проверяем наличие AudioContext
-    if (!audioContextRef.current) {
-      console.error('❌ AudioContext not initialized');
-      return;
-    }
-
-    // Сначала пробуем напрямую по peerId
-    let gainNode = gainNodesRef.current.get(peerId);
-    
-    // Если не найден, попробуем найти по socket ID (может быть несоответствие)
-    if (!gainNode) {
-      // Попробуем найти в peers и использовать их socketId
-      const peer = peers.get(peerId);
-      if (peer && peer.socketId) {
-        gainNode = gainNodesRef.current.get(peer.socketId);
-        console.log('🔍 Found GainNode using peer.socketId:', peer.socketId);
-      }
-    }
-    
-    console.log('🔊 GainNode exists for peer', peerId, ':', !!gainNode);
-    
-    if (gainNode) {
-      const volumeValue = newVolume / 100; // Конвертируем 0-100 в 0-1
-      
-      console.log('🎵 Using WebAudio GainNode for peer', peerId);
-      console.log('🔢 Setting volume value:', volumeValue);
-      
-      try {
-        if (newVolume === 0) {
-          // Полностью заглушаем через GainNode
-          gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
-          individualMutedPeersRef.current.set(peerId, true);
-          console.log('🔇 Muted peer via GainNode:', peerId);
-        } else {
-          // Устанавливаем громкость через GainNode
-          const finalVolume = isAudioEnabled ? volumeValue : 0;
-          gainNode.gain.setValueAtTime(finalVolume, audioContextRef.current.currentTime);
-          individualMutedPeersRef.current.set(peerId, false);
-          console.log('🔊 Set GainNode volume for peer:', peerId, 'to:', finalVolume, '(requested:', volumeValue, ', audioEnabled:', isAudioEnabled, ')');
-        }
-        
-        // Обновляем UI состояние
-        setVolumes(prev => {
-          const newVolumes = new Map(prev);
-          newVolumes.set(peerId, newVolume);
-          console.log('📊 Updated volumes map:', newVolumes);
-          return newVolumes;
-        });
-        
-      } catch (error) {
-        console.error('❌ Error setting volume:', error);
-      }
-    } else {
-      console.warn('⚠️ No GainNode found for peer:', peerId);
-      console.log('Available peers data:', peers);
     }
   };
 
@@ -3331,63 +3160,37 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         }
       } else if (kind === 'audio') {
         try {
-          console.log('🎵 Setting up PURE WebAudio for producer:', producer.producerSocketId);
-          
-          const audioContext = audioContextRef.current;
-          
-          // Проверяем состояние AudioContext
-          if (audioContext.state === 'suspended') {
-            console.log('⚠️ AudioContext suspended, resuming...');
-            await audioContext.resume();
+          const audio = new Audio();
+          audio.srcObject = stream;
+          audio.id = `audio-${producer.producerSocketId}`;
+          audio.autoplay = true;
+          audio.muted = !isAudioEnabledRef.current; // Use ref for current state
+
+          if (isMobile) {
+            await setAudioOutput(audio, useEarpiece);
           }
           
+          const audioContext = audioContextRef.current;
           const source = audioContext.createMediaStreamSource(stream);
-          const analyser = createAudioAnalyser(audioContext);
-          const gainNode = audioContext.createGain();
           
-          // Устанавливаем начальную громкость
-          const initialGain = isAudioEnabledRef.current ? 1.0 : 0.0;
-          gainNode.gain.value = initialGain;
+          const analyser = createAudioAnalyser(audioContext);
+          
+          const gainNode = audioContext.createGain();
+          gainNode.gain.value = isAudioEnabledRef.current ? 1.0 : 0.0; // Use ref for current state
 
-          // ✅ PURE WebAudio цепочка: source -> analyser -> gainNode -> destination
           source.connect(analyser);
           analyser.connect(gainNode);
           gainNode.connect(audioContext.destination);
 
-          console.log('🔗 PURE WebAudio chain connected for peer:', producer.producerSocketId);
-          console.log('🎛️ Initial gain value:', gainNode.gain.value);
-          console.log('🎚️ AudioContext destination:', audioContext.destination);
-          console.log('🔊 AudioContext sampleRate:', audioContext.sampleRate);
-
-          // Сохраняем ссылки (без HTML Audio элемента)
           analyserNodesRef.current.set(producer.producerSocketId, analyser);
           gainNodesRef.current.set(producer.producerSocketId, gainNode);
-          
-          // Создаем фиктивный объект вместо HTML Audio для совместимости
-          const audioPlaceholder = {
-            id: `audio-${producer.producerSocketId}`,
-            srcObject: stream,
-            muted: false,
-            isWebAudioOnly: true
-          };
-          audioRef.current.set(producer.producerSocketId, audioPlaceholder);
-          
+          audioRef.current.set(producer.producerSocketId, audio);
           setVolumes(prev => new Map(prev).set(producer.producerSocketId, 100));
 
           // Start voice detection with producerId
           detectSpeaking(analyser, producer.producerSocketId, producer.producerId);
-          
-          // Тестируем GainNode сразу
-          console.log('🧪 Testing GainNode immediately with 0.5 gain');
-          gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
-          
-          setTimeout(() => {
-            console.log('🧪 Testing GainNode with 1.0 gain after 2 seconds');
-            gainNode.gain.setValueAtTime(1.0, audioContext.currentTime);
-          }, 2000);
-          
         } catch (error) {
-          console.error('❌ Error setting up PURE WebAudio:', error);
+          console.error('Error setting up audio:', error);
         }
       }
 
@@ -3614,7 +3417,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                         isAudioEnabled={audioStates.get(peer.id)}
                         isLocal={false}
                         onVolumeClick={() => handleVolumeChange(peer.id)}
-                        onVolumeSliderChange={(newVolume) => handleVolumeSliderChange(peer.id, newVolume)}
                         volume={volumes.get(peer.id) || 100}
                         isAudioMuted={individualMutedPeersRef.current.get(peer.id) || false}
                       />
@@ -3638,7 +3440,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                           isAudioEnabled={audioStates.get(peer.id)}
                           isLocal={false}
                           onVolumeClick={() => handleVolumeChange(peer.id)}
-                          onVolumeSliderChange={(newVolume) => handleVolumeSliderChange(peer.id, newVolume)}
                           volume={volumes.get(peer.id) || 100}
                           isAudioMuted={individualMutedPeersRef.current.get(peer.id) || false}
                         />
