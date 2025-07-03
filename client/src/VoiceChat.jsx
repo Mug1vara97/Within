@@ -2048,8 +2048,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           if (isAudioEnabled) {
             audio.muted = false;
           }
-          gainNode.gain.setValueAtTime(1, audioContextRef.current.currentTime);
-          console.log('Set gain to 1 and unmuted audio for peer:', peerId);
+          gainNode.gain.setValueAtTime(2.0, audioContextRef.current.currentTime);
+          console.log('Set gain to 2.0 and unmuted audio for peer:', peerId);
         } else {
           gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
           audio.muted = true;
