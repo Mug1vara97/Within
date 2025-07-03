@@ -3331,45 +3331,63 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         }
       } else if (kind === 'audio') {
         try {
-          console.log('🎵 Setting up audio for producer:', producer.producerSocketId);
-          
-          // Создаем Audio элемент БЕЗ autoplay - он нужен только для мобильных устройств
-          const audio = new Audio();
-          audio.srcObject = stream;
-          audio.id = `audio-${producer.producerSocketId}`;
-          audio.autoplay = false; // ❌ Отключаем autoplay - используем только WebAudio
-          audio.muted = true; // ❌ Заглушаем HTML audio element
-          audio.volume = 0; // ❌ Устанавливаем volume в 0
-
-          if (isMobile) {
-            await setAudioOutput(audio, useEarpiece);
-          }
+          console.log('🎵 Setting up PURE WebAudio for producer:', producer.producerSocketId);
           
           const audioContext = audioContextRef.current;
+          
+          // Проверяем состояние AudioContext
+          if (audioContext.state === 'suspended') {
+            console.log('⚠️ AudioContext suspended, resuming...');
+            await audioContext.resume();
+          }
+          
           const source = audioContext.createMediaStreamSource(stream);
-          
           const analyser = createAudioAnalyser(audioContext);
-          
           const gainNode = audioContext.createGain();
-          gainNode.gain.value = isAudioEnabledRef.current ? 1.0 : 0.0; // Use ref for current state
+          
+          // Устанавливаем начальную громкость
+          const initialGain = isAudioEnabledRef.current ? 1.0 : 0.0;
+          gainNode.gain.value = initialGain;
 
-          // ✅ Правильная аудио цепочка: source -> analyser -> gainNode -> destination
+          // ✅ PURE WebAudio цепочка: source -> analyser -> gainNode -> destination
           source.connect(analyser);
           analyser.connect(gainNode);
           gainNode.connect(audioContext.destination);
 
-          console.log('🔗 Audio chain connected for peer:', producer.producerSocketId);
+          console.log('🔗 PURE WebAudio chain connected for peer:', producer.producerSocketId);
           console.log('🎛️ Initial gain value:', gainNode.gain.value);
+          console.log('🎚️ AudioContext destination:', audioContext.destination);
+          console.log('🔊 AudioContext sampleRate:', audioContext.sampleRate);
 
+          // Сохраняем ссылки (без HTML Audio элемента)
           analyserNodesRef.current.set(producer.producerSocketId, analyser);
           gainNodesRef.current.set(producer.producerSocketId, gainNode);
-          audioRef.current.set(producer.producerSocketId, audio);
+          
+          // Создаем фиктивный объект вместо HTML Audio для совместимости
+          const audioPlaceholder = {
+            id: `audio-${producer.producerSocketId}`,
+            srcObject: stream,
+            muted: false,
+            isWebAudioOnly: true
+          };
+          audioRef.current.set(producer.producerSocketId, audioPlaceholder);
+          
           setVolumes(prev => new Map(prev).set(producer.producerSocketId, 100));
 
           // Start voice detection with producerId
           detectSpeaking(analyser, producer.producerSocketId, producer.producerId);
+          
+          // Тестируем GainNode сразу
+          console.log('🧪 Testing GainNode immediately with 0.5 gain');
+          gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+          
+          setTimeout(() => {
+            console.log('🧪 Testing GainNode with 1.0 gain after 2 seconds');
+            gainNode.gain.setValueAtTime(1.0, audioContext.currentTime);
+          }, 2000);
+          
         } catch (error) {
-          console.error('Error setting up audio:', error);
+          console.error('❌ Error setting up PURE WebAudio:', error);
         }
       }
 
