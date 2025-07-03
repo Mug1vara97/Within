@@ -1835,7 +1835,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           
           // Create gain node
           const gainNode = audioContext.createGain();
-          gainNode.gain.value = isAudioEnabledRef.current ? 1.5 : 0.0; // Use ref for current state
+          gainNode.gain.value = isAudioEnabledRef.current ? 2.0 : 0.0; // Use ref for current state
 
           // Connect nodes только для анализа голоса
           source.connect(analyser);
@@ -3176,7 +3176,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           const analyser = createAudioAnalyser(audioContext);
           
           const gainNode = audioContext.createGain();
-          gainNode.gain.value = isAudioEnabledRef.current ? 1.5 : 0.0; // Use ref for current state
+          gainNode.gain.value = isAudioEnabledRef.current ? 2.0 : 0.0; // Use ref for current state
 
           source.connect(analyser);
           analyser.connect(gainNode);
@@ -3240,7 +3240,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     // Mute/unmute all gain nodes
     gainNodesRef.current.forEach((gainNode) => {
       if (gainNode) {
-        gainNode.gain.value = newState ? 1.5 : 0.0;
+        gainNode.gain.value = newState ? 2.0 : 0.0;
       }
     });
 
