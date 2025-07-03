@@ -2190,7 +2190,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
     // Сначала пробуем напрямую по peerId
     let gainNode = gainNodesRef.current.get(peerId);
-    let audio = audioRef.current.get(peerId);
     
     // Если не найден, попробуем найти по socket ID (может быть несоответствие)
     if (!gainNode) {
@@ -2198,7 +2197,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       const peer = peers.get(peerId);
       if (peer && peer.socketId) {
         gainNode = gainNodesRef.current.get(peer.socketId);
-        audio = audioRef.current.get(peer.socketId);
         console.log('🔍 Found GainNode using peer.socketId:', peer.socketId);
       }
     }
@@ -2208,27 +2206,21 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     if (gainNode) {
       const volumeValue = newVolume / 100; // Конвертируем 0-100 в 0-1
       
-      console.log('🎵 Audio element exists for peer', peerId, ':', !!audio);
+      console.log('🎵 Using WebAudio GainNode for peer', peerId);
       console.log('🔢 Setting volume value:', volumeValue);
       
       try {
         if (newVolume === 0) {
-          // Полностью заглушаем
+          // Полностью заглушаем через GainNode
           gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
-          if (audio) {
-            audio.muted = true;
-          }
           individualMutedPeersRef.current.set(peerId, true);
-          console.log('🔇 Muted peer:', peerId);
+          console.log('🔇 Muted peer via GainNode:', peerId);
         } else {
-          // Устанавливаем громкость
-          gainNode.gain.setValueAtTime(volumeValue, audioContextRef.current.currentTime);
-          // Размучиваем только если глобальный звук включен
-          if (audio && isAudioEnabled) {
-            audio.muted = false;
-          }
+          // Устанавливаем громкость через GainNode
+          const finalVolume = isAudioEnabled ? volumeValue : 0;
+          gainNode.gain.setValueAtTime(finalVolume, audioContextRef.current.currentTime);
           individualMutedPeersRef.current.set(peerId, false);
-          console.log('🔊 Set volume for peer:', peerId, 'to:', volumeValue);
+          console.log('🔊 Set GainNode volume for peer:', peerId, 'to:', finalVolume, '(requested:', volumeValue, ', audioEnabled:', isAudioEnabled, ')');
         }
         
         // Обновляем UI состояние
@@ -3339,11 +3331,15 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         }
       } else if (kind === 'audio') {
         try {
+          console.log('🎵 Setting up audio for producer:', producer.producerSocketId);
+          
+          // Создаем Audio элемент БЕЗ autoplay - он нужен только для мобильных устройств
           const audio = new Audio();
           audio.srcObject = stream;
           audio.id = `audio-${producer.producerSocketId}`;
-          audio.autoplay = true;
-          audio.muted = !isAudioEnabledRef.current; // Use ref for current state
+          audio.autoplay = false; // ❌ Отключаем autoplay - используем только WebAudio
+          audio.muted = true; // ❌ Заглушаем HTML audio element
+          audio.volume = 0; // ❌ Устанавливаем volume в 0
 
           if (isMobile) {
             await setAudioOutput(audio, useEarpiece);
@@ -3357,9 +3353,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           const gainNode = audioContext.createGain();
           gainNode.gain.value = isAudioEnabledRef.current ? 1.0 : 0.0; // Use ref for current state
 
+          // ✅ Правильная аудио цепочка: source -> analyser -> gainNode -> destination
           source.connect(analyser);
           analyser.connect(gainNode);
           gainNode.connect(audioContext.destination);
+
+          console.log('🔗 Audio chain connected for peer:', producer.producerSocketId);
+          console.log('🎛️ Initial gain value:', gainNode.gain.value);
 
           analyserNodesRef.current.set(producer.producerSocketId, analyser);
           gainNodesRef.current.set(producer.producerSocketId, gainNode);
