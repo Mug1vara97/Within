@@ -25,8 +25,13 @@ const VoiceChannelUsers = ({ users = [], currentUserId, onVolumeChange }) => {
     };
 
     const handleVolumeSliderChange = (event, newValue) => {
+        console.log('🎛️ VoiceChannelUsers: Slider changed for user:', selectedUserId, 'to:', newValue);
         if (onVolumeChange && selectedUserId) {
+            console.log('📞 VoiceChannelUsers: Calling onVolumeChange');
             onVolumeChange(selectedUserId, newValue);
+        } else {
+            console.warn('⚠️ VoiceChannelUsers: onVolumeChange not available or no user selected');
+            console.log('onVolumeChange:', !!onVolumeChange, 'selectedUserId:', selectedUserId);
         }
     };
 

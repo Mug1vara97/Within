@@ -952,8 +952,12 @@ const VideoOverlay = React.memo(({
   };
 
   const handleSliderChange = (event, newValue) => {
+    console.log('🎚️ VideoOverlay: Slider changed to:', newValue);
     if (onVolumeSliderChange) {
+      console.log('📞 VideoOverlay: Calling onVolumeSliderChange');
       onVolumeSliderChange(newValue);
+    } else {
+      console.warn('⚠️ VideoOverlay: onVolumeSliderChange not available');
     }
   };
 
@@ -2173,36 +2177,74 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   // Новая функция для управления громкостью слайдером
   const handleVolumeSliderChange = (peerId, newVolume) => {
-    console.log('Volume slider change for peer:', peerId, 'to:', newVolume);
-    const gainNode = gainNodesRef.current.get(peerId);
+    console.log('🎚️ Volume slider change for peer:', peerId, 'to:', newVolume);
+    console.log('🗂️ All available peers:', Array.from(peers.keys()));
+    console.log('🎛️ All available GainNodes:', Array.from(gainNodesRef.current.keys()));
+    console.log('🔊 All available AudioElements:', Array.from(audioRef.current.keys()));
+    
+    // Проверяем наличие AudioContext
+    if (!audioContextRef.current) {
+      console.error('❌ AudioContext not initialized');
+      return;
+    }
+
+    // Сначала пробуем напрямую по peerId
+    let gainNode = gainNodesRef.current.get(peerId);
+    let audio = audioRef.current.get(peerId);
+    
+    // Если не найден, попробуем найти по socket ID (может быть несоответствие)
+    if (!gainNode) {
+      // Попробуем найти в peers и использовать их socketId
+      const peer = peers.get(peerId);
+      if (peer && peer.socketId) {
+        gainNode = gainNodesRef.current.get(peer.socketId);
+        audio = audioRef.current.get(peer.socketId);
+        console.log('🔍 Found GainNode using peer.socketId:', peer.socketId);
+      }
+    }
+    
+    console.log('🔊 GainNode exists for peer', peerId, ':', !!gainNode);
     
     if (gainNode) {
-      const audio = audioRef.current.get(peerId);
       const volumeValue = newVolume / 100; // Конвертируем 0-100 в 0-1
       
-      if (audio) {
+      console.log('🎵 Audio element exists for peer', peerId, ':', !!audio);
+      console.log('🔢 Setting volume value:', volumeValue);
+      
+      try {
         if (newVolume === 0) {
           // Полностью заглушаем
           gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
-          audio.muted = true;
+          if (audio) {
+            audio.muted = true;
+          }
           individualMutedPeersRef.current.set(peerId, true);
+          console.log('🔇 Muted peer:', peerId);
         } else {
           // Устанавливаем громкость
           gainNode.gain.setValueAtTime(volumeValue, audioContextRef.current.currentTime);
           // Размучиваем только если глобальный звук включен
-          if (isAudioEnabled) {
+          if (audio && isAudioEnabled) {
             audio.muted = false;
           }
           individualMutedPeersRef.current.set(peerId, false);
+          console.log('🔊 Set volume for peer:', peerId, 'to:', volumeValue);
         }
+        
+        // Обновляем UI состояние
+        setVolumes(prev => {
+          const newVolumes = new Map(prev);
+          newVolumes.set(peerId, newVolume);
+          console.log('📊 Updated volumes map:', newVolumes);
+          return newVolumes;
+        });
+        
+      } catch (error) {
+        console.error('❌ Error setting volume:', error);
       }
-      
-      // Обновляем UI состояние
-      setVolumes(prev => {
-        const newVolumes = new Map(prev);
-        newVolumes.set(peerId, newVolume);
-        return newVolumes;
-      });
+    } else {
+      console.warn('⚠️ No GainNode found for peer:', peerId);
+      console.log('Available peers data:', peers);
     }
   };
 
