@@ -931,16 +931,24 @@ const VideoOverlay = React.memo(({
 
   const handleVolumeIconClick = (e) => {
     e.stopPropagation();
+    console.log('Left click on volume icon detected');
     if (onVolumeClick) {
+      console.log('Calling onVolumeClick');
       onVolumeClick();
+    } else {
+      console.log('onVolumeClick is not defined');
     }
   };
 
   const handleVolumeRightClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    console.log('Right click on volume icon detected');
     if (onToggleVolumeSlider) {
+      console.log('Calling onToggleVolumeSlider');
       onToggleVolumeSlider();
+    } else {
+      console.log('onToggleVolumeSlider is not defined');
     }
   };
 
@@ -1189,6 +1197,16 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const [speakingStates, setSpeakingStates] = useState(new Map());
   const [audioStates, setAudioStates] = useState(new Map());
   const [showVolumeSliders, setShowVolumeSliders] = useState(new Map()); // Новое состояние для отображения слайдеров
+
+  // Эффект для отслеживания изменений состояния volumes
+  useEffect(() => {
+    console.log('Volumes state changed:', Array.from(volumes.entries()));
+  }, [volumes]);
+
+  // Эффект для отслеживания изменений состояния showVolumeSliders
+  useEffect(() => {
+    console.log('ShowVolumeSliders state changed:', Array.from(showVolumeSliders.entries()));
+  }, [showVolumeSliders]);
   const isMobile = useMemo(() => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent), []);
   const prevRoomIdRef = useRef(roomId);
 
@@ -2158,20 +2176,24 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   // Функция для показа слайдера громкости при hover
   const showVolumeSlider = useCallback((peerId) => {
+    console.log('showVolumeSlider called for peer:', peerId);
     setShowVolumeSliders(prev => {
       const newState = new Map(prev);
       newState.set(peerId, true);
+      console.log('Set slider visible for peer:', peerId);
       return newState;
     });
   }, []);
 
   // Функция для скрытия слайдера громкости при leave hover
   const hideVolumeSlider = useCallback((peerId) => {
+    console.log('hideVolumeSlider called for peer:', peerId);
     // Добавляем небольшую задержку перед скрытием
     setTimeout(() => {
       setShowVolumeSliders(prev => {
         const newState = new Map(prev);
         newState.set(peerId, false);
+        console.log('Set slider hidden for peer:', peerId);
         return newState;
       });
     }, 150); // 150ms задержка
@@ -2179,12 +2201,16 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   // Функция для переключения отображения слайдера громкости (для совместимости)
   const toggleVolumeSlider = useCallback((peerId) => {
+    console.log('toggleVolumeSlider called for peer:', peerId);
     setShowVolumeSliders(prev => {
       const newState = new Map(prev);
       const currentState = newState.get(peerId);
+      console.log('Current slider state for peer', peerId, ':', currentState);
       if (currentState) {
+        console.log('Hiding volume slider for peer:', peerId);
         hideVolumeSlider(peerId);
       } else {
+        console.log('Showing volume slider for peer:', peerId);
         showVolumeSlider(peerId);
       }
       return newState;
@@ -2200,18 +2226,24 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     const currentVolume = volumes.get(peerId) || 100;
     const isCurrentlyMuted = currentVolume === 0;
     
+    console.log('Before change - Current volume:', currentVolume, 'Is muted:', isCurrentlyMuted);
+    console.log('Previous volumes map:', Array.from(previousVolumes.entries()));
+    
     let newVolume;
     if (isCurrentlyMuted) {
       // Если замучен, восстанавливаем предыдущий уровень или 100%
       newVolume = previousVolumes.get(peerId) || 100;
+      console.log('Unmuting - restored volume:', newVolume);
     } else {
       // Если не замучен, сохраняем текущий уровень и мутим
       setPreviousVolumes(prev => {
         const newPrevious = new Map(prev);
         newPrevious.set(peerId, currentVolume);
+        console.log('Saving previous volume:', currentVolume, 'for peer:', peerId);
         return newPrevious;
       });
       newVolume = 0;
+      console.log('Muting - new volume:', newVolume);
     }
     
     console.log('Peer:', peerId, 'Current volume:', currentVolume, 'New volume:', newVolume);
@@ -2244,8 +2276,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       setVolumes(prev => {
         const newVolumes = new Map(prev);
         newVolumes.set(peerId, newVolume);
+        console.log('Updated volumes map:', Array.from(newVolumes.entries()));
         return newVolumes;
       });
+    } else {
+      console.error('HTML Audio element not found for peer:', peerId);
     }
   };
 
