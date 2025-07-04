@@ -1906,14 +1906,17 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           console.log('AudioContext state:', audioContext.state);
           
           // Убеждаемся, что AudioContext запущен
+          console.log('AudioContext state before resume:', audioContext.state);
           if (audioContext.state === 'suspended') {
             console.log('AudioContext was suspended, attempting to resume...');
             try {
               await audioContext.resume();
-              console.log('AudioContext resumed successfully');
+              console.log('AudioContext resumed successfully, new state:', audioContext.state);
             } catch (err) {
               console.error('Failed to resume AudioContext:', err);
             }
+          } else {
+            console.log('AudioContext already running, state:', audioContext.state);
           }
           
           // Используем MediaStream напрямую для Web Audio API
@@ -1939,6 +1942,22 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           analyser.connect(gainNode);
           gainNode.connect(audioContext.destination);
           console.log('Web Audio chain connected successfully');
+          
+          // Дополнительная диагностика
+          console.log('=== AUDIO CHAIN DIAGNOSIS ===');
+          console.log('Stream active:', stream.active);
+          console.log('AudioContext state:', audioContext.state);
+          console.log('AudioContext currentTime:', audioContext.currentTime);
+          console.log('AudioContext sampleRate:', audioContext.sampleRate);
+          console.log('AudioContext destination:', audioContext.destination);
+          console.log('AudioContext destination maxChannelCount:', audioContext.destination.maxChannelCount);
+          console.log('GainNode gain value:', gainNode.gain.value);
+          console.log('GainNode numberOfInputs:', gainNode.numberOfInputs);
+          console.log('GainNode numberOfOutputs:', gainNode.numberOfOutputs);
+          console.log('MediaStreamSource:', source);
+          console.log('MediaStreamSource numberOfOutputs:', source.numberOfOutputs);
+          console.log('Analyser:', analyser);
+          console.log('=== END DIAGNOSIS ===');
 
           // Store references
           analyserNodesRef.current.set(producer.producerSocketId, analyser);
@@ -2225,6 +2244,59 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       return newState;
     });
   };
+
+  // Функция для тестирования Web Audio API
+  const testWebAudio = useCallback(async () => {
+    console.log('=== WEB AUDIO TEST ===');
+    const audioContext = audioContextRef.current;
+    
+    if (!audioContext) {
+      console.error('AudioContext not available');
+      return;
+    }
+    
+    console.log('AudioContext state before test:', audioContext.state);
+    
+    // Принудительно активируем AudioContext
+    if (audioContext.state === 'suspended') {
+      console.log('Attempting to resume AudioContext...');
+      try {
+        await audioContext.resume();
+        console.log('AudioContext resumed, new state:', audioContext.state);
+      } catch (err) {
+        console.error('Failed to resume AudioContext:', err);
+        return;
+      }
+    }
+    
+    // Создаем тестовый oscillator
+    console.log('Creating test oscillator...');
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    // Настраиваем oscillator
+    oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 note
+    oscillator.type = 'sine';
+    
+    // Настраиваем громкость
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); // Тихий звук
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    
+    // Соединяем цепочку
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Воспроизводим тестовый звук на 0.5 секунды
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+    
+    console.log('Test sound should be playing now (440Hz sine wave for 0.5s)');
+    
+    oscillator.onended = () => {
+      console.log('Test sound ended');
+    };
+    
+  }, []);
 
   // Обновляем обработчик подключения пира
   const handlePeerJoined = useCallback(({ peerId }) => {
@@ -3679,6 +3751,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                   title={isAudioEnabled ? "Disable audio output" : "Enable audio output"}
                 >
                   {isAudioEnabled ? <Headset /> : <HeadsetOff />}
+                </IconButton>
+                <IconButton
+                  sx={styles.iconButton}
+                  onClick={testWebAudio}
+                  title="Test Web Audio API"
+                  color="warning"
+                >
+                  🔊
                 </IconButton>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <IconButton
