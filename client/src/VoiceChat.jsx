@@ -2174,114 +2174,91 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     }
   }, []);
 
-  // Функция для показа слайдера громкости при hover
-  const showVolumeSlider = useCallback((peerId) => {
-    console.log('showVolumeSlider called for peer:', peerId);
-    setShowVolumeSliders(prev => {
-      const newState = new Map(prev);
-      newState.set(peerId, true);
-      console.log('Set slider visible for peer:', peerId);
-      return newState;
-    });
-  }, []);
-
-  // Функция для скрытия слайдера громкости при leave hover
-  const hideVolumeSlider = useCallback((peerId) => {
-    console.log('hideVolumeSlider called for peer:', peerId);
-    // Добавляем небольшую задержку перед скрытием
-    setTimeout(() => {
-      setShowVolumeSliders(prev => {
-        const newState = new Map(prev);
-        newState.set(peerId, false);
-        console.log('Set slider hidden for peer:', peerId);
-        return newState;
-      });
-    }, 150); // 150ms задержка
-  }, []);
-
-  // Функция для переключения отображения слайдера громкости (для совместимости)
+  // Функция для переключения отображения слайдера громкости
   const toggleVolumeSlider = useCallback((peerId) => {
     console.log('toggleVolumeSlider called for peer:', peerId);
     setShowVolumeSliders(prev => {
       const newState = new Map(prev);
-      const currentState = newState.get(peerId);
+      const currentState = newState.get(peerId) || false;
       console.log('Current slider state for peer', peerId, ':', currentState);
       if (currentState) {
         console.log('Hiding volume slider for peer:', peerId);
-        hideVolumeSlider(peerId);
+        newState.set(peerId, false);
       } else {
         console.log('Showing volume slider for peer:', peerId);
-        showVolumeSlider(peerId);
+        newState.set(peerId, true);
       }
+      console.log('New slider state for peer', peerId, ':', newState.get(peerId));
       return newState;
     });
-  }, [showVolumeSlider, hideVolumeSlider]);
+  }, []);
 
     const handleVolumeChange = (peerId) => {
     console.log('Volume change requested for peer:', peerId);
     const audio = audioRef.current.get(peerId);
     const gainNode = gainNodesRef.current.get(peerId);
     
-    // Получаем текущую громкость пользователя
-    const currentVolume = volumes.get(peerId) || 100;
-    const isCurrentlyMuted = currentVolume === 0;
-    
-    console.log('Before change - Current volume:', currentVolume, 'Is muted:', isCurrentlyMuted);
-    console.log('Previous volumes map:', Array.from(previousVolumes.entries()));
-    
-    let newVolume;
-    if (isCurrentlyMuted) {
-      // Если замучен, восстанавливаем предыдущий уровень или 100%
-      newVolume = previousVolumes.get(peerId) || 100;
-      console.log('Unmuting - restored volume:', newVolume);
-    } else {
-      // Если не замучен, сохраняем текущий уровень и мутим
-      setPreviousVolumes(prev => {
-        const newPrevious = new Map(prev);
-        newPrevious.set(peerId, currentVolume);
-        console.log('Saving previous volume:', currentVolume, 'for peer:', peerId);
-        return newPrevious;
-      });
-      newVolume = 0;
-      console.log('Muting - new volume:', newVolume);
-    }
-    
-    console.log('Peer:', peerId, 'Current volume:', currentVolume, 'New volume:', newVolume);
-    
-    if (audio) {
-      if (newVolume === 0) {
-        // Мутим пользователя
-        audio.muted = true;
-        console.log('Muted audio for peer:', peerId);
+    // Используем функциональный setState для получения актуального состояния
+    setVolumes(prevVolumes => {
+      const currentVolume = prevVolumes.get(peerId) || 100;
+      const isCurrentlyMuted = currentVolume === 0;
+      
+      console.log('Before change - Current volume:', currentVolume, 'Is muted:', isCurrentlyMuted);
+      console.log('Previous volumes map:', Array.from(previousVolumes.entries()));
+      
+      let newVolume;
+      if (isCurrentlyMuted) {
+        // Если замучен, восстанавливаем предыдущий уровень или 100%
+        newVolume = previousVolumes.get(peerId) || 100;
+        console.log('Unmuting - restored volume:', newVolume);
       } else {
-        // Размучиваем только если глобальный звук включен
-        if (isAudioEnabled) {
-          audio.muted = false;
-          const htmlVolume = newVolume / 100.0; // 0-100% -> 0.0-1.0
-          
-          audio.volume = htmlVolume;
-          console.log('Set HTML Audio volume to', htmlVolume, 'for peer:', peerId);
-          
-          // Убираем Web Audio усиление, используем только HTML Audio
-          if (gainNode && audioContextRef.current) {
-            gainNode.gain.setValueAtTime(1.0, audioContextRef.current.currentTime);
-          }
-        } else {
-          audio.muted = true;
-          console.log('Audio globally disabled, keeping peer muted:', peerId);
-        }
+        // Если не замучен, сохраняем текущий уровень и мутим
+        setPreviousVolumes(prev => {
+          const newPrevious = new Map(prev);
+          newPrevious.set(peerId, currentVolume);
+          console.log('Saving previous volume:', currentVolume, 'for peer:', peerId);
+          return newPrevious;
+        });
+        newVolume = 0;
+        console.log('Muting - new volume:', newVolume);
       }
       
-      // Обновляем UI состояние
-      setVolumes(prev => {
-        const newVolumes = new Map(prev);
+      console.log('Peer:', peerId, 'Current volume:', currentVolume, 'New volume:', newVolume);
+      
+      if (audio) {
+        if (newVolume === 0) {
+          // Мутим пользователя
+          audio.muted = true;
+          console.log('Muted audio for peer:', peerId);
+        } else {
+          // Размучиваем только если глобальный звук включен
+          if (isAudioEnabled) {
+            audio.muted = false;
+            const htmlVolume = newVolume / 100.0; // 0-100% -> 0.0-1.0
+            
+            audio.volume = htmlVolume;
+            console.log('Set HTML Audio volume to', htmlVolume, 'for peer:', peerId);
+            
+            // Убираем Web Audio усиление, используем только HTML Audio
+            if (gainNode && audioContextRef.current) {
+              gainNode.gain.setValueAtTime(1.0, audioContextRef.current.currentTime);
+            }
+          } else {
+            audio.muted = true;
+            console.log('Audio globally disabled, keeping peer muted:', peerId);
+          }
+        }
+        
+        // Возвращаем новое состояние volumes
+        const newVolumes = new Map(prevVolumes);
         newVolumes.set(peerId, newVolume);
         console.log('Updated volumes map:', Array.from(newVolumes.entries()));
         return newVolumes;
-      });
-    } else {
-      console.error('HTML Audio element not found for peer:', peerId);
-    }
+      } else {
+        console.error('HTML Audio element not found for peer:', peerId);
+        return prevVolumes; // Возвращаем старое состояние если audio не найдено
+      }
+    });
   };
 
   // Обновляем обработчик подключения пира
