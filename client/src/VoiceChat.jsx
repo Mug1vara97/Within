@@ -1889,12 +1889,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       } else if (kind === 'audio') {
         // Handle regular audio streams
         try {
+          // Создаем HTML Audio элемент для мобильной совместимости, но не используем для воспроизведения
           const audio = new Audio();
           audio.srcObject = stream;
           audio.id = `audio-${producer.producerSocketId}`;
-          audio.autoplay = true; // Нужно для инициализации
-          audio.muted = true; // Мутим HTML Audio - звук будет идти только через Web Audio API
-          audio.volume = 1.0; // Максимальная громкость HTML Audio
+          audio.autoplay = false; // Не нужно для Web Audio API
+          audio.muted = true; // Заглушен
+          audio.volume = 1.0;
 
           if (isMobile) {
             await setAudioOutput(audio, useEarpiece);
@@ -1902,8 +1903,26 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           
           // Create audio context and nodes only for audio streams
           const audioContext = audioContextRef.current;
-          // Используем HTML Audio элемент как источник для лучшей совместимости
-          const source = audioContext.createMediaElementSource(audio);
+          console.log('AudioContext state:', audioContext.state);
+          
+          // Убеждаемся, что AudioContext запущен
+          if (audioContext.state === 'suspended') {
+            console.log('AudioContext was suspended, attempting to resume...');
+            try {
+              await audioContext.resume();
+              console.log('AudioContext resumed successfully');
+            } catch (err) {
+              console.error('Failed to resume AudioContext:', err);
+            }
+          }
+          
+          // Используем MediaStream напрямую для Web Audio API
+          console.log('Creating MediaStreamSource for stream:', stream);
+          const audioTracks = stream.getAudioTracks();
+          console.log('Audio tracks:', audioTracks.length, audioTracks.map(t => ({ enabled: t.enabled, readyState: t.readyState })));
+          
+          const source = audioContext.createMediaStreamSource(stream);
+          console.log('MediaStreamSource created successfully');
           
           // Add analyzer for voice activity detection
           const analyser = createAudioAnalyser(audioContext);
@@ -1915,9 +1934,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           gainNode.gain.setValueAtTime(initialGainValue, audioContext.currentTime);
 
           // Connect nodes только для анализа голоса
+          console.log('Connecting audio nodes: source -> analyser -> gainNode -> destination');
           source.connect(analyser);
           analyser.connect(gainNode);
           gainNode.connect(audioContext.destination);
+          console.log('Audio chain connected successfully');
 
           // Store references
           analyserNodesRef.current.set(producer.producerSocketId, analyser);
@@ -3303,20 +3324,39 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         }
       } else if (kind === 'audio') {
         try {
+          // Создаем HTML Audio элемент для мобильной совместимости, но не используем для воспроизведения
           const audio = new Audio();
           audio.srcObject = stream;
           audio.id = `audio-${producer.producerSocketId}`;
-          audio.autoplay = true; // Нужно для инициализации
-          audio.muted = true; // Мутим HTML Audio - звук будет идти только через Web Audio API
-          audio.volume = 1.0; // Максимальная громкость HTML Audio
+          audio.autoplay = false; // Не нужно для Web Audio API
+          audio.muted = true; // Заглушен
+          audio.volume = 1.0;
 
           if (isMobile) {
             await setAudioOutput(audio, useEarpiece);
           }
           
           const audioContext = audioContextRef.current;
-          // Используем HTML Audio элемент как источник для лучшей совместимости
-          const source = audioContext.createMediaElementSource(audio);
+          console.log('AudioContext state:', audioContext.state);
+          
+          // Убеждаемся, что AudioContext запущен
+          if (audioContext.state === 'suspended') {
+            console.log('AudioContext was suspended, attempting to resume...');
+            try {
+              await audioContext.resume();
+              console.log('AudioContext resumed successfully');
+            } catch (err) {
+              console.error('Failed to resume AudioContext:', err);
+            }
+          }
+          
+          // Используем MediaStream напрямую для Web Audio API
+          console.log('Creating MediaStreamSource for stream:', stream);
+          const audioTracks = stream.getAudioTracks();
+          console.log('Audio tracks:', audioTracks.length, audioTracks.map(t => ({ enabled: t.enabled, readyState: t.readyState })));
+          
+          const source = audioContext.createMediaStreamSource(stream);
+          console.log('MediaStreamSource created successfully');
           
           const analyser = createAudioAnalyser(audioContext);
           
@@ -3325,9 +3365,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           const initialGainValue = isAudioEnabledRef.current ? (initialVolume / 50.0) : 0.0;
           gainNode.gain.setValueAtTime(initialGainValue, audioContext.currentTime);
 
+          console.log('Connecting audio nodes: source -> analyser -> gainNode -> destination');
           source.connect(analyser);
           analyser.connect(gainNode);
           gainNode.connect(audioContext.destination);
+          console.log('Audio chain connected successfully');
 
           analyserNodesRef.current.set(producer.producerSocketId, analyser);
           gainNodesRef.current.set(producer.producerSocketId, gainNode);
