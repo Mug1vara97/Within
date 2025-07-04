@@ -2206,7 +2206,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     });
   }, []);
 
-    const handleVolumeChange = (peerId) => {
+    const handleVolumeChange = useCallback((peerId) => {
     console.log('Volume change requested for peer:', peerId);
     const audio = audioRef.current.get(peerId);
     const gainNode = gainNodesRef.current.get(peerId);
@@ -2272,7 +2272,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         return prevVolumes; // Возвращаем старое состояние если audio не найдено
       }
     });
-  };
+  }, [previousVolumes, isAudioEnabled]);
 
   // Обновляем обработчик подключения пира
   const handlePeerJoined = useCallback(({ peerId }) => {
