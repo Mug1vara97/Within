@@ -926,8 +926,9 @@ const VideoOverlay = React.memo(({
   const [isVolumeOff, setIsVolumeOff] = useState(isAudioMuted || volume === 0);
 
   useEffect(() => {
+    console.log('VideoOverlay volume changed:', volume, 'isAudioMuted:', isAudioMuted, 'for peer:', peerName);
     setIsVolumeOff(isAudioMuted || volume === 0);
-  }, [volume, isAudioMuted]);
+  }, [volume, isAudioMuted, peerName]);
 
   const handleVolumeIconClick = (e) => {
     e.stopPropagation();
@@ -1113,7 +1114,7 @@ const VideoOverlay = React.memo(({
     </div>
   );
 }, (prevProps, nextProps) => {
-  return (
+  const isEqual = (
     prevProps.peerName === nextProps.peerName &&
     prevProps.isMuted === nextProps.isMuted &&
     prevProps.isSpeaking === nextProps.isSpeaking &&
@@ -1123,6 +1124,18 @@ const VideoOverlay = React.memo(({
     prevProps.showVolumeSlider === nextProps.showVolumeSlider &&
     prevProps.children === nextProps.children
   );
+  
+  if (!isEqual) {
+    console.log('VideoOverlay props changed for', nextProps.peerName, {
+      volumeChanged: prevProps.volume !== nextProps.volume,
+      prevVolume: prevProps.volume,
+      nextVolume: nextProps.volume,
+      isAudioMutedChanged: prevProps.isAudioMuted !== nextProps.isAudioMuted,
+      showVolumeSliderChanged: prevProps.showVolumeSlider !== nextProps.showVolumeSlider
+    });
+  }
+  
+  return isEqual;
 });
 
 // Оптимизированный компонент для отображения видео
@@ -3638,20 +3651,23 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                 {Array.from(peers.values()).map((peer) => (
                   <Box key={peer.id} sx={styles.videoItem} className={speakingStates.get(peer.id) ? 'speaking' : ''}>
                     {remoteVideos.get(peer.id)?.stream ? (
-                      <VideoView
-                        stream={remoteVideos.get(peer.id).stream}
-                        peerName={peer.name}
-                        isMuted={peer.isMuted}
-                        isSpeaking={speakingStates.get(peer.id)}
-                        isAudioEnabled={audioStates.get(peer.id)}
-                        isLocal={false}
-                        onVolumeClick={() => handleVolumeChange(peer.id)}
-                        volume={volumes.get(peer.id) || 100}
-                        isAudioMuted={individualMutedPeersRef.current.get(peer.id) || false}
-                        showVolumeSlider={showVolumeSliders.get(peer.id) || false}
-                        onVolumeSliderChange={(newVolume) => handleVolumeSliderChange(peer.id, newVolume)}
-                        onToggleVolumeSlider={() => toggleVolumeSlider(peer.id)}
-                      />
+                      <>
+                        {console.log('Rendering VideoView for', peer.name, 'volume:', volumes.get(peer.id) || 100)}
+                        <VideoView
+                          stream={remoteVideos.get(peer.id).stream}
+                          peerName={peer.name}
+                          isMuted={peer.isMuted}
+                          isSpeaking={speakingStates.get(peer.id)}
+                          isAudioEnabled={audioStates.get(peer.id)}
+                          isLocal={false}
+                          onVolumeClick={() => handleVolumeChange(peer.id)}
+                          volume={volumes.get(peer.id) || 100}
+                          isAudioMuted={individualMutedPeersRef.current.get(peer.id) || false}
+                          showVolumeSlider={showVolumeSliders.get(peer.id) || false}
+                          onVolumeSliderChange={(newVolume) => handleVolumeSliderChange(peer.id, newVolume)}
+                          onToggleVolumeSlider={() => toggleVolumeSlider(peer.id)}
+                        />
+                      </>
                     ) : (
                       <div style={{ 
                         position: 'relative', 
@@ -3665,6 +3681,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                         <Box sx={styles.userAvatar}>
                           {peer.name[0].toUpperCase()}
                         </Box>
+                        {console.log('Rendering VideoOverlay for', peer.name, 'volume:', volumes.get(peer.id) || 100)}
                         <VideoOverlay
                           peerName={peer.name}
                           isMuted={peer.isMuted}
