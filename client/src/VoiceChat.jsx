@@ -1889,7 +1889,31 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       } else if (kind === 'audio') {
         // Handle regular audio streams
         try {
-          // Создаем HTML Audio элемент для мобильной совместимости, но не используем для воспроизведения
+          // Тест: сначала проверим HTML Audio для диагностики
+          console.log('=== AUDIO SETUP TEST ===');
+          const testAudio = new Audio();
+          testAudio.srcObject = stream;
+          testAudio.autoplay = true;
+          testAudio.muted = false;
+          testAudio.volume = 0.3; // Тише для теста
+          console.log('Test HTML Audio created, should play audio now if stream is valid');
+          
+          // Добавляем ручное воспроизведение через 100ms
+          setTimeout(() => {
+            testAudio.play().then(() => {
+              console.log('Test HTML Audio playing successfully');
+              // Выключаем тестовый аудио через 3 секунды
+              setTimeout(() => {
+                testAudio.pause();
+                testAudio.srcObject = null;
+                console.log('Test HTML Audio stopped');
+              }, 3000);
+            }).catch(err => {
+              console.error('Test HTML Audio failed to play:', err);
+            });
+          }, 100);
+          
+          // Создаем основной HTML Audio элемент (заглушенный)
           const audio = new Audio();
           audio.srcObject = stream;
           audio.id = `audio-${producer.producerSocketId}`;
@@ -3324,7 +3348,31 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         }
       } else if (kind === 'audio') {
         try {
-          // Создаем HTML Audio элемент для мобильной совместимости, но не используем для воспроизведения
+          // Тест: сначала проверим HTML Audio для диагностики
+          console.log('=== AUDIO SETUP TEST (handleConsume) ===');
+          const testAudio = new Audio();
+          testAudio.srcObject = stream;
+          testAudio.autoplay = true;
+          testAudio.muted = false;
+          testAudio.volume = 0.3; // Тише для теста
+          console.log('Test HTML Audio created in handleConsume, should play audio now if stream is valid');
+          
+          // Добавляем ручное воспроизведение через 100ms
+          setTimeout(() => {
+            testAudio.play().then(() => {
+              console.log('Test HTML Audio playing successfully in handleConsume');
+              // Выключаем тестовый аудио через 3 секунды
+              setTimeout(() => {
+                testAudio.pause();
+                testAudio.srcObject = null;
+                console.log('Test HTML Audio stopped in handleConsume');
+              }, 3000);
+            }).catch(err => {
+              console.error('Test HTML Audio failed to play in handleConsume:', err);
+            });
+          }, 100);
+          
+          // Создаем основной HTML Audio элемент (заглушенный)
           const audio = new Audio();
           audio.srcObject = stream;
           audio.id = `audio-${producer.producerSocketId}`;
