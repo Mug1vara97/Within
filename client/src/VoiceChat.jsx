@@ -1909,8 +1909,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           audio.id = `audio-${producer.producerSocketId}`;
           audio.autoplay = true;
           audio.muted = !isAudioEnabledRef.current; // Use ref for current state
-          // Устанавливаем начальную громкость: 100% слайдера = 200% HTML Audio
-          audio.volume = 2.0; // Начинаем с 200% HTML Audio
+          // Устанавливаем HTML Audio на максимум, gain node будет регулировать громкость
+          audio.volume = 1.0; // HTML Audio всегда на максимуме
 
           if (isMobile) {
             await setAudioOutput(audio, useEarpiece);
@@ -1925,7 +1925,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           
           // Create gain node
           const gainNode = audioContext.createGain();
-          gainNode.gain.value = isAudioEnabledRef.current ? 2.0 : 0.0; // Use ref for current state
+          gainNode.gain.value = isAudioEnabledRef.current ? 2.0 : 0.0; // 100% слайдера = 2.0 gain
 
           // Connect nodes только для анализа голоса
           source.connect(analyser);
@@ -2110,12 +2110,19 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // При глобальном включении проверяем индивидуальное состояние
           const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
           audio.muted = isIndividuallyMuted;
+          
+          // Восстанавливаем индивидуальный уровень громкости через gain node
+          if (!isIndividuallyMuted) {
+            const individualVolume = volumes.get(peerId) || 100;
+            const gainValue = (individualVolume / 100.0) * 2.0;
+            gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
+          }
         }
       }
     });
-  }, [isAudioEnabled]);
+  }, [isAudioEnabled, volumes]);
 
-  const handleVolumeChange = (peerId) => {
+    const handleVolumeChange = (peerId) => {
     console.log('Volume change requested for peer:', peerId);
     const gainNode = gainNodesRef.current.get(peerId);
     
@@ -2138,8 +2145,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           if (isAudioEnabled) {
             audio.muted = false;
           }
-          gainNode.gain.setValueAtTime(2.0, audioContextRef.current.currentTime);
-          console.log('Set gain to 2.0 and unmuted audio for peer:', peerId);
+          audio.volume = 1.0; // HTML Audio всегда на максимуме
+          // Восстанавливаем предыдущий уровень громкости (100% = gain 2.0)
+          const gainValue = (newVolume / 100.0) * 2.0;
+          gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
+          console.log('Set gain to', gainValue, 'and unmuted audio for peer:', peerId);
         } else {
           gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
           audio.muted = true;
@@ -2156,27 +2166,32 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         newVolumes.set(peerId, newVolume);
         return newVolumes;
       });
-         }
-   };
+    }
+  };
 
-   // Функция для изменения громкости слайдером (только HTML Audio)
+   // Функция для изменения громкости слайдером (Web Audio API gain nodes)
    const handleVolumeSliderChange = useCallback((peerId, newVolume) => {
      console.log('Volume slider change for peer:', peerId, 'New volume:', newVolume);
      
      const audio = audioRef.current.get(peerId);
+     const gainNode = gainNodesRef.current.get(peerId);
      
-     if (audio) {
+     if (audio && gainNode) {
        if (newVolume === 0) {
          // Если громкость 0, мутим аудио
          audio.muted = true;
+         gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
          console.log('Muted audio for peer:', peerId);
        } else {
-         // Устанавливаем громкость: слайдер 0-100% соответствует 0-200% HTML Audio (0.0-2.0)
+         // Размучиваем и устанавливаем громкость через gain node
          audio.muted = false;
-         const htmlVolume = (newVolume / 100.0) * 2.0; // 0-100% слайдера -> 0.0-2.0 HTML Audio
+         audio.volume = 1.0; // HTML Audio всегда на максимуме
          
-         audio.volume = htmlVolume;
-         console.log('Set HTML Audio volume to', htmlVolume, 'for peer:', peerId);
+         // Слайдер 0-100% соответствует 0-200% усиления (0.0-2.0 gain)
+         const gainValue = (newVolume / 100.0) * 2.0;
+         gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
+         
+         console.log('Set gain node value to', gainValue, 'for peer:', peerId);
        }
        
        // Обновляем UI состояние
@@ -2186,7 +2201,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
          return newVolumes;
        });
      } else {
-       console.error('HTML Audio element not found for peer:', peerId);
+       console.error('Audio element or gain node not found for peer:', peerId);
      }
    }, []);
 
@@ -3315,8 +3330,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           audio.id = `audio-${producer.producerSocketId}`;
           audio.autoplay = true;
           audio.muted = !isAudioEnabledRef.current; // Use ref for current state
-          // Устанавливаем начальную громкость: 100% слайдера = 200% HTML Audio
-          audio.volume = 2.0; // Начинаем с 200% HTML Audio
+          // Устанавливаем HTML Audio на максимум, gain node будет регулировать громкость
+          audio.volume = 1.0; // HTML Audio всегда на максимуме
 
           if (isMobile) {
             await setAudioOutput(audio, useEarpiece);
@@ -3328,7 +3343,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           const analyser = createAudioAnalyser(audioContext);
           
           const gainNode = audioContext.createGain();
-          gainNode.gain.value = isAudioEnabledRef.current ? 2.0 : 0.0; // Use ref for current state
+          gainNode.gain.value = isAudioEnabledRef.current ? 2.0 : 0.0; // 100% слайдера = 2.0 gain
 
           source.connect(analyser);
           analyser.connect(gainNode);
@@ -3389,10 +3404,18 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       }
     });
 
-    // Mute/unmute all gain nodes
-    gainNodesRef.current.forEach((gainNode) => {
+    // Mute/unmute all gain nodes with individual volume levels
+    gainNodesRef.current.forEach((gainNode, peerId) => {
       if (gainNode) {
-        gainNode.gain.value = newState ? 2.0 : 0.0;
+        if (newState) {
+          // При включении восстанавливаем индивидуальный уровень громкости
+          const individualVolume = volumes.get(peerId) || 100;
+          const gainValue = (individualVolume / 100.0) * 2.0; // 0-100% слайдера -> 0.0-2.0 gain
+          gainNode.gain.value = gainValue;
+        } else {
+          // При выключении мутим всех
+          gainNode.gain.value = 0.0;
+        }
       }
     });
 
@@ -3400,7 +3423,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     if (onAudioStateChange) {
       onAudioStateChange(newState);
     }
-  }, [isAudioEnabled, onAudioStateChange]);
+  }, [isAudioEnabled, onAudioStateChange, volumes]);
 
   // Предоставляем внешним компонентам доступ к функциям управления
   useImperativeHandle(ref, () => ({
