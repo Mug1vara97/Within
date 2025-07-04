@@ -1210,6 +1210,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const [speakingStates, setSpeakingStates] = useState(new Map());
   const [audioStates, setAudioStates] = useState(new Map());
   const [showVolumeSliders, setShowVolumeSliders] = useState(new Map()); // Новое состояние для отображения слайдеров
+  const [forceUpdate, setForceUpdate] = useState(0); // Счетчик для принудительного обновления
 
   // Эффект для отслеживания изменений состояния volumes
   useEffect(() => {
@@ -2178,6 +2179,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         newVolumes.set(peerId, newVolume);
         return newVolumes;
       });
+      
+      // Принудительно обновляем UI
+      setForceUpdate(prev => prev + 1);
     } else {
       console.error('HTML Audio element not found for peer:', peerId);
     }
@@ -2258,6 +2262,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         const newVolumes = new Map(prevVolumes);
         newVolumes.set(peerId, newVolume);
         console.log('Updated volumes map:', Array.from(newVolumes.entries()));
+        
+        // Принудительно обновляем UI
+        setForceUpdate(prev => prev + 1);
+        
         return newVolumes;
       } else {
         console.error('HTML Audio element not found for peer:', peerId);
@@ -3633,7 +3641,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
                 {/* Remote users */}
                 {Array.from(peers.values()).map((peer) => (
-                  <Box key={peer.id} sx={styles.videoItem} className={speakingStates.get(peer.id) ? 'speaking' : ''}>
+                  <Box key={`${peer.id}-${forceUpdate}`} sx={styles.videoItem} className={speakingStates.get(peer.id) ? 'speaking' : ''}>
                     {remoteVideos.get(peer.id)?.stream ? (
                       <>
                         {console.log('Rendering VideoView for', peer.name, 'volume:', volumes.get(peer.id) || 100)}
