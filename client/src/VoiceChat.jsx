@@ -1206,7 +1206,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const [peers, setPeers] = useState(new Map());
   const [error, setError] = useState('');
   const [volumes, setVolumes] = useState(new Map());
-  const [previousVolumes, setPreviousVolumes] = useState(new Map()); // Состояние для сохранения предыдущих уровней громкости
+  const previousVolumesRef = useRef(new Map()); // Используем ref вместо state для предыдущих уровней
   const [speakingStates, setSpeakingStates] = useState(new Map());
   const [audioStates, setAudioStates] = useState(new Map());
   const [showVolumeSliders, setShowVolumeSliders] = useState(new Map()); // Новое состояние для отображения слайдеров
@@ -2149,11 +2149,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     
     // Сохраняем текущий уровень в качестве предыдущего если он больше 0
     if (currentVolume > 0 && newVolume === 0) {
-      setPreviousVolumes(prev => {
-        const newPrevious = new Map(prev);
-        newPrevious.set(peerId, currentVolume);
-        return newPrevious;
-      });
+      previousVolumesRef.current.set(peerId, currentVolume);
     }
     
     if (audio) {
@@ -2217,21 +2213,17 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       const isCurrentlyMuted = currentVolume === 0;
       
       console.log('Before change - Current volume:', currentVolume, 'Is muted:', isCurrentlyMuted);
-      console.log('Previous volumes map:', Array.from(previousVolumes.entries()));
+      console.log('Previous volumes map:', Array.from(previousVolumesRef.current.entries()));
       
       let newVolume;
       if (isCurrentlyMuted) {
         // Если замучен, восстанавливаем предыдущий уровень или 100%
-        newVolume = previousVolumes.get(peerId) || 100;
+        newVolume = previousVolumesRef.current.get(peerId) || 100;
         console.log('Unmuting - restored volume:', newVolume);
       } else {
         // Если не замучен, сохраняем текущий уровень и мутим
-        setPreviousVolumes(prev => {
-          const newPrevious = new Map(prev);
-          newPrevious.set(peerId, currentVolume);
-          console.log('Saving previous volume:', currentVolume, 'for peer:', peerId);
-          return newPrevious;
-        });
+        previousVolumesRef.current.set(peerId, currentVolume);
+        console.log('Saving previous volume:', currentVolume, 'for peer:', peerId);
         newVolume = 0;
         console.log('Muting - new volume:', newVolume);
       }
@@ -2272,7 +2264,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         return prevVolumes; // Возвращаем старое состояние если audio не найдено
       }
     });
-  }, [previousVolumes, isAudioEnabled]);
+  }, [isAudioEnabled]);
 
   // Обновляем обработчик подключения пира
   const handlePeerJoined = useCallback(({ peerId }) => {
@@ -2283,11 +2275,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       newVolumes.set(peerId, 100);
       return newVolumes;
     });
-    setPreviousVolumes(prev => {
-      const newPrevious = new Map(prev);
-      newPrevious.set(peerId, 100);
-      return newPrevious;
-    });
+    previousVolumesRef.current.set(peerId, 100);
     setShowVolumeSliders(prev => {
       const newState = new Map(prev);
       newState.set(peerId, false);
@@ -2303,11 +2291,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       newVolumes.delete(peerId);
       return newVolumes;
     });
-    setPreviousVolumes(prev => {
-      const newPrevious = new Map(prev);
-      newPrevious.delete(peerId);
-      return newPrevious;
-    });
+    previousVolumesRef.current.delete(peerId);
     setShowVolumeSliders(prev => {
       const newState = new Map(prev);
       newState.delete(peerId);
