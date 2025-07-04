@@ -1906,9 +1906,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // Add analyzer for voice activity detection
           const analyser = createAudioAnalyser(audioContext);
           
-          // Create gain node
+          // Create gain node с начальной громкостью 100%
           const gainNode = audioContext.createGain();
-          gainNode.gain.value = isAudioEnabledRef.current ? 2.0 : 0.0; // Use ref for current state
+          const initialVolume = 100; // Начальная громкость 100%
+          const initialGainValue = isAudioEnabledRef.current ? (initialVolume / 50.0) : 0.0;
+          gainNode.gain.setValueAtTime(initialGainValue, audioContext.currentTime);
 
           // Connect nodes только для анализа голоса
           source.connect(analyser);
@@ -2089,14 +2091,22 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         if (!isAudioEnabled) {
           // При глобальном выключении просто мутим аудио элемент
           audio.muted = true;
+          gainNode.gain.setValueAtTime(0, audioContextRef.current?.currentTime || 0);
         } else {
           // При глобальном включении проверяем индивидуальное состояние
           const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
           audio.muted = isIndividuallyMuted;
+          
+          if (!isIndividuallyMuted) {
+            // Восстанавливаем индивидуальную громкость
+            const volume = volumes.get(peerId) || 100;
+            const gainValue = volume / 50.0; // 0-200% -> 0-4.0 gain
+            gainNode.gain.setValueAtTime(gainValue, audioContextRef.current?.currentTime || 0);
+          }
         }
       }
     });
-  }, [isAudioEnabled]);
+  }, [isAudioEnabled, volumes]);
 
   const handleVolumeChange = (peerId) => {
     console.log('Volume change requested for peer:', peerId);
@@ -2146,29 +2156,30 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const handleVolumeSliderChange = (peerId, newVolume) => {
     console.log('Volume slider change for peer:', peerId, 'New volume:', newVolume);
     const gainNode = gainNodesRef.current.get(peerId);
+    const audio = audioRef.current.get(peerId);
     
-    if (gainNode) {
-      const audio = audioRef.current.get(peerId);
+    console.log('GainNode exists:', !!gainNode, 'Audio exists:', !!audio, 'AudioContext:', !!audioContextRef.current);
+    
+    if (gainNode && audioContextRef.current) {
+      // Преобразуем значение от 0-200 в gain (0-4.0)
+      const gainValue = newVolume / 50.0; // 0-200% -> 0-4.0 gain
       
-      if (audio) {
-        // Преобразуем значение от 0-200 в gain (0-4.0)
-        const gainValue = newVolume / 50.0; // 0-200% -> 0-4.0 gain
-        
-        if (newVolume === 0) {
-          // Если громкость 0, мутим
-          audio.muted = true;
-          gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
-          individualMutedPeersRef.current.set(peerId, true);
-        } else {
-          // Если громкость больше 0, размучиваем (если глобальный звук включен)
-          if (isAudioEnabled) {
-            audio.muted = false;
-          }
-          gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
-          individualMutedPeersRef.current.set(peerId, false);
+      console.log('Setting gain value:', gainValue, 'at time:', audioContextRef.current.currentTime);
+      
+      if (newVolume === 0) {
+        // Если громкость 0, мутим
+        if (audio) audio.muted = true;
+        gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
+        individualMutedPeersRef.current.set(peerId, true);
+        console.log('Muted peer:', peerId);
+      } else {
+        // Если громкость больше 0, размучиваем (если глобальный звук включен)
+        if (audio && isAudioEnabled) {
+          audio.muted = false;
         }
-        
-        console.log('Set gain to', gainValue, 'for peer:', peerId);
+        gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
+        individualMutedPeersRef.current.set(peerId, false);
+        console.log('Set gain to', gainValue, 'for peer:', peerId, 'muted state:', !isAudioEnabled || false);
       }
 
       // Обновляем UI состояние
@@ -2177,6 +2188,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         newVolumes.set(peerId, newVolume);
         return newVolumes;
       });
+    } else {
+      console.error('Missing gainNode or audioContext for peer:', peerId);
     }
   };
 
@@ -3306,7 +3319,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           const analyser = createAudioAnalyser(audioContext);
           
           const gainNode = audioContext.createGain();
-          gainNode.gain.value = isAudioEnabledRef.current ? 2.0 : 0.0; // Use ref for current state
+          const initialVolume = 100; // Начальная громкость 100%
+          const initialGainValue = isAudioEnabledRef.current ? (initialVolume / 50.0) : 0.0;
+          gainNode.gain.setValueAtTime(initialGainValue, audioContext.currentTime);
 
           source.connect(analyser);
           analyser.connect(gainNode);
@@ -3367,10 +3382,18 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       }
     });
 
-    // Mute/unmute all gain nodes
-    gainNodesRef.current.forEach((gainNode) => {
+    // Mute/unmute all gain nodes с сохранением индивидуальных настроек
+    gainNodesRef.current.forEach((gainNode, peerId) => {
       if (gainNode) {
-        gainNode.gain.value = newState ? 2.0 : 0.0;
+        const currentTime = audioContextRef.current?.currentTime || 0;
+        if (newState) {
+          // Восстанавливаем индивидуальную громкость
+          const volume = volumes.get(peerId) || 100;
+          const gainValue = volume / 50.0; // 0-200% -> 0-4.0 gain
+          gainNode.gain.setValueAtTime(gainValue, currentTime);
+        } else {
+          gainNode.gain.setValueAtTime(0.0, currentTime);
+        }
       }
     });
 
@@ -3378,7 +3401,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     if (onAudioStateChange) {
       onAudioStateChange(newState);
     }
-  }, [isAudioEnabled, onAudioStateChange]);
+  }, [isAudioEnabled, volumes, onAudioStateChange]);
 
   // Предоставляем внешним компонентам доступ к функциям управления
   useImperativeHandle(ref, () => ({
