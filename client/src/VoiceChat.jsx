@@ -1891,19 +1891,15 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         try {
 
           
-          // Создаем HTML Audio элемент для Web Audio API
-          const audio = new Audio();
-          audio.srcObject = stream;
-          audio.id = `audio-${producer.producerSocketId}`;
-          audio.autoplay = true; // Нужно для инициализации MediaElementSource
-          audio.muted = true; // Заглушаем HTML Audio - звук будет через Web Audio API
-          audio.volume = 1.0;
-
+          // Создаем временный HTML Audio только для мобильной совместимости
+          let tempAudio = null;
           if (isMobile) {
-            await setAudioOutput(audio, useEarpiece);
+            tempAudio = new Audio();
+            tempAudio.srcObject = stream;
+            tempAudio.muted = true; // Всегда заглушен
+            await setAudioOutput(tempAudio, useEarpiece);
+            console.log('Temporary HTML Audio created for mobile compatibility');
           }
-          
-          console.log('HTML Audio setup complete for Web Audio API');
           
           // Create audio context and nodes
           const audioContext = audioContextRef.current;
@@ -1920,10 +1916,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             }
           }
           
-          // Используем HTML Audio элемент как источник для Web Audio API
-          console.log('Creating MediaElementSource from HTML Audio');
-          const source = audioContext.createMediaElementSource(audio);
-          console.log('MediaElementSource created successfully');
+          // Используем MediaStream напрямую для Web Audio API
+          console.log('Creating MediaStreamSource directly from stream');
+          const audioTracks = stream.getAudioTracks();
+          console.log('Audio tracks:', audioTracks.length, audioTracks.map(t => ({ enabled: t.enabled, readyState: t.readyState })));
+          
+          const source = audioContext.createMediaStreamSource(stream);
+          console.log('MediaStreamSource created successfully');
           
           // Add analyzer for voice activity detection
           const analyser = createAudioAnalyser(audioContext);
@@ -1934,7 +1933,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           const initialGainValue = isAudioEnabledRef.current ? (initialVolume / 50.0) : 0.0;
           gainNode.gain.setValueAtTime(initialGainValue, audioContext.currentTime);
 
-          // Connect nodes: HTML Audio -> MediaElementSource -> analyser -> gainNode -> destination
+          // Connect nodes: MediaStreamSource -> analyser -> gainNode -> destination
           console.log('Connecting Web Audio chain: source -> analyser -> gainNode -> destination');
           source.connect(analyser);
           analyser.connect(gainNode);
@@ -1944,7 +1943,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // Store references
           analyserNodesRef.current.set(producer.producerSocketId, analyser);
           gainNodesRef.current.set(producer.producerSocketId, gainNode);
-          audioRef.current.set(producer.producerSocketId, audio);
+          if (tempAudio) {
+            audioRef.current.set(producer.producerSocketId, tempAudio);
+          }
           setVolumes(prev => new Map(prev).set(producer.producerSocketId, 100));
 
           // Start voice detection
@@ -3329,19 +3330,15 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
           
           // Создаем основной HTML Audio элемент (заглушенный)
-          // Создаем HTML Audio элемент для Web Audio API
-          const audio = new Audio();
-          audio.srcObject = stream;
-          audio.id = `audio-${producer.producerSocketId}`;
-          audio.autoplay = true; // Нужно для инициализации MediaElementSource
-          audio.muted = true; // Заглушаем HTML Audio - звук будет через Web Audio API
-          audio.volume = 1.0;
-
+          // Создаем временный HTML Audio только для мобильной совместимости
+          let tempAudio = null;
           if (isMobile) {
-            await setAudioOutput(audio, useEarpiece);
+            tempAudio = new Audio();
+            tempAudio.srcObject = stream;
+            tempAudio.muted = true; // Всегда заглушен
+            await setAudioOutput(tempAudio, useEarpiece);
+            console.log('Temporary HTML Audio created for mobile compatibility in handleConsume');
           }
-          
-          console.log('HTML Audio setup complete for Web Audio API in handleConsume');
           
           // Create audio context and nodes
           const audioContext = audioContextRef.current;
@@ -3358,10 +3355,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             }
           }
           
-          // Используем HTML Audio элемент как источник для Web Audio API
-          console.log('Creating MediaElementSource from HTML Audio in handleConsume');
-          const source = audioContext.createMediaElementSource(audio);
-          console.log('MediaElementSource created successfully in handleConsume');
+          // Используем MediaStream напрямую для Web Audio API
+          console.log('Creating MediaStreamSource directly from stream in handleConsume');
+          const audioTracks = stream.getAudioTracks();
+          console.log('Audio tracks in handleConsume:', audioTracks.length, audioTracks.map(t => ({ enabled: t.enabled, readyState: t.readyState })));
+          
+          const source = audioContext.createMediaStreamSource(stream);
+          console.log('MediaStreamSource created successfully in handleConsume');
           
           const analyser = createAudioAnalyser(audioContext);
           
@@ -3370,7 +3370,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           const initialGainValue = isAudioEnabledRef.current ? (initialVolume / 50.0) : 0.0;
           gainNode.gain.setValueAtTime(initialGainValue, audioContext.currentTime);
 
-          // Connect nodes: HTML Audio -> MediaElementSource -> analyser -> gainNode -> destination
+          // Connect nodes: MediaStreamSource -> analyser -> gainNode -> destination
           console.log('Connecting Web Audio chain in handleConsume: source -> analyser -> gainNode -> destination');
           source.connect(analyser);
           analyser.connect(gainNode);
@@ -3379,7 +3379,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
           analyserNodesRef.current.set(producer.producerSocketId, analyser);
           gainNodesRef.current.set(producer.producerSocketId, gainNode);
-          audioRef.current.set(producer.producerSocketId, audio);
+          if (tempAudio) {
+            audioRef.current.set(producer.producerSocketId, tempAudio);
+          }
           setVolumes(prev => new Map(prev).set(producer.producerSocketId, 100));
 
           // Start voice detection with producerId
