@@ -920,7 +920,8 @@ const VideoOverlay = React.memo(({
   isAudioMuted,
   showVolumeSlider,
   onVolumeSliderChange,
-  onToggleVolumeSlider,
+  onShowVolumeSlider,
+  onHideVolumeSlider,
   children
 }) => {
   const [isVolumeOff, setIsVolumeOff] = useState(isAudioMuted || volume === 0);
@@ -931,10 +932,22 @@ const VideoOverlay = React.memo(({
 
   const handleVolumeIconClick = (e) => {
     e.stopPropagation();
-    if (onToggleVolumeSlider) {
-      onToggleVolumeSlider();
-    } else if (onVolumeClick) {
+    if (onVolumeClick) {
       onVolumeClick();
+    }
+  };
+
+  const handleVolumeMouseEnter = (e) => {
+    e.stopPropagation();
+    if (onShowVolumeSlider) {
+      onShowVolumeSlider();
+    }
+  };
+
+  const handleVolumeMouseLeave = (e) => {
+    e.stopPropagation();
+    if (onHideVolumeSlider) {
+      onHideVolumeSlider();
     }
   };
 
@@ -990,6 +1003,8 @@ const VideoOverlay = React.memo(({
         <>
         <IconButton
           onClick={handleVolumeIconClick}
+          onMouseEnter={handleVolumeMouseEnter}
+          onMouseLeave={handleVolumeMouseLeave}
           className={`volumeControl ${
             isVolumeOff
               ? 'muted'
@@ -1040,29 +1055,35 @@ const VideoOverlay = React.memo(({
           
           {/* Слайдер громкости */}
           {showVolumeSlider && (
-            <Box sx={{
-              position: 'absolute',
-              bottom: 8,
-              right: 60,
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              borderRadius: '20px',
-              padding: '8px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              minWidth: '120px',
-              zIndex: 15
-            }}>
-              <VolumeOff sx={{ fontSize: 16, color: '#B5BAC1' }} />
+            <Box 
+              onMouseEnter={handleVolumeMouseEnter}
+              onMouseLeave={handleVolumeMouseLeave}
+              sx={{
+                position: 'absolute',
+                bottom: 60,
+                right: 8,
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                borderRadius: '20px',
+                padding: '16px 8px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '8px',
+                minHeight: '120px',
+                zIndex: 15
+              }}>
+              <VolumeUp sx={{ fontSize: 16, color: '#B5BAC1' }} />
               <Slider
                 value={volume}
                 onChange={handleSliderChange}
+                orientation="vertical"
                 min={0}
                 max={100}
                 step={1}
                 size="small"
                 sx={{
                   color: '#7289da',
+                  height: '80px',
                   '& .MuiSlider-track': {
                     backgroundColor: '#7289da',
                   },
@@ -1077,7 +1098,7 @@ const VideoOverlay = React.memo(({
                   }
                 }}
               />
-              <VolumeUp sx={{ fontSize: 16, color: '#B5BAC1' }} />
+              <VolumeOff sx={{ fontSize: 16, color: '#B5BAC1' }} />
               <Typography sx={{ 
                 fontSize: '12px', 
                 color: '#B5BAC1', 
@@ -1120,7 +1141,8 @@ const VideoView = React.memo(({
   isAudioMuted,
   showVolumeSlider,
   onVolumeSliderChange,
-  onToggleVolumeSlider,
+  onShowVolumeSlider,
+  onHideVolumeSlider,
   children 
 }) => {
   return (
@@ -1144,7 +1166,8 @@ const VideoView = React.memo(({
         isAudioMuted={isAudioMuted}
         showVolumeSlider={showVolumeSlider}
         onVolumeSliderChange={onVolumeSliderChange}
-        onToggleVolumeSlider={onToggleVolumeSlider}
+        onShowVolumeSlider={onShowVolumeSlider}
+        onHideVolumeSlider={onHideVolumeSlider}
       >
         {children}
       </VideoOverlay>
@@ -2134,14 +2157,40 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     }
   }, []);
 
-  // Функция для переключения отображения слайдера громкости
-  const toggleVolumeSlider = useCallback((peerId) => {
+  // Функция для показа слайдера громкости при hover
+  const showVolumeSlider = useCallback((peerId) => {
     setShowVolumeSliders(prev => {
       const newState = new Map(prev);
-      newState.set(peerId, !newState.get(peerId));
+      newState.set(peerId, true);
       return newState;
     });
   }, []);
+
+  // Функция для скрытия слайдера громкости при leave hover
+  const hideVolumeSlider = useCallback((peerId) => {
+    // Добавляем небольшую задержку перед скрытием
+    setTimeout(() => {
+      setShowVolumeSliders(prev => {
+        const newState = new Map(prev);
+        newState.set(peerId, false);
+        return newState;
+      });
+    }, 150); // 150ms задержка
+  }, []);
+
+  // Функция для переключения отображения слайдера громкости (для совместимости)
+  const toggleVolumeSlider = useCallback((peerId) => {
+    setShowVolumeSliders(prev => {
+      const newState = new Map(prev);
+      const currentState = newState.get(peerId);
+      if (currentState) {
+        hideVolumeSlider(peerId);
+      } else {
+        showVolumeSlider(peerId);
+      }
+      return newState;
+    });
+  }, [showVolumeSlider, hideVolumeSlider]);
 
     const handleVolumeChange = (peerId) => {
     console.log('Volume change requested for peer:', peerId);
@@ -3567,7 +3616,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                         isAudioMuted={individualMutedPeersRef.current.get(peer.id) || false}
                         showVolumeSlider={showVolumeSliders.get(peer.id) || false}
                         onVolumeSliderChange={(newVolume) => handleVolumeSliderChange(peer.id, newVolume)}
-                        onToggleVolumeSlider={() => toggleVolumeSlider(peer.id)}
+                        onShowVolumeSlider={() => showVolumeSlider(peer.id)}
+                        onHideVolumeSlider={() => hideVolumeSlider(peer.id)}
                       />
                     ) : (
                       <div style={{ 
@@ -3593,7 +3643,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                           isAudioMuted={individualMutedPeersRef.current.get(peer.id) || false}
                           showVolumeSlider={showVolumeSliders.get(peer.id) || false}
                           onVolumeSliderChange={(newVolume) => handleVolumeSliderChange(peer.id, newVolume)}
-                          onToggleVolumeSlider={() => toggleVolumeSlider(peer.id)}
+                          onShowVolumeSlider={() => showVolumeSlider(peer.id)}
+                          onHideVolumeSlider={() => hideVolumeSlider(peer.id)}
                         />
                       </div>
                     )}
