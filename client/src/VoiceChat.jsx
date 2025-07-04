@@ -1905,15 +1905,18 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         // Handle regular audio streams
         try {
           const audio = new Audio();
-          audio.srcObject = stream;
           audio.id = `audio-${producer.producerSocketId}`;
-          audio.autoplay = true;
-          audio.muted = !isAudioEnabledRef.current; // Use ref for current state
-          // Устанавливаем HTML Audio на максимум, gain node будет регулировать громкость
-          audio.volume = 1.0; // HTML Audio всегда на максимуме
-
+          
+          // На мобильных устройствах используем HTML Audio для управления выходом
           if (isMobile) {
+            audio.srcObject = stream;
+            audio.autoplay = true;
+            audio.volume = 0; // Мутим HTML Audio, звук идет через Web Audio API
             await setAudioOutput(audio, useEarpiece);
+          } else {
+            // На десктопе HTML Audio нужен только как референс, звук идет через Web Audio API
+            audio.volume = 0; 
+            audio.muted = true;
           }
           
           // Create audio context and nodes only for audio streams
@@ -2100,27 +2103,38 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   useEffect(() => {
     isAudioEnabledRef.current = isAudioEnabled;
     
-    audioRef.current.forEach((audio, peerId) => {
-      const gainNode = gainNodesRef.current.get(peerId);
-      if (gainNode && audio) {
+    // На мобильных устройствах управляем HTML Audio элементами
+    if (isMobile) {
+      audioRef.current.forEach((audio, peerId) => {
+        if (audio instanceof HTMLAudioElement) {
+          if (!isAudioEnabled) {
+            audio.muted = true;
+          } else {
+            const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
+            audio.muted = isIndividuallyMuted;
+          }
+        }
+      });
+    }
+    
+    // Управляем gain nodes для регулировки громкости
+    gainNodesRef.current.forEach((gainNode, peerId) => {
+      if (gainNode) {
         if (!isAudioEnabled) {
-          // При глобальном выключении просто мутим аудио элемент
-          audio.muted = true;
+          gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
         } else {
-          // При глобальном включении проверяем индивидуальное состояние
           const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
-          audio.muted = isIndividuallyMuted;
-          
-          // Восстанавливаем индивидуальный уровень громкости через gain node
           if (!isIndividuallyMuted) {
             const individualVolume = volumes.get(peerId) || 100;
             const gainValue = (individualVolume / 100.0) * 2.0;
             gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
+          } else {
+            gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
           }
         }
       }
     });
-  }, [isAudioEnabled, volumes]);
+  }, [isAudioEnabled, volumes, isMobile]);
 
     const handleVolumeChange = (peerId) => {
     console.log('Volume change requested for peer:', peerId);
@@ -2135,26 +2149,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     console.log('GainNode exists:', !!gainNode);
     
     if (gainNode) {
-      // Обновляем состояние аудио элемента
-      const audio = audioRef.current.get(peerId);
-      console.log('Audio element exists:', !!audio);
-      
-      if (audio) {
-        if (!newIsIndividuallyMuted) {
-          // Размучиваем только если глобальный звук включен
-          if (isAudioEnabled) {
-            audio.muted = false;
-          }
-          audio.volume = 1.0; // HTML Audio всегда на максимуме
-          // Восстанавливаем предыдущий уровень громкости (100% = gain 2.0)
-          const gainValue = (newVolume / 100.0) * 2.0;
-          gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
-          console.log('Set gain to', gainValue, 'and unmuted audio for peer:', peerId);
-        } else {
-          gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
-          audio.muted = true;
-          console.log('Set gain to 0 and muted audio for peer:', peerId);
-        }
+      if (!newIsIndividuallyMuted) {
+        // Восстанавливаем предыдущий уровень громкости (100% = gain 2.0)
+        const gainValue = (newVolume / 100.0) * 2.0;
+        gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
+        console.log('Set gain to', gainValue, 'and unmuted peer:', peerId);
+      } else {
+        gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
+        console.log('Set gain to 0 and muted peer:', peerId);
       }
 
       // Сохраняем новое индивидуальное состояние
@@ -2173,26 +2175,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
    const handleVolumeSliderChange = useCallback((peerId, newVolume) => {
      console.log('Volume slider change for peer:', peerId, 'New volume:', newVolume);
      
-     const audio = audioRef.current.get(peerId);
      const gainNode = gainNodesRef.current.get(peerId);
      
-     if (audio && gainNode) {
-       if (newVolume === 0) {
-         // Если громкость 0, мутим аудио
-         audio.muted = true;
-         gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
-         console.log('Muted audio for peer:', peerId);
-       } else {
-         // Размучиваем и устанавливаем громкость через gain node
-         audio.muted = false;
-         audio.volume = 1.0; // HTML Audio всегда на максимуме
-         
-         // Слайдер 0-100% соответствует 0-200% усиления (0.0-2.0 gain)
-         const gainValue = (newVolume / 100.0) * 2.0;
-         gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
-         
-         console.log('Set gain node value to', gainValue, 'for peer:', peerId);
-       }
+     if (gainNode) {
+       // Слайдер 0-100% соответствует 0-200% усиления (0.0-2.0 gain)
+       const gainValue = (newVolume / 100.0) * 2.0;
+       gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
+       
+       console.log('Set gain node value to', gainValue, 'for peer:', peerId);
        
        // Обновляем UI состояние
        setVolumes(prev => {
@@ -2201,7 +2191,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
          return newVolumes;
        });
      } else {
-       console.error('Audio element or gain node not found for peer:', peerId);
+       console.error('Gain node not found for peer:', peerId);
      }
    }, []);
 
@@ -3326,15 +3316,18 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       } else if (kind === 'audio') {
         try {
           const audio = new Audio();
-          audio.srcObject = stream;
           audio.id = `audio-${producer.producerSocketId}`;
-          audio.autoplay = true;
-          audio.muted = !isAudioEnabledRef.current; // Use ref for current state
-          // Устанавливаем HTML Audio на максимум, gain node будет регулировать громкость
-          audio.volume = 1.0; // HTML Audio всегда на максимуме
-
+          
+          // На мобильных устройствах используем HTML Audio для управления выходом
           if (isMobile) {
+            audio.srcObject = stream;
+            audio.autoplay = true;
+            audio.volume = 0; // Мутим HTML Audio, звук идет через Web Audio API
             await setAudioOutput(audio, useEarpiece);
+          } else {
+            // На десктопе HTML Audio нужен только как референс, звук идет через Web Audio API
+            audio.volume = 0; 
+            audio.muted = true;
           }
           
           const audioContext = audioContextRef.current;
@@ -3397,12 +3390,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       socketRef.current.emit('audioState', { isEnabled: newState });
     }
 
-    // Mute/unmute all audio elements
-    audioRef.current.forEach((audio) => {
-      if (audio instanceof HTMLAudioElement) {
-        audio.muted = !newState;
-      }
-    });
+    // На мобильных устройствах управляем HTML Audio элементами
+    if (isMobile) {
+      audioRef.current.forEach((audio) => {
+        if (audio instanceof HTMLAudioElement) {
+          audio.muted = !newState;
+        }
+      });
+    }
 
     // Mute/unmute all gain nodes with individual volume levels
     gainNodesRef.current.forEach((gainNode, peerId) => {
@@ -3423,7 +3418,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     if (onAudioStateChange) {
       onAudioStateChange(newState);
     }
-  }, [isAudioEnabled, onAudioStateChange, volumes]);
+  }, [isAudioEnabled, onAudioStateChange, volumes, isMobile]);
 
   // Предоставляем внешним компонентам доступ к функциям управления
   useImperativeHandle(ref, () => ({
