@@ -1924,6 +1924,33 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           const audioTracks = stream.getAudioTracks();
           console.log('Audio tracks:', audioTracks.length, audioTracks.map(t => ({ enabled: t.enabled, readyState: t.readyState })));
           
+          // Подробная диагностика треков
+          audioTracks.forEach((track, index) => {
+            console.log(`=== AUDIO TRACK ${index} DETAILS ===`);
+            console.log('Track ID:', track.id);
+            console.log('Track kind:', track.kind);
+            console.log('Track label:', track.label);
+            console.log('Track enabled:', track.enabled);
+            console.log('Track readyState:', track.readyState);
+            console.log('Track settings:', track.getSettings());
+            console.log('Track capabilities:', track.getCapabilities());
+            console.log('Track constraints:', track.getConstraints());
+            console.log('=== END TRACK DETAILS ===');
+            
+            // Слушаем события трека
+            track.onended = () => {
+              console.log(`Audio track ${index} ended`);
+            };
+            
+            track.onmute = () => {
+              console.log(`Audio track ${index} muted`);
+            };
+            
+            track.onunmute = () => {
+              console.log(`Audio track ${index} unmuted`);
+            };
+          });
+          
           const source = audioContext.createMediaStreamSource(stream);
           console.log('MediaStreamSource created successfully');
           
@@ -1958,10 +1985,99 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           console.log('MediaStreamSource numberOfOutputs:', source.numberOfOutputs);
           console.log('Analyser:', analyser);
           console.log('=== END DIAGNOSIS ===');
-
-          // Store references
+          
+          // Мониторинг уровня звука
+          const monitorAudioLevel = () => {
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            
+            const checkLevel = () => {
+              analyser.getByteFrequencyData(dataArray);
+              
+              // Вычисляем средний уровень
+              let sum = 0;
+              for (let i = 0; i < bufferLength; i++) {
+                sum += dataArray[i];
+              }
+              const average = sum / bufferLength;
+              
+              // Вычисляем пиковый уровень
+              const peak = Math.max(...dataArray);
+              
+              console.log(`Audio level for peer ${producer.producerSocketId}: average=${average.toFixed(2)}, peak=${peak}`);
+              
+              // Продолжаем мониторинг
+              setTimeout(checkLevel, 1000); // Каждую секунду
+            };
+            
+            checkLevel();
+          };
+          
+          // Запускаем мониторинг через 1 секунду
+          setTimeout(monitorAudioLevel, 1000);
+          
+          // ВРЕМЕННЫЙ ТЕСТ: Попробуем подключить MediaStreamSource напрямую к destination
+          console.log('=== DIRECT CONNECTION TEST ===');
+          const directGainNode = audioContext.createGain();
+          directGainNode.gain.value = 0.5; // 50% громкости для теста
+          
+          // Отключаем от старой цепочки
+          source.disconnect();
+          
+          // Подключаем напрямую: source -> directGainNode -> destination
+          source.connect(directGainNode);
+          directGainNode.connect(audioContext.destination);
+          
+          // Также подключаем к analyser для мониторинга
+          source.connect(analyser);
+          
+          console.log('Direct connection established: source -> directGainNode -> destination');
+          console.log('DirectGainNode gain value:', directGainNode.gain.value);
+          
+          // Временно заменяем сохраненные ссылки на прямое подключение
           analyserNodesRef.current.set(producer.producerSocketId, analyser);
-          gainNodesRef.current.set(producer.producerSocketId, gainNode);
+          gainNodesRef.current.set(producer.producerSocketId, directGainNode);
+          
+          console.log('=== DIRECT CONNECTION TEST COMPLETE ===');
+          
+          // ДОПОЛНИТЕЛЬНЫЙ ТЕСТ: HTML Audio элемент для сравнения
+          console.log('=== HTML AUDIO COMPARISON TEST ===');
+          const testAudio = new Audio();
+          testAudio.srcObject = stream;
+          testAudio.volume = 0.5;
+          testAudio.autoplay = true;
+          testAudio.muted = false;
+          
+          testAudio.onloadedmetadata = () => {
+            console.log('HTML Audio metadata loaded');
+            console.log('HTML Audio duration:', testAudio.duration);
+            console.log('HTML Audio readyState:', testAudio.readyState);
+          };
+          
+          testAudio.oncanplay = () => {
+            console.log('HTML Audio can play');
+          };
+          
+          testAudio.onplay = () => {
+            console.log('HTML Audio started playing');
+          };
+          
+          testAudio.onpause = () => {
+            console.log('HTML Audio paused');
+          };
+          
+          testAudio.onerror = (error) => {
+            console.log('HTML Audio error:', error);
+          };
+          
+          // Останавливаем HTML Audio через 5 секунд
+          setTimeout(() => {
+            testAudio.pause();
+            testAudio.srcObject = null;
+            console.log('HTML Audio test stopped');
+          }, 5000);
+          
+          console.log('=== HTML AUDIO COMPARISON TEST COMPLETE ===');
           if (tempAudio) {
             audioRef.current.set(producer.producerSocketId, tempAudio);
           }
