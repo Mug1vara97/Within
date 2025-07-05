@@ -194,4 +194,42 @@
     color: var(--text-muted);
     text-align: center;
     padding: 10px;
+}
+
+/* Стили для счетчика непрочитанных сообщений */
+.unread-count {
+    background-color: #f04747;
+    color: white;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: bold;
+    min-width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 8px;
+    padding: 0 6px;
+    box-sizing: border-box;
+}
+
+.chat-item-content {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    overflow: hidden;
+}
+
+.chat-item-content .username {
+    font-weight: 500;
+    margin-bottom: 0;
+    color: #dcddde;
+}
+
+.chat-item-content .group-indicator {
+    color: #b9bbbe;
+    font-size: 0.9em;
+    margin-left: 4px;
 } 

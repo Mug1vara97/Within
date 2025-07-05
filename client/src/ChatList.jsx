@@ -20,11 +20,20 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
     const [connection, setConnection] = useState(null);
     const connectionRef = useRef(null);
     const [forceUpdate, setForceUpdate] = useState(0);
+    const [unreadCounts, setUnreadCounts] = useState({});
 
     // Обработчик выбора чата
     const handleChatSelection = useCallback((chat) => {
         if (chat) {
             setSelectedChat(chat);
+            
+            // Сбрасываем счетчик непрочитанных сообщений для выбранного чата
+            if (unreadCounts[chat.chat_id] > 0) {
+                setUnreadCounts(prev => ({
+                    ...prev,
+                    [chat.chat_id]: 0
+                }));
+            }
             
             // Вызываем колбэк, если он предоставлен
             if (onChatSelected) {
@@ -37,7 +46,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                 navigate(`/channels/@me/${chat.chat_id}`);
             }
         }
-    }, [navigate, onChatSelected]);
+    }, [navigate, onChatSelected, unreadCounts]);
 
     // Эффект для отслеживания изменений в списке чатов и автоматического выбора чата из URL
     useEffect(() => {
@@ -52,6 +61,30 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
             }
         }
     }, [chats, urlChatId, initialChatId, selectedChat, handleChatSelection]);
+
+    // Функция для загрузки количества непрочитанных сообщений
+    const loadUnreadCounts = async () => {
+        try {
+            const response = await fetch(`${BASE_URL}/api/messages/unread-counts/${userId}`);
+            if (response.ok) {
+                const data = await response.json();
+                const countsMap = {};
+                data.forEach(item => {
+                    countsMap[item.chatId] = item.unreadCount;
+                });
+                setUnreadCounts(countsMap);
+            }
+        } catch (error) {
+            console.error('Error loading unread counts:', error);
+        }
+    };
+
+    // Загружаем количество непрочитанных сообщений при загрузке чатов
+    useEffect(() => {
+        if (chats.length > 0 && userId) {
+            loadUnreadCounts();
+        }
+    }, [chats, userId]);
 
     // Инициализация SignalR соединения
     useEffect(() => {
@@ -150,7 +183,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
             setSearchResults(results);
         };
 
-        const handleGroupChatCreated = (chatInfo) => {
+        const handleGroupChatCreated = () => {
             connection.invoke("GetUserChats", parseInt(userId, 10));
             setShowModal(false);
         };
@@ -317,7 +350,9 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                             <div className="chat-item-content">
                                 <div className="username">{chat.username}</div>
                                 {chat.isGroupChat && <span className="group-indicator">(Group)</span>}
-                               
+                                {unreadCounts[chat.chat_id] > 0 && (
+                                    <span className="unread-count">{unreadCounts[chat.chat_id]}</span>
+                                )}
                              </div>
                             {!chat.isGroupChat && (
                                 <button 
