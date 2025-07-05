@@ -1166,7 +1166,7 @@ const VideoView = React.memo(({
 
 const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true }, ref) => {
   const [isJoined, setIsJoined] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
+
   const [isMuted, setIsMuted] = useState(initialMuted);
   const [isAudioEnabled, setIsAudioEnabled] = useState(initialAudioEnabled);
 
@@ -1344,7 +1344,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         setRemoteScreens(prev => {
           const newScreens = new Map(prev);
           const screenEntry = [...newScreens.entries()].find(
-            ([id, data]) => data.producerId === producerId
+            ([, data]) => data.producerId === producerId
           );
           
           if (screenEntry) {
@@ -1368,7 +1368,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         setRemoteVideos(prev => {
           const newVideos = new Map(prev);
           const videoEntry = [...newVideos.entries()].find(
-            ([id, data]) => data.producerId === producerId
+            ([, data]) => data.producerId === producerId
           );
           
           if (videoEntry) {
@@ -1386,7 +1386,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
               // Находим и закрываем соответствующий consumer
               const consumer = Array.from(consumersRef.current.entries()).find(
-                ([id, consumer]) => consumer.producerId === producerId
+                ([, consumer]) => consumer.producerId === producerId
               );
               if (consumer) {
                 console.log('Found and closing associated consumer:', consumer[0]);
@@ -1465,7 +1465,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     setAudioStates(new Map());
     setRemoteVideos(new Map());
     setRemoteScreens(new Map());
-    setIsConnected(false);
+
     setIsJoined(false);
     setError('');
     
@@ -1497,7 +1497,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       setRemoteScreens(new Map());
 
       // Cleanup voice detection workers
-      audioRef.current.forEach((peerAudio, peerId) => {
+      audioRef.current.forEach((peerAudio) => {
         if (peerAudio instanceof Map && peerAudio.has('voiceDetector')) {
           const voiceDetector = peerAudio.get('voiceDetector');
           if (voiceDetector) {
@@ -1655,7 +1655,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
       socket.on('connect', () => {
         console.log('Socket connected successfully');
-        setIsConnected(true);
+
         // Set initial states
         socket.emit('muteState', { isMuted: initialMuted });
         socket.emit('audioState', { isEnabled: initialAudioEnabled });
@@ -1668,7 +1668,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
       socket.on('disconnect', () => {
         console.log('Socket disconnected');
-        setIsConnected(false);
+
         setIsJoined(false);
         setPeers(new Map());
         cleanup();
@@ -1860,21 +1860,73 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       
       const { rtpCapabilities } = deviceRef.current;
       
-      // Request consume
-      const { id, producerId, kind, rtpParameters, appData, error } = await new Promise((resolve, reject) => {
-        socketRef.current.emit('consume', {
-          rtpCapabilities,
-          remoteProducerId: producer.producerId,
-          transportId: transport.id
-        }, (response) => {
-          if (response.error) {
-            console.error('Consume request failed:', response.error);
-            reject(new Error(response.error));
+      // Request consume with enhanced retry and validation
+      let consumeResponse;
+      let retryCount = 0;
+      const maxRetries = 5;
+      
+      while (retryCount < maxRetries) {
+        try {
+          // Check if producer still exists and is active
+          const producerStatus = await new Promise((resolve) => {
+            socketRef.current.emit('checkProducer', { 
+              roomId, 
+              producerId: producer.producerId 
+            }, (status) => {
+              resolve(status);
+            });
+          });
+          
+          if (!producerStatus.exists) {
+            console.warn('Producer no longer exists, skipping consume');
             return;
           }
-          resolve(response);
-        });
-      });
+          
+          if (producerStatus.paused) {
+            console.warn('Producer is paused, requesting resume before consume');
+            socketRef.current.emit('resumeProducer', { 
+              producerId: producer.producerId 
+            }, (error) => {
+              if (error) {
+                console.error('Failed to resume producer:', error);
+              } else {
+                console.log('Producer resumed successfully');
+              }
+            });
+          }
+          
+          consumeResponse = await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              reject(new Error('Consume request timeout'));
+            }, 15000); // 15 second timeout
+            
+            socketRef.current.emit('consume', {
+              rtpCapabilities,
+              remoteProducerId: producer.producerId,
+              transportId: transport.id
+            }, (response) => {
+              clearTimeout(timeout);
+              if (response.error) {
+                console.error('Consume request failed:', response.error);
+                reject(new Error(response.error));
+                return;
+              }
+              resolve(response);
+            });
+          });
+          break; // Success, exit retry loop
+        } catch (error) {
+          retryCount++;
+          console.warn(`Consume attempt ${retryCount} failed:`, error.message);
+          if (retryCount >= maxRetries) {
+            throw error;
+          }
+          // Exponential backoff
+          await new Promise(resolve => setTimeout(resolve, Math.min(1000 * Math.pow(2, retryCount), 10000)));
+        }
+      }
+      
+      const { id, producerId, kind, rtpParameters, appData, error } = consumeResponse;
 
       if (error) {
         throw new Error(error);
@@ -2035,52 +2087,115 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         }
       }
 
-      // Resume the consumer
-      await new Promise((resolve, reject) => {
-        socketRef.current.emit('resumeConsumer', { consumerId: consumer.id }, async (error) => {
-          if (error) {
-            console.error('Resume consumer failed:', error);
-            reject(new Error(error));
-            return;
-          }
-          try {
-            console.log('Resuming consumer:', consumer.id, 'current state:', consumer.paused);
-            await consumer.resume();
-            console.log('Consumer resumed successfully, new state:', consumer.paused);
+      // Resume the consumer with proper error handling and retry
+      let resumeRetries = 0;
+      const maxResumeRetries = 3;
+      
+      const resumeConsumer = async () => {
+        try {
+          console.log('Resuming consumer:', consumer.id, 'current state:', consumer.paused);
+          
+          // First resume on client side
+          await consumer.resume();
+          console.log('Consumer resumed on client, new state:', consumer.paused);
+          
+          // Then request server to resume
+          await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              reject(new Error('Resume consumer timeout'));
+            }, 5000);
             
-            // Проверяем, что трек активен после возобновления
-            const track = consumer.track;
-            console.log('Consumer track after resume:', {
-              enabled: track.enabled,
-              muted: track.muted,
-              readyState: track.readyState,
-              id: track.id
+            socketRef.current.emit('resumeConsumer', { consumerId: consumer.id }, (error) => {
+              clearTimeout(timeout);
+              if (error) {
+                console.error('Server resume consumer failed:', error);
+                reject(new Error(error));
+              } else {
+                console.log('Server consumer resumed successfully');
+                resolve();
+              }
             });
+          });
+          
+          // Wait a bit for RTP to start flowing
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Check if we're receiving RTP data
+          const stats = await consumer.getStats();
+          console.log('Consumer stats after resume:', stats);
+          
+          let hasAudioData = false;
+          stats.forEach((report) => {
+            if (report.type === 'inbound-rtp' && report.kind === 'audio') {
+              console.log('Audio RTP stats:', {
+                packetsReceived: report.packetsReceived,
+                packetsLost: report.packetsLost,
+                bytesReceived: report.bytesReceived,
+                audioLevel: report.audioLevel,
+                totalAudioEnergy: report.totalAudioEnergy
+              });
+              hasAudioData = report.packetsReceived > 0 || report.bytesReceived > 0;
+            }
+          });
+          
+          if (!hasAudioData && resumeRetries < maxResumeRetries) {
+            resumeRetries++;
+            console.warn(`No RTP data received, retry ${resumeRetries}/${maxResumeRetries}...`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return resumeConsumer();
+          }
+          
+          // Check track state
+          const track = consumer.track;
+          console.log('Consumer track after resume:', {
+            enabled: track.enabled,
+            muted: track.muted,
+            readyState: track.readyState,
+            id: track.id
+          });
+          
+          if (!hasAudioData) {
+            console.warn('Still no RTP data after all retries, attempting producer restart...');
             
-            // Добавляем дополнительную проверку статистики consumer
-            const stats = await consumer.getStats();
-            console.log('Consumer stats after resume:', stats);
-            
-            // Проверяем RTP статистику
-            stats.forEach((report) => {
-              if (report.type === 'inbound-rtp' && report.kind === 'audio') {
-                console.log('Audio RTP stats:', {
-                  packetsReceived: report.packetsReceived,
-                  packetsLost: report.packetsLost,
-                  bytesReceived: report.bytesReceived,
-                  audioLevel: report.audioLevel,
-                  totalAudioEnergy: report.totalAudioEnergy
-                });
+            // Try to restart the producer on the server side
+            socketRef.current.emit('restartProducer', { 
+              producerId: consumer.producerId 
+            }, (error) => {
+              if (error) {
+                console.error('Producer restart failed:', error);
+              } else {
+                console.log('Producer restarted successfully');
               }
             });
             
-            resolve();
-          } catch (err) {
-            console.error('Failed to resume consumer:', err);
-            reject(err);
+            // Also try to restart ICE on the consumer transport
+            const transport = consumer.transport;
+            if (transport) {
+              socketRef.current.emit('restartIce', { 
+                transportId: transport.id 
+              }, ({ iceParameters, error }) => {
+                if (error) {
+                  console.error('ICE restart failed:', error);
+                } else {
+                  console.log('ICE restarted successfully');
+                  transport.restartIce({ iceParameters });
+                }
+              });
+            }
           }
-        });
-      });
+          
+        } catch (error) {
+          if (resumeRetries < maxResumeRetries) {
+            resumeRetries++;
+            console.warn(`Resume attempt ${resumeRetries} failed:`, error.message);
+            await new Promise(resolve => setTimeout(resolve, 1000 * resumeRetries));
+            return resumeConsumer();
+          }
+          throw error;
+        }
+      };
+      
+      await resumeConsumer();
 
       // Monitor consumer state
       consumer.on('transportclose', () => {
