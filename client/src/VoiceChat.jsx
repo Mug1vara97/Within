@@ -1580,6 +1580,29 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
               clearInterval(interval);
             }
           }
+          if (audio.has('audioCheckInterval')) {
+            const interval = audio.get('audioCheckInterval');
+            if (interval) {
+              clearInterval(interval);
+            }
+          }
+          if (audio.has('statsInterval')) {
+            const interval = audio.get('statsInterval');
+            if (interval) {
+              clearInterval(interval);
+            }
+          }
+          if (audio.has('audioElement')) {
+            // Очищаем HTML Audio элемент
+            const audioElement = audio.get('audioElement');
+            if (audioElement) {
+              audioElement.pause();
+              audioElement.srcObject = null;
+              if (audioElement.parentNode) {
+                audioElement.parentNode.removeChild(audioElement);
+              }
+            }
+          }
         }
       });
       audioRef.current.clear();
@@ -1969,6 +1992,33 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             });
           });
           
+          // Create HTML Audio element as fallback
+          const audioElement = document.createElement('audio');
+          audioElement.srcObject = stream;
+          audioElement.autoplay = true;
+          audioElement.playsInline = true;
+          audioElement.volume = isAudioEnabledRef.current ? 1.0 : 0.0;
+          audioElement.style.display = 'none';
+          document.body.appendChild(audioElement);
+          
+          console.log('Created HTML Audio fallback element');
+          
+          // Store audio element for cleanup and volume control
+          if (!audioRef.current.has(producer.producerSocketId)) {
+            audioRef.current.set(producer.producerSocketId, new Map());
+          }
+          audioRef.current.get(producer.producerSocketId).set('audioElement', audioElement);
+          
+          // Try to play the audio element
+          const playPromise = audioElement.play();
+          if (playPromise !== undefined) {
+            playPromise.then(() => {
+              console.log('HTML Audio element playing successfully');
+            }).catch(error => {
+              console.error('HTML Audio element play failed:', error);
+            });
+          }
+          
           const source = audioContext.createMediaStreamSource(stream);
           console.log('Created MediaStreamSource from stream');
           
@@ -1982,15 +2032,17 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             debugAnalyser.getByteFrequencyData(dataArray);
             const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
             console.log(`Audio data for peer ${producer.producerSocketId}: average=${average}, max=${Math.max(...dataArray)}`);
+            
+            // If Web Audio API shows no data but we have a track, the HTML audio might still work
+            if (average === 0 && audioTracks.length > 0 && audioTracks[0].readyState === 'live') {
+              console.log('Web Audio API shows no data, but HTML Audio fallback should be working');
+            }
           };
           
           // Check audio data every 2 seconds
           const audioCheckInterval = setInterval(checkAudioData, 2000);
           
           // Store interval for cleanup
-          if (!audioRef.current.has(producer.producerSocketId)) {
-            audioRef.current.set(producer.producerSocketId, new Map());
-          }
           audioRef.current.get(producer.producerSocketId).set('audioCheckInterval', audioCheckInterval);
           
           // Add analyzer for voice activity detection
@@ -2029,9 +2081,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           }, 5000);
           
           // Сохраняем интервал для очистки
-          if (!audioRef.current.has(producer.producerSocketId)) {
-            audioRef.current.set(producer.producerSocketId, new Map());
-          }
           audioRef.current.get(producer.producerSocketId).set('gainCheckInterval', checkGainInterval);
 
           // Store references
@@ -2047,29 +2096,50 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         }
       }
 
-            // Resume the consumer
+      // Resume the consumer
       console.log('Resuming consumer:', consumer.id, 'current state:', consumer.paused);
       
       // First resume on client side
       await consumer.resume();
       console.log('Consumer resumed on client, new state:', consumer.paused);
       
-      // Then request server to resume
+      // Then request server to resume consumer AND producer
       await new Promise((resolve) => {
         const timeout = setTimeout(() => {
           console.warn('Resume consumer timeout, continuing anyway');
           resolve(); // Don't fail on timeout
         }, 5000);
         
-        socketRef.current.emit('resumeConsumer', { consumerId: consumer.id }, (error) => {
+        socketRef.current.emit('resumeConsumer', { consumerId: consumer.id }, async (error) => {
           clearTimeout(timeout);
           if (error) {
             console.error('Server resume consumer failed:', error);
-            resolve(); // Don't fail on server error
           } else {
             console.log('Server consumer resumed successfully');
-            resolve();
+            
+            // Also try to resume the producer if it exists
+            try {
+              await new Promise((resolveProducer) => {
+                const producerTimeout = setTimeout(() => {
+                  console.warn('Resume producer timeout');
+                  resolveProducer();
+                }, 3000);
+                
+                socketRef.current.emit('resumeProducer', { producerId: consumer.producerId }, (producerError) => {
+                  clearTimeout(producerTimeout);
+                  if (producerError) {
+                    console.error('Server resume producer failed:', producerError);
+                  } else {
+                    console.log('Server producer resumed successfully');
+                  }
+                  resolveProducer();
+                });
+              });
+            } catch (producerError) {
+              console.error('Error resuming producer:', producerError);
+            }
           }
+          resolve();
         });
       });
       
@@ -2115,11 +2185,90 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         }
       });
 
+      consumer.on('producerresume', () => {
+        console.log('Consumer producer resumed:', consumer.id);
+      });
+
       // Monitor track state
       consumer.track.onended = () => {
         console.log('Consumer track ended:', consumer.id);
         removeConsumer(consumer.id);
       };
+
+      // Add detailed WebRTC stats monitoring for audio consumers
+      if (kind === 'audio') {
+        const startStatsMonitoring = () => {
+          const checkStats = async () => {
+            try {
+              const stats = await consumer.getStats();
+              let audioReport = null;
+              
+              stats.forEach((report) => {
+                if (report.type === 'inbound-rtp' && report.kind === 'audio') {
+                  audioReport = report;
+                }
+              });
+              
+              if (audioReport) {
+                console.log(`WebRTC Audio Stats for ${producer.producerSocketId}:`, {
+                  packetsReceived: audioReport.packetsReceived,
+                  packetsLost: audioReport.packetsLost,
+                  bytesReceived: audioReport.bytesReceived,
+                  audioLevel: audioReport.audioLevel,
+                  totalAudioEnergy: audioReport.totalAudioEnergy,
+                  jitter: audioReport.jitter,
+                  fractionLost: audioReport.fractionLost,
+                  timestamp: audioReport.timestamp
+                });
+                
+                // Check if we're actually receiving audio data
+                if (audioReport.bytesReceived === 0 || audioReport.packetsReceived === 0) {
+                  console.warn(`No audio data received for peer ${producer.producerSocketId}!`);
+                  
+                  // Try to restart the consumer
+                  try {
+                    console.log('Attempting to restart consumer due to no audio data...');
+                    await consumer.pause();
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    await consumer.resume();
+                    
+                    // Also request server restart
+                    socketRef.current.emit('restartConsumer', { 
+                      consumerId: consumer.id,
+                      producerId: consumer.producerId 
+                    }, (error) => {
+                      if (error) {
+                        console.error('Server restart consumer failed:', error);
+                      } else {
+                        console.log('Server consumer restarted successfully');
+                      }
+                    });
+                  } catch (error) {
+                    console.error('Failed to restart consumer:', error);
+                  }
+                }
+              }
+            } catch (error) {
+              console.error('Failed to get consumer stats:', error);
+            }
+          };
+          
+          // Check stats every 5 seconds
+          const statsInterval = setInterval(checkStats, 5000);
+          
+          // Store interval for cleanup
+          if (!audioRef.current.has(producer.producerSocketId)) {
+            audioRef.current.set(producer.producerSocketId, new Map());
+          }
+          audioRef.current.get(producer.producerSocketId).set('statsInterval', statsInterval);
+          
+          // Initial check
+          checkStats();
+        };
+        
+        // Start monitoring after a short delay
+        setTimeout(startStatsMonitoring, 1000);
+      }
 
     } catch (error) {
       console.error('Error handling existing producer:', error);
@@ -2235,6 +2384,26 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         }
       }
     });
+    
+    // Также управляем HTML Audio элементами
+    audioRef.current.forEach((peerAudio, peerId) => {
+      if (peerAudio instanceof Map && peerAudio.has('audioElement')) {
+        const audioElement = peerAudio.get('audioElement');
+        if (audioElement) {
+          if (!isAudioEnabled) {
+            audioElement.volume = 0;
+          } else {
+            const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
+            if (!isIndividuallyMuted) {
+              const individualVolume = volumes.get(peerId) || 100;
+              audioElement.volume = individualVolume / 100.0;
+            } else {
+              audioElement.volume = 0;
+            }
+          }
+        }
+      }
+    });
   }, [isAudioEnabled, volumes]);
 
     const handleVolumeChange = (peerId) => {
@@ -2272,7 +2441,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     }
   };
 
-   // Функция для изменения громкости слайдером (Web Audio API gain nodes)
+   // Функция для изменения громкости слайдером (Web Audio API gain nodes и HTML Audio)
    const handleVolumeSliderChange = useCallback((peerId, newVolume) => {
      console.log('Volume slider change for peer:', peerId, 'New volume:', newVolume);
      
@@ -2284,16 +2453,26 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
        gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
        
        console.log('Set gain node value to', gainValue, 'for peer:', peerId);
-       
-       // Обновляем UI состояние
-       setVolumes(prev => {
-         const newVolumes = new Map(prev);
-         newVolumes.set(peerId, newVolume);
-         return newVolumes;
-       });
      } else {
        console.error('Gain node not found for peer:', peerId);
      }
+     
+     // Также обновляем HTML Audio элемент
+     const peerAudio = audioRef.current.get(peerId);
+     if (peerAudio instanceof Map && peerAudio.has('audioElement')) {
+       const audioElement = peerAudio.get('audioElement');
+       if (audioElement) {
+         audioElement.volume = newVolume / 100.0;
+         console.log('Set HTML Audio volume to', newVolume / 100.0, 'for peer:', peerId);
+       }
+     }
+     
+     // Обновляем UI состояние
+     setVolumes(prev => {
+       const newVolumes = new Map(prev);
+       newVolumes.set(peerId, newVolume);
+       return newVolumes;
+     });
    }, []);
 
    // Функция для переключения отображения слайдера громкости

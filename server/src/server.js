@@ -352,6 +352,12 @@ io.on('connection', async (socket) => {
                 peer.addProducer(producer);
                 room.addProducer(socket.id, producer);
 
+                // Ensure screen sharing producer is not paused
+                if (producer.paused) {
+                    console.log('Screen sharing producer was paused, resuming:', producer.id);
+                    await producer.resume();
+                }
+
                 producer.on('transportclose', () => {
                     console.log('Screen sharing producer transport closed:', producer.id);
                     producer.close();
@@ -503,6 +509,12 @@ io.on('connection', async (socket) => {
             peer.addProducer(producer);
             room.addProducer(socket.id, producer);
 
+            // Ensure producer is not paused
+            if (producer.paused) {
+                console.log('Producer was paused, resuming:', producer.id);
+                await producer.resume();
+            }
+
             producer.on('transportclose', () => {
                 console.log('Producer transport closed:', producer.id);
                 producer.close();
@@ -617,7 +629,7 @@ io.on('connection', async (socket) => {
             const consumerOptions = {
                 producerId: producer.id,
                 rtpCapabilities,
-                paused: true
+                paused: false // Start unpaused for immediate audio/video
             };
 
             // Add specific settings for screen sharing consumers
@@ -703,6 +715,73 @@ io.on('connection', async (socket) => {
             callback();
         } catch (error) {
             console.error('Error in resumeConsumer:', error);
+            callback({ error: error.message });
+        }
+    });
+
+    socket.on('resumeProducer', async ({ producerId }, callback) => {
+        try {
+            const room = rooms.get(socket.data.roomId);
+            if (!room) {
+                throw new Error('Room not found');
+            }
+
+            const producer = room.getProducer(producerId);
+            if (!producer) {
+                throw new Error('Producer not found');
+            }
+
+            console.log('Resuming producer:', producerId);
+            if (producer.paused) {
+                await producer.resume();
+                console.log('Producer resumed successfully:', producerId);
+            }
+            callback({ success: true });
+        } catch (error) {
+            console.error('Error in resumeProducer:', error);
+            callback({ error: error.message });
+        }
+    });
+
+    socket.on('restartConsumer', async ({ consumerId, producerId }, callback) => {
+        try {
+            const room = rooms.get(socket.data.roomId);
+            if (!room) {
+                throw new Error('Room not found');
+            }
+
+            const consumer = room.getConsumer(consumerId);
+            if (!consumer) {
+                throw new Error('Consumer not found');
+            }
+
+            const producer = room.getProducer(producerId);
+            if (!producer) {
+                throw new Error('Producer not found');
+            }
+
+            console.log('Restarting consumer and producer:', { consumerId, producerId });
+            
+            // First restart producer
+            if (producer.paused) {
+                await producer.resume();
+                console.log('Producer resumed for restart:', producerId);
+            } else {
+                await producer.pause();
+                await new Promise(resolve => setTimeout(resolve, 100));
+                await producer.resume();
+                console.log('Producer restarted:', producerId);
+            }
+            
+            // Then restart consumer
+            await consumer.pause();
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await consumer.resume();
+            console.log('Consumer restarted successfully:', consumerId);
+            
+            callback({ success: true });
+        } catch (error) {
+            console.error('Error in restartConsumer:', error);
             callback({ error: error.message });
         }
     });
