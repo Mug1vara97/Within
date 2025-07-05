@@ -60,16 +60,14 @@ const ChatPage = ({ userId, username, chatId, chatPartnerUsername, PartnerId }) 
             
             await newConnection.invoke('JoinGroup', String(chatId));
             
-            const response = await fetch(`${BASE_URL}/api/messages/${String(chatId)}?userId=${userId}`);
+            const response = await fetch(`${BASE_URL}/api/messages/${String(chatId)}`);
             const data = await response.json();
             setMessages(data.map(msg => ({
                 id: msg.messageId,
                 username: msg.user.username,
                 content: msg.content,
                 userId: msg.userId,
-                createdAt: msg.createdAt,
-                isRead: msg.isRead,
-                readBy: msg.readBy || []
+                createdAt: msg.createdAt
             })));
             
             // Обработчики событий
@@ -78,9 +76,7 @@ const ChatPage = ({ userId, username, chatId, chatPartnerUsername, PartnerId }) 
                     id: messageId,
                     username: user, 
                     content,
-                    userId: user === username ? userId : PartnerId,
-                    isRead: false,
-                    readBy: []
+                    userId: user === username ? userId : PartnerId
                 }]);
                 scrollToBottom();
             });
@@ -148,9 +144,7 @@ const ChatPage = ({ userId, username, chatId, chatPartnerUsername, PartnerId }) 
                     id: messageId,
                     username: user, 
                     content: content,
-                    userId: user === username ? userId : PartnerId,
-                    isRead: false,
-                    readBy: []
+                    userId: user === username ? userId : PartnerId
                 }]);
                 scrollToBottom();
             };
@@ -221,45 +215,6 @@ const ChatPage = ({ userId, username, chatId, chatPartnerUsername, PartnerId }) 
         }
     };
 
-    // Отметка сообщений как прочитанных
-    const markMessagesAsRead = async () => {
-        try {
-            const response = await fetch(`${BASE_URL}/api/messages/mark-as-read`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    userId: userId,
-                    chatId: chatId
-                })
-            });
-            
-            if (response.ok) {
-                // Обновляем локальное состояние сообщений
-                setMessages(prevMessages => 
-                    prevMessages.map(msg => 
-                        msg.userId !== userId ? { ...msg, isRead: true } : msg
-                    )
-                );
-            }
-        } catch (err) {
-            console.error('Ошибка при отметке сообщений как прочитанных: ', err);
-        }
-    };
-
-    // Автоматическая отметка сообщений как прочитанных при входе в чат
-    useEffect(() => {
-        if (chatId && userId && messages.length > 0) {
-            // Отмечаем как прочитанные с небольшой задержкой, чтобы пользователь успел увидеть сообщения
-            const timer = setTimeout(() => {
-                markMessagesAsRead();
-            }, 1000);
-            
-            return () => clearTimeout(timer);
-        }
-    }, [chatId, userId, messages]);
-
     
 
     return (
@@ -285,19 +240,8 @@ const ChatPage = ({ userId, username, chatId, chatPartnerUsername, PartnerId }) 
                 {messages.map((msg, index) => (
                 <div key={index} className={`message ${msg.username === username ? 'my-message' : 'user-message'}`}
                     onContextMenu={(e) => msg.username === username && handleContextMenu(e, msg.id)}>
-                    <div className="message-content">
-                        <strong className="message-username">{msg.username}</strong>
-                        <MediaMessage content={msg.content} />
-                    </div>
-                    {msg.username === username && (
-                        <div className="message-status">
-                            {msg.isRead ? (
-                                <span className="read-status" title="Прочитано">✓✓</span>
-                            ) : (
-                                <span className="unread-status" title="Отправлено">✓</span>
-                            )}
-                        </div>
-                    )}
+                    <strong className="message-username">{msg.username}</strong>
+                    <MediaMessage content={msg.content} />
                 </div>
                 ))}
                 <div ref={messagesEndRef} />

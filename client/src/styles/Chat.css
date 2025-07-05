@@ -198,59 +198,6 @@
   background-color: #677bc4;
 }
 
-/* Стили для индикаторов прочитанности сообщений */
-.message {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    margin-bottom: 8px;
-    padding: 8px 12px;
-    border-radius: 8px;
-    position: relative;
-}
-
-.message.my-message {
-    background-color: rgba(88, 101, 242, 0.1);
-    margin-left: 20px;
-}
-
-.message.user-message {
-    background-color: rgba(79, 84, 92, 0.16);
-    margin-right: 20px;
-}
-
-.message-content {
-    flex: 1;
-}
-
-.message-username {
-    font-size: 14px;
-    font-weight: 600;
-    color: #dcddde;
-    margin-bottom: 4px;
-    display: block;
-}
-
-.message-status {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-left: 8px;
-    min-width: 20px;
-}
-
-.read-status {
-    color: #00b894;
-    font-size: 12px;
-    font-weight: bold;
-}
-
-.unread-status {
-    color: #74b9ff;
-    font-size: 12px;
-    font-weight: bold;
-}
-
 .voice-chat-controls button:disabled {
   background-color: #72797f;
   cursor: not-allowed;
