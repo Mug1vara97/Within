@@ -27,6 +27,8 @@ public partial class MessengerContext : DbContext
 
     public virtual DbSet<Message> Messages { get; set; }
 
+    public virtual DbSet<MessageRead> MessageReads { get; set; }
+
     public virtual DbSet<Server> Servers { get; set; }
 
     public virtual DbSet<ServerMember> ServerMembers { get; set; }
@@ -244,6 +246,32 @@ public partial class MessengerContext : DbContext
                 .HasForeignKey(d => d.ForwardedByUserId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("messages_forwarded_by_user_id_fkey");
+        });
+
+        modelBuilder.Entity<MessageRead>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("message_reads_pkey");
+
+            entity.ToTable("message_reads");
+
+            entity.HasIndex(e => new { e.MessageId, e.UserId }, "message_reads_message_id_user_id_key").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.MessageId).HasColumnName("message_id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.ReadAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("read_at");
+
+            entity.HasOne(d => d.Message).WithMany(p => p.MessageReads)
+                .HasForeignKey(d => d.MessageId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("message_reads_message_id_fkey");
+
+            entity.HasOne(d => d.User).WithMany(p => p.MessageReads)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("message_reads_user_id_fkey");
         });
 
         modelBuilder.Entity<Server>(entity =>

@@ -40,4 +40,6 @@ public partial class Message
     public virtual User? ForwardedByUser { get; set; }
 
     public virtual ICollection<Message> Replies { get; set; } = new List<Message>();
+
+    public virtual ICollection<MessageRead> MessageReads { get; set; } = new List<MessageRead>();
 }

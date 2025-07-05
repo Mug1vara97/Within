@@ -25,13 +25,14 @@ namespace Messenger.Controllers
         }
 
         [HttpGet("{chatId}")]
-        public async Task<IActionResult> GetMessages(int chatId)
+        public async Task<IActionResult> GetMessages(int chatId, [FromQuery] int? userId = null)
         {
             try
             {
                 var messages = await _context.Messages
                     .Where(m => m.ChatId == chatId)
                     .Include(m => m.User) // Важно: включаем данные пользователя
+                    .Include(m => m.MessageReads).ThenInclude(mr => mr.User) // Включаем информацию о прочитанных сообщениях
                     .OrderBy(m => m.CreatedAt)
                     .Select(m => new
                     {
@@ -43,7 +44,14 @@ namespace Messenger.Controllers
                         {
                             username = m.User.Username,
                             userId = m.User.UserId
-                        }
+                        },
+                        isRead = userId.HasValue ? m.MessageReads.Any(mr => mr.UserId == userId.Value) : false,
+                        readBy = m.MessageReads.Select(mr => new
+                        {
+                            userId = mr.UserId,
+                            username = mr.User.Username,
+                            readAt = mr.ReadAt
+                        }).ToList()
                     })
                     .ToListAsync();
 
@@ -1222,6 +1230,177 @@ namespace Messenger.Controllers
             {
                 return StatusCode(500, new { error = ex.Message });
             }
+        }
+
+        /// <summary>
+        /// Отметить сообщения как прочитанные
+        /// </summary>
+        [HttpPost("mark-as-read")]
+        public async Task<IActionResult> MarkMessagesAsRead([FromBody] MarkAsReadRequest request)
+        {
+            try
+            {
+                if (request == null || request.UserId <= 0 || request.ChatId <= 0)
+                {
+                    return BadRequest("Invalid request parameters");
+                }
+
+                // Получаем все сообщения в чате, которые еще не прочитаны пользователем
+                var unreadMessages = await _context.Messages
+                    .Where(m => m.ChatId == request.ChatId && 
+                               m.UserId != request.UserId && // Не отмечаем свои сообщения
+                               !m.MessageReads.Any(mr => mr.UserId == request.UserId))
+                    .ToListAsync();
+
+                // Создаем записи о прочтении
+                var messageReads = unreadMessages.Select(m => new MessageRead
+                {
+                    MessageId = m.MessageId,
+                    UserId = request.UserId,
+                    ReadAt = DateTime.UtcNow
+                }).ToList();
+
+                if (messageReads.Any())
+                {
+                    _context.MessageReads.AddRange(messageReads);
+                    await _context.SaveChangesAsync();
+                }
+
+                return Ok(new { markedCount = messageReads.Count });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Получить количество непрочитанных сообщений для чата
+        /// </summary>
+        [HttpGet("unread-count/{chatId}")]
+        public async Task<IActionResult> GetUnreadCount(int chatId, [FromQuery] int userId)
+        {
+            try
+            {
+                if (userId <= 0 || chatId <= 0)
+                {
+                    return BadRequest("Invalid parameters");
+                }
+
+                var unreadCount = await _context.Messages
+                    .Where(m => m.ChatId == chatId && 
+                               m.UserId != userId && // Не считаем свои сообщения
+                               !m.MessageReads.Any(mr => mr.UserId == userId))
+                    .CountAsync();
+
+                return Ok(new { chatId, unreadCount });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Получить количество непрочитанных сообщений для всех чатов пользователя
+        /// </summary>
+        [HttpGet("unread-counts/{userId}")]
+        public async Task<IActionResult> GetAllUnreadCounts(int userId)
+        {
+            try
+            {
+                if (userId <= 0)
+                {
+                    return BadRequest("Invalid user ID");
+                }
+
+                // Получаем все чаты пользователя
+                var userChats = await _context.Members
+                    .Where(m => m.UserId == userId)
+                    .Select(m => m.ChatId)
+                    .ToListAsync();
+
+                // Получаем количество непрочитанных сообщений для каждого чата
+                var unreadCounts = await _context.Messages
+                    .Where(m => userChats.Contains(m.ChatId) && 
+                               m.UserId != userId && // Не считаем свои сообщения
+                               !m.MessageReads.Any(mr => mr.UserId == userId))
+                    .GroupBy(m => m.ChatId)
+                    .Select(g => new
+                    {
+                        chatId = g.Key,
+                        unreadCount = g.Count()
+                    })
+                    .ToListAsync();
+
+                return Ok(unreadCounts);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Отметить конкретное сообщение как прочитанное
+        /// </summary>
+        [HttpPost("mark-message-read")]
+        public async Task<IActionResult> MarkMessageAsRead([FromBody] MarkMessageReadRequest request)
+        {
+            try
+            {
+                if (request == null || request.UserId <= 0 || request.MessageId <= 0)
+                {
+                    return BadRequest("Invalid request parameters");
+                }
+
+                // Проверяем, не прочитано ли уже сообщение
+                var existingRead = await _context.MessageReads
+                    .FirstOrDefaultAsync(mr => mr.MessageId == request.MessageId && mr.UserId == request.UserId);
+
+                if (existingRead != null)
+                {
+                    return Ok(new { alreadyRead = true });
+                }
+
+                // Проверяем, что сообщение существует и не является сообщением самого пользователя
+                var message = await _context.Messages
+                    .FirstOrDefaultAsync(m => m.MessageId == request.MessageId && m.UserId != request.UserId);
+
+                if (message == null)
+                {
+                    return NotFound("Message not found or is your own message");
+                }
+
+                // Создаем запись о прочтении
+                var messageRead = new MessageRead
+                {
+                    MessageId = request.MessageId,
+                    UserId = request.UserId,
+                    ReadAt = DateTime.UtcNow
+                };
+
+                _context.MessageReads.Add(messageRead);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { success = true, readAt = messageRead.ReadAt });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        public class MarkAsReadRequest
+        {
+            public int UserId { get; set; }
+            public int ChatId { get; set; }
+        }
+
+        public class MarkMessageReadRequest
+        {
+            public int UserId { get; set; }
+            public long MessageId { get; set; }
         }
 
         public class LeaveServerRequest

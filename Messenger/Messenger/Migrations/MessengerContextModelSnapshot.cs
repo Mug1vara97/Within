@@ -329,6 +329,40 @@ namespace Messenger.Migrations
                     b.ToTable("messages", (string)null);
                 });
 
+            modelBuilder.Entity("Messenger.Models.MessageRead", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("MessageId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("message_id");
+
+                    b.Property<DateTime>("ReadAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("read_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("message_reads_pkey");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex(new[] { "MessageId", "UserId" }, "message_reads_message_id_user_id_key")
+                        .IsUnique();
+
+                    b.ToTable("message_reads", (string)null);
+                });
+
             modelBuilder.Entity("Messenger.Models.Server", b =>
                 {
                     b.Property<int>("ServerId")
@@ -784,6 +818,27 @@ namespace Messenger.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Messenger.Models.MessageRead", b =>
+                {
+                    b.HasOne("Messenger.Models.Message", "Message")
+                        .WithMany("MessageReads")
+                        .HasForeignKey("MessageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("message_reads_message_id_fkey");
+
+                    b.HasOne("Messenger.Models.User", "User")
+                        .WithMany("MessageReads")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("message_reads_user_id_fkey");
+
+                    b.Navigation("Message");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Messenger.Models.Server", b =>
                 {
                     b.HasOne("Messenger.Models.User", "Owner")
@@ -932,6 +987,8 @@ namespace Messenger.Migrations
 
             modelBuilder.Entity("Messenger.Models.Message", b =>
                 {
+                    b.Navigation("MessageReads");
+
                     b.Navigation("Replies");
                 });
 
@@ -964,6 +1021,8 @@ namespace Messenger.Migrations
                     b.Navigation("AuditLogs");
 
                     b.Navigation("Members");
+
+                    b.Navigation("MessageReads");
 
                     b.Navigation("Messages");
 

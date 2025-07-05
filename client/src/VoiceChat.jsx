@@ -916,7 +916,7 @@ const VideoOverlay = React.memo(({
 
   const handleVolumeIconClick = (e) => {
     e.stopPropagation();
-    setIsVolumeOff(prev => !prev);
+    // Не изменяем локальное состояние isVolumeOff здесь - оно обновится через props
     if (onVolumeClick) {
       onVolumeClick();
     }
@@ -4130,7 +4130,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                         isLocal={false}
                         onVolumeClick={() => handleVolumeChange(peer.id)}
                         volume={volumes.get(peer.id) || 100}
-                        isAudioMuted={individualMutedPeersRef.current.get(peer.id) || false}
+                        isAudioMuted={(volumes.get(peer.id) || 100) === 0}
                         showVolumeSlider={showVolumeSliders.get(peer.id) || false}
                         onVolumeSliderChange={(newVolume) => handleVolumeSliderChange(peer.id, newVolume)}
                         onToggleVolumeSlider={() => toggleVolumeSlider(peer.id)}
@@ -4156,7 +4156,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                           isLocal={false}
                           onVolumeClick={() => handleVolumeChange(peer.id)}
                           volume={volumes.get(peer.id) || 100}
-                          isAudioMuted={individualMutedPeersRef.current.get(peer.id) || false}
+                          isAudioMuted={(volumes.get(peer.id) || 100) === 0}
                           showVolumeSlider={showVolumeSliders.get(peer.id) || false}
                           onVolumeSliderChange={(newVolume) => handleVolumeSliderChange(peer.id, newVolume)}
                           onToggleVolumeSlider={() => toggleVolumeSlider(peer.id)}

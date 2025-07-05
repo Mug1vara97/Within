@@ -407,6 +407,33 @@ namespace Messenger.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "message_reads",
+                columns: table => new
+                {
+                    id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    message_id = table.Column<long>(type: "bigint", nullable: false),
+                    user_id = table.Column<int>(type: "integer", nullable: false),
+                    read_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("message_reads_pkey", x => x.id);
+                    table.ForeignKey(
+                        name: "message_reads_message_id_fkey",
+                        column: x => x.message_id,
+                        principalTable: "messages",
+                        principalColumn: "message_id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "message_reads_user_id_fkey",
+                        column: x => x.user_id,
+                        principalTable: "users",
+                        principalColumn: "user_id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.InsertData(
                 table: "chat_types",
                 columns: new[] { "type_id", "type_name" },
@@ -463,6 +490,17 @@ namespace Messenger.Migrations
                 name: "members_user_id_chat_id_key",
                 table: "members",
                 columns: new[] { "user_id", "chat_id" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_message_reads_user_id",
+                table: "message_reads",
+                column: "user_id");
+
+            migrationBuilder.CreateIndex(
+                name: "message_reads_message_id_user_id_key",
+                table: "message_reads",
+                columns: new[] { "message_id", "user_id" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -571,7 +609,7 @@ namespace Messenger.Migrations
                 name: "members");
 
             migrationBuilder.DropTable(
-                name: "messages");
+                name: "message_reads");
 
             migrationBuilder.DropTable(
                 name: "server_audit_logs");
@@ -589,10 +627,13 @@ namespace Messenger.Migrations
                 name: "user_server_roles");
 
             migrationBuilder.DropTable(
-                name: "chats");
+                name: "messages");
 
             migrationBuilder.DropTable(
                 name: "server_roles");
+
+            migrationBuilder.DropTable(
+                name: "chats");
 
             migrationBuilder.DropTable(
                 name: "chat_categories");

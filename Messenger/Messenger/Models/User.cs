@@ -30,4 +30,6 @@ public partial class User
     public virtual ICollection<UserServerOrder> UserServerOrders { get; set; } = new List<UserServerOrder>();
 
     public virtual ICollection<ServerAuditLog> ServerAuditLogs { get; set; } = new List<ServerAuditLog>();
+
+    public virtual ICollection<MessageRead> MessageReads { get; set; } = new List<MessageRead>();
 }
