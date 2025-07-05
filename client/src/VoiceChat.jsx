@@ -1051,7 +1051,6 @@ const VideoOverlay = React.memo(({
               minHeight: '120px',
               zIndex: 15
             }}>
-              <VolumeUp sx={{ fontSize: 16, color: '#B5BAC1' }} />
               <Slider
                 value={volume}
                 onChange={handleSliderChange}
@@ -1077,7 +1076,6 @@ const VideoOverlay = React.memo(({
                   }
                 }}
               />
-              <VolumeOff sx={{ fontSize: 16, color: '#B5BAC1' }} />
               <Typography sx={{ 
                 fontSize: '12px', 
                 color: '#B5BAC1', 
@@ -3487,26 +3485,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
 
 
-  // Add test audio function
-  const playTestAudio = useCallback(() => {
-    if (audioContextRef.current && audioContextRef.current.state === 'running') {
-      try {
-        const oscillator = audioContextRef.current.createOscillator();
-        const gainNode = audioContextRef.current.createGain();
-        oscillator.frequency.value = 880; // A5 note
-        gainNode.gain.value = 0.2; // Moderate volume
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContextRef.current.destination);
-        oscillator.start();
-        oscillator.stop(audioContextRef.current.currentTime + 0.2);
-        console.log('Test beep played');
-      } catch (error) {
-        console.error('Failed to play test beep:', error);
-      }
-    } else {
-      console.log('AudioContext not ready for test audio');
-    }
-  }, []);
+
 
   // Add test audio function for specific peer (accessible via console)
   window.playTestAudioForPeer = (peerId) => {
@@ -3695,42 +3674,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     }
   };
 
-  // Add debug function
-  const debugAudioState = useCallback(() => {
-    console.log('=== AUDIO DEBUG ===');
-    console.log('Consumers count:', consumersRef.current.size);
-    console.log('Gain nodes count:', gainNodesRef.current.size);
-    console.log('AudioContext state:', audioContextRef.current?.state);
-    console.log('Peers:', Array.from(peers.keys()));
-    
-    // Check each consumer
-    for (let [id, consumer] of consumersRef.current) {
-      console.log('Consumer:', id, {
-        kind: consumer.kind,
-        paused: consumer.paused,
-        producerId: consumer.producerId,
-        trackState: consumer.track.readyState,
-        trackEnabled: consumer.track.enabled,
-        trackMuted: consumer.track.muted
-      });
-    }
-    
-    // Check each gain node
-    for (let [peerId, gainNode] of gainNodesRef.current) {
-      console.log('Gain node for peer', peerId, ':', {
-        gainValue: gainNode.gain.value,
-        connected: gainNode.numberOfInputs > 0 && gainNode.numberOfOutputs > 0
-      });
-    }
-    
-    console.log('=== DEBUG FUNCTIONS AVAILABLE ===');
-    console.log('window.listPeers() - List all peers and their audio state');
-    console.log('window.playTestAudioForPeer(peerId) - Test audio through peer gain node');
-    console.log('window.testDirectAudio(peerId) - Test direct audio from MediaStreamSource');
-    console.log('window.checkTrackDetails(peerId) - Check track details and monitor audio');
-    console.log('window.forceConsumerRefresh(peerId) - Force consumer pause/resume cycle');
-    console.log('=== END DEBUG ===');
-  }, [peers]);
+
 
   // Add noise suppression toggle handler
   const handleNoiseSuppressionToggle = async () => {
@@ -4254,20 +4198,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                   title={isAudioEnabled ? "Disable audio output" : "Enable audio output"}
                 >
                   {isAudioEnabled ? <Headset /> : <HeadsetOff />}
-                </IconButton>
-                <IconButton
-                  sx={styles.iconButton}
-                  onClick={playTestAudio}
-                  title="Test audio (play beep)"
-                >
-                  <VolumeUp />
-                </IconButton>
-                <IconButton
-                  sx={styles.iconButton}
-                  onClick={debugAudioState}
-                  title="Debug audio state"
-                >
-                  <NoiseAware />
                 </IconButton>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <IconButton
