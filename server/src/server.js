@@ -563,6 +563,13 @@ io.on('connection', async (socket) => {
 
     socket.on('consume', async ({ rtpCapabilities, remoteProducerId, transportId }, callback) => {
         try {
+            console.log('Consume request received:', {
+                remoteProducerId,
+                transportId,
+                peerId: socket.id,
+                roomId: socket.data?.roomId
+            });
+
             if (!socket.data?.roomId) {
                 throw new Error('Not joined to any room');
             }
@@ -579,6 +586,8 @@ io.on('connection', async (socket) => {
 
             const transport = peer.getTransport(transportId);
             if (!transport) {
+                console.error('Transport not found:', transportId);
+                console.log('Available transports:', Array.from(peer.transports.keys()));
                 throw new Error('Transport not found');
             }
 
@@ -592,13 +601,15 @@ io.on('connection', async (socket) => {
             console.log('Creating consumer for producer:', {
                 producerId: producer.id,
                 kind: producer.kind,
-                appData: producer.appData
+                appData: producer.appData,
+                paused: producer.paused
             });
 
             if (!room.router.canConsume({
                 producerId: producer.id,
                 rtpCapabilities
             })) {
+                console.error('Cannot consume - router capabilities mismatch');
                 throw new Error('Cannot consume');
             }
 
@@ -617,14 +628,18 @@ io.on('connection', async (socket) => {
 
             const consumer = await transport.consume(consumerOptions);
 
-            console.log('Consumer created:', {
+            console.log('Consumer created successfully:', {
                 id: consumer.id,
                 kind: consumer.kind,
-                appData: producer.appData
+                appData: producer.appData,
+                paused: consumer.paused,
+                producerPaused: consumer.producerPaused
             });
 
             peer.addConsumer(consumer);
             room.addConsumer(socket.id, consumer);
+            
+            console.log('Consumer added to peer and room');
 
             consumer.on('transportclose', () => {
                 console.log('Consumer transport closed:', consumer.id);
@@ -652,7 +667,7 @@ io.on('connection', async (socket) => {
                 });
             });
 
-            callback({
+            const response = {
                 id: consumer.id,
                 producerId: producer.id,
                 kind: consumer.kind,
@@ -660,7 +675,10 @@ io.on('connection', async (socket) => {
                 type: consumer.type,
                 producerPaused: consumer.producerPaused,
                 appData: producer.appData
-            });
+            };
+            
+            console.log('Sending consume response:', response);
+            callback(response);
 
         } catch (error) {
             console.error('Error in consume:', error);
@@ -909,6 +927,109 @@ io.on('connection', async (socket) => {
         // If room is empty, remove it
         if (room.getPeers().size === 0) {
             rooms.delete(room.id);
+        }
+    });
+
+    // Add missing event handlers for client fixes
+    socket.on('checkProducer', ({ roomId, producerId }, callback) => {
+        try {
+            const room = rooms.get(roomId);
+            if (!room) {
+                callback({ exists: false });
+                return;
+            }
+            
+            const producer = room.getProducer(producerId);
+            callback({ 
+                exists: !!producer,
+                paused: producer ? producer.paused : false
+            });
+        } catch (error) {
+            console.error('Error in checkProducer:', error);
+            callback({ exists: false });
+        }
+    });
+
+    socket.on('resumeProducer', ({ producerId }, callback) => {
+        try {
+            const room = rooms.get(socket.data?.roomId);
+            if (!room) {
+                callback({ error: 'Room not found' });
+                return;
+            }
+            
+            const producer = room.getProducer(producerId);
+            if (!producer) {
+                callback({ error: 'Producer not found' });
+                return;
+            }
+
+            if (producer.paused) {
+                producer.resume();
+                console.log('Producer resumed:', producerId);
+            }
+            
+            callback();
+        } catch (error) {
+            console.error('Error in resumeProducer:', error);
+            callback({ error: error.message });
+        }
+    });
+
+    socket.on('restartProducer', ({ producerId }, callback) => {
+        try {
+            const room = rooms.get(socket.data?.roomId);
+            if (!room) {
+                callback({ error: 'Room not found' });
+                return;
+            }
+            
+            const producer = room.getProducer(producerId);
+            if (!producer) {
+                callback({ error: 'Producer not found' });
+                return;
+            }
+
+            // Force restart by pausing and resuming
+            if (!producer.paused) {
+                producer.pause();
+            }
+            setTimeout(() => {
+                producer.resume();
+                console.log('Producer restarted:', producerId);
+            }, 100);
+            
+            callback();
+        } catch (error) {
+            console.error('Error in restartProducer:', error);
+            callback({ error: error.message });
+        }
+    });
+
+    socket.on('getProducers', ({ roomId }, callback) => {
+        try {
+            const room = rooms.get(roomId);
+            if (!room) {
+                callback([]);
+                return;
+            }
+
+            const producers = [];
+            room.producers.forEach((producerData, producerId) => {
+                if (producerData.peerId !== socket.id) {
+                    producers.push({
+                        producerId,
+                        producerSocketId: producerData.peerId,
+                        kind: producerData.producer.kind,
+                        appData: producerData.producer.appData
+                    });
+                }
+            });
+
+            callback(producers);
+        } catch (error) {
+            console.error('Error in getProducers:', error);
+            callback([]);
         }
     });
 });

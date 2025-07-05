@@ -1860,71 +1860,31 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       
       const { rtpCapabilities } = deviceRef.current;
       
-      // Request consume with enhanced retry and validation
-      let consumeResponse;
-      let retryCount = 0;
-      const maxRetries = 5;
+      // Simplified consume request with better error handling
+      console.log('Requesting consume for producer:', producer.producerId);
       
-      while (retryCount < maxRetries) {
-        try {
-          // Check if producer still exists and is active
-          const producerStatus = await new Promise((resolve) => {
-            socketRef.current.emit('checkProducer', { 
-              roomId, 
-              producerId: producer.producerId 
-            }, (status) => {
-              resolve(status);
-            });
-          });
+      const consumeResponse = await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          console.error('Consume request timeout for producer:', producer.producerId);
+          reject(new Error('Consume request timeout'));
+        }, 10000); // 10 second timeout
+        
+        socketRef.current.emit('consume', {
+          rtpCapabilities,
+          remoteProducerId: producer.producerId,
+          transportId: transport.id
+        }, (response) => {
+          clearTimeout(timeout);
+          console.log('Consume response received:', response);
           
-          if (!producerStatus.exists) {
-            console.warn('Producer no longer exists, skipping consume');
+          if (response.error) {
+            console.error('Consume request failed:', response.error);
+            reject(new Error(response.error));
             return;
           }
-          
-          if (producerStatus.paused) {
-            console.warn('Producer is paused, requesting resume before consume');
-            socketRef.current.emit('resumeProducer', { 
-              producerId: producer.producerId 
-            }, (error) => {
-              if (error) {
-                console.error('Failed to resume producer:', error);
-              } else {
-                console.log('Producer resumed successfully');
-              }
-            });
-          }
-          
-          consumeResponse = await new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-              reject(new Error('Consume request timeout'));
-            }, 15000); // 15 second timeout
-            
-            socketRef.current.emit('consume', {
-              rtpCapabilities,
-              remoteProducerId: producer.producerId,
-              transportId: transport.id
-            }, (response) => {
-              clearTimeout(timeout);
-              if (response.error) {
-                console.error('Consume request failed:', response.error);
-                reject(new Error(response.error));
-                return;
-              }
-              resolve(response);
-            });
-          });
-          break; // Success, exit retry loop
-        } catch (error) {
-          retryCount++;
-          console.warn(`Consume attempt ${retryCount} failed:`, error.message);
-          if (retryCount >= maxRetries) {
-            throw error;
-          }
-          // Exponential backoff
-          await new Promise(resolve => setTimeout(resolve, Math.min(1000 * Math.pow(2, retryCount), 10000)));
-        }
-      }
+          resolve(response);
+        });
+      });
       
       const { id, producerId, kind, rtpParameters, appData, error } = consumeResponse;
 
@@ -2087,115 +2047,40 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         }
       }
 
-      // Resume the consumer with proper error handling and retry
-      let resumeRetries = 0;
-      const maxResumeRetries = 3;
+            // Resume the consumer
+      console.log('Resuming consumer:', consumer.id, 'current state:', consumer.paused);
       
-      const resumeConsumer = async () => {
-        try {
-          console.log('Resuming consumer:', consumer.id, 'current state:', consumer.paused);
-          
-          // First resume on client side
-          await consumer.resume();
-          console.log('Consumer resumed on client, new state:', consumer.paused);
-          
-          // Then request server to resume
-          await new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-              reject(new Error('Resume consumer timeout'));
-            }, 5000);
-            
-            socketRef.current.emit('resumeConsumer', { consumerId: consumer.id }, (error) => {
-              clearTimeout(timeout);
-              if (error) {
-                console.error('Server resume consumer failed:', error);
-                reject(new Error(error));
-              } else {
-                console.log('Server consumer resumed successfully');
-                resolve();
-              }
-            });
-          });
-          
-          // Wait a bit for RTP to start flowing
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          // Check if we're receiving RTP data
-          const stats = await consumer.getStats();
-          console.log('Consumer stats after resume:', stats);
-          
-          let hasAudioData = false;
-          stats.forEach((report) => {
-            if (report.type === 'inbound-rtp' && report.kind === 'audio') {
-              console.log('Audio RTP stats:', {
-                packetsReceived: report.packetsReceived,
-                packetsLost: report.packetsLost,
-                bytesReceived: report.bytesReceived,
-                audioLevel: report.audioLevel,
-                totalAudioEnergy: report.totalAudioEnergy
-              });
-              hasAudioData = report.packetsReceived > 0 || report.bytesReceived > 0;
-            }
-          });
-          
-          if (!hasAudioData && resumeRetries < maxResumeRetries) {
-            resumeRetries++;
-            console.warn(`No RTP data received, retry ${resumeRetries}/${maxResumeRetries}...`);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            return resumeConsumer();
-          }
-          
-          // Check track state
-          const track = consumer.track;
-          console.log('Consumer track after resume:', {
-            enabled: track.enabled,
-            muted: track.muted,
-            readyState: track.readyState,
-            id: track.id
-          });
-          
-          if (!hasAudioData) {
-            console.warn('Still no RTP data after all retries, attempting producer restart...');
-            
-            // Try to restart the producer on the server side
-            socketRef.current.emit('restartProducer', { 
-              producerId: consumer.producerId 
-            }, (error) => {
-              if (error) {
-                console.error('Producer restart failed:', error);
-              } else {
-                console.log('Producer restarted successfully');
-              }
-            });
-            
-            // Also try to restart ICE on the consumer transport
-            const transport = consumer.transport;
-            if (transport) {
-              socketRef.current.emit('restartIce', { 
-                transportId: transport.id 
-              }, ({ iceParameters, error }) => {
-                if (error) {
-                  console.error('ICE restart failed:', error);
-                } else {
-                  console.log('ICE restarted successfully');
-                  transport.restartIce({ iceParameters });
-                }
-              });
-            }
-          }
-          
-        } catch (error) {
-          if (resumeRetries < maxResumeRetries) {
-            resumeRetries++;
-            console.warn(`Resume attempt ${resumeRetries} failed:`, error.message);
-            await new Promise(resolve => setTimeout(resolve, 1000 * resumeRetries));
-            return resumeConsumer();
-          }
-          throw error;
-        }
-      };
+      // First resume on client side
+      await consumer.resume();
+      console.log('Consumer resumed on client, new state:', consumer.paused);
       
-      await resumeConsumer();
+      // Then request server to resume
+      await new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          console.warn('Resume consumer timeout, continuing anyway');
+          resolve(); // Don't fail on timeout
+        }, 5000);
+        
+        socketRef.current.emit('resumeConsumer', { consumerId: consumer.id }, (error) => {
+          clearTimeout(timeout);
+          if (error) {
+            console.error('Server resume consumer failed:', error);
+            resolve(); // Don't fail on server error
+          } else {
+            console.log('Server consumer resumed successfully');
+            resolve();
+          }
+        });
+      });
+      
+      // Check track state
+      const track = consumer.track;
+      console.log('Consumer track after resume:', {
+        enabled: track.enabled,
+        muted: track.muted,
+        readyState: track.readyState,
+        id: track.id
+      });
 
       // Monitor consumer state
       consumer.on('transportclose', () => {
@@ -2461,7 +2346,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
      });
    }, []);
 
-  const initializeDevice = async (routerRtpCapabilities) => {
+  const _initializeDevice = async (routerRtpCapabilities) => {
     try {
       if (!deviceRef.current) {
         const device = new Device();
@@ -3730,7 +3615,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     handleNoiseSuppressionMenuClose();
   };
 
-  const handleConsume = async (producer) => {
+  const _handleConsume = async (producer) => {
     try {
       console.log('Handling producer:', producer);
       
