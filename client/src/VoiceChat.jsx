@@ -1215,6 +1215,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const noiseSuppressionRef = useRef(null);
   const isAudioEnabledRef = useRef(isAudioEnabled);
   const individualMutedPeersRef = useRef(new Map());
+  const previousVolumesRef = useRef(new Map()); // Хранит предыдущие уровни громкости для восстановления
   const volumesRef = useRef(new Map());
   const speakingStatesRef = useRef(new Map());
 
@@ -1452,6 +1453,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     
     // Clear all refs
     individualMutedPeersRef.current.clear();
+    previousVolumesRef.current.clear();
     volumesRef.current.clear();
     speakingStatesRef.current.clear();
     mutedPeersRef.current.clear();
@@ -1776,6 +1778,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                 
                 // Initialize individual mute state for existing peers - NOT muted by default
                 individualMutedPeersRef.current.set(peer.id, false);
+                
+                // Initialize previous volumes for existing peers
+                previousVolumesRef.current.set(peer.id, 100);
                 
                 // Initialize volumes for existing peers - full volume by default
                 volumesMap.set(peer.id, 100);
@@ -2407,14 +2412,26 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     // Даже если глобально звук выключен, мы все равно меняем индивидуальное состояние
     const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
     const newIsIndividuallyMuted = !isIndividuallyMuted;
-    const newVolume = newIsIndividuallyMuted ? 0 : 100;
     
-    console.log('Peer:', peerId, 'Current individual mute:', isIndividuallyMuted, 'New individual mute:', newIsIndividuallyMuted);
+    let newVolume;
+    if (newIsIndividuallyMuted) {
+      // Мутим - устанавливаем 0, но сначала сохраняем текущий уровень если он больше 0
+      const currentVolume = volumes.get(peerId) || 100;
+      if (currentVolume > 0) {
+        previousVolumesRef.current.set(peerId, currentVolume);
+      }
+      newVolume = 0;
+    } else {
+      // Размутиваем - восстанавливаем предыдущий уровень или используем 100% по умолчанию
+      newVolume = previousVolumesRef.current.get(peerId) || 100;
+    }
+    
+    console.log('Peer:', peerId, 'Current individual mute:', isIndividuallyMuted, 'New individual mute:', newIsIndividuallyMuted, 'New volume:', newVolume);
     console.log('GainNode exists:', !!gainNode);
     
     if (gainNode) {
       if (!newIsIndividuallyMuted) {
-        // Восстанавливаем предыдущий уровень громкости (100% = gain 2.0)
+        // Восстанавливаем предыдущий уровень громкости
         const gainValue = (newVolume / 100.0) * 2.0;
         gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
         console.log('Set gain to', gainValue, 'and unmuted peer:', peerId);
@@ -2432,6 +2449,16 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         newVolumes.set(peerId, newVolume);
         return newVolumes;
       });
+      
+      // Также обновляем HTML Audio элемент
+      const peerAudio = audioRef.current.get(peerId);
+      if (peerAudio instanceof Map && peerAudio.has('audioElement')) {
+        const audioElement = peerAudio.get('audioElement');
+        if (audioElement) {
+          audioElement.volume = newVolume / 100.0;
+          console.log('Set HTML Audio volume to', newVolume / 100.0, 'for peer:', peerId);
+        }
+      }
     }
   };
 
@@ -2460,6 +2487,15 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
          console.log('Set HTML Audio volume to', newVolume / 100.0, 'for peer:', peerId);
        }
      }
+     
+     // Сохраняем предыдущий уровень громкости если он не 0
+     if (newVolume > 0) {
+       previousVolumesRef.current.set(peerId, newVolume);
+     }
+     
+     // Обновляем состояние индивидуального мьюта на основе громкости
+     const isIndividuallyMuted = newVolume === 0;
+     individualMutedPeersRef.current.set(peerId, isIndividuallyMuted);
      
      // Обновляем UI состояние
      setVolumes(prev => {
@@ -2492,6 +2528,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const handlePeerJoined = useCallback(({ peerId }) => {
     // Инициализируем состояние - не замучен индивидуально
     individualMutedPeersRef.current.set(peerId, false);
+    // Инициализируем предыдущий уровень громкости
+    previousVolumesRef.current.set(peerId, 100);
          setVolumes(prev => {
        const newVolumes = new Map(prev);
        newVolumes.set(peerId, 100);
@@ -2507,6 +2545,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   // Обновляем обработчик отключения пира
   const handlePeerLeft = useCallback(({ peerId }) => {
     individualMutedPeersRef.current.delete(peerId);
+    previousVolumesRef.current.delete(peerId);
          setVolumes(prev => {
        const newVolumes = new Map(prev);
        newVolumes.delete(peerId);
