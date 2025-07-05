@@ -1960,6 +1960,27 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           const source = audioContext.createMediaStreamSource(stream);
           console.log('Created MediaStreamSource from stream');
           
+          // Debug: Check if MediaStreamSource is receiving audio data
+          const debugAnalyser = audioContext.createAnalyser();
+          debugAnalyser.fftSize = 256;
+          source.connect(debugAnalyser);
+          
+          const checkAudioData = () => {
+            const dataArray = new Uint8Array(debugAnalyser.frequencyBinCount);
+            debugAnalyser.getByteFrequencyData(dataArray);
+            const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+            console.log(`Audio data for peer ${producer.producerSocketId}: average=${average}, max=${Math.max(...dataArray)}`);
+          };
+          
+          // Check audio data every 2 seconds
+          const audioCheckInterval = setInterval(checkAudioData, 2000);
+          
+          // Store interval for cleanup
+          if (!audioRef.current.has(producer.producerSocketId)) {
+            audioRef.current.set(producer.producerSocketId, new Map());
+          }
+          audioRef.current.get(producer.producerSocketId).set('audioCheckInterval', audioCheckInterval);
+          
           // Add analyzer for voice activity detection
           const analyser = createAudioAnalyser(audioContext);
           
@@ -1982,6 +2003,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           analyser.connect(gainNode);
           gainNode.connect(audioContext.destination);
           console.log('Connected audio nodes: source -> analyser -> gainNode -> destination');
+          
+          // Debug: Also connect debugAnalyser to the main chain for monitoring
+          debugAnalyser.connect(analyser);
           
           // Добавляем периодическую проверку gain node
           const checkGainInterval = setInterval(() => {
@@ -2671,8 +2695,20 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                 voiceDetector.disconnect();
               }
             }
-            if (peerAudio.has('gainCheckInterval')) {
-              const interval = peerAudio.get('gainCheckInterval');
+                      if (peerAudio.has('gainCheckInterval')) {
+            const interval = peerAudio.get('gainCheckInterval');
+            if (interval) {
+              clearInterval(interval);
+            }
+          }
+          if (peerAudio.has('audioCheckInterval')) {
+            const interval = peerAudio.get('audioCheckInterval');
+            if (interval) {
+              clearInterval(interval);
+            }
+          }
+            if (peerAudio.has('audioCheckInterval')) {
+              const interval = peerAudio.get('audioCheckInterval');
               if (interval) {
                 clearInterval(interval);
               }
@@ -3311,11 +3347,91 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     console.table(peerList);
     return peerList;
   };
+  
+  // Add function to check track details
+  window.checkTrackDetails = (peerId) => {
+    console.log('Checking track details for peer:', peerId);
+    const consumer = [...consumersRef.current.values()].find(c => 
+      c.appData?.peerId === peerId || 
+      [...peers.keys()].includes(peerId)
+    );
+    
+    if (consumer) {
+      const track = consumer.track;
+      console.log('Track details:', {
+        id: track.id,
+        kind: track.kind,
+        label: track.label,
+        enabled: track.enabled,
+        muted: track.muted,
+        readyState: track.readyState,
+        settings: track.getSettings(),
+        constraints: track.getConstraints(),
+        capabilities: track.getCapabilities()
+      });
+      
+      // Check if track is producing audio
+      const stream = new MediaStream([track]);
+      const audioContext = audioContextRef.current;
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
+      
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      
+      const checkAudio = () => {
+        analyser.getByteFrequencyData(dataArray);
+        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+        const max = Math.max(...dataArray);
+        console.log(`Real-time audio check: average=${average}, max=${max}`);
+      };
+      
+      console.log('Starting 10-second audio monitoring...');
+      const interval = setInterval(checkAudio, 500);
+      setTimeout(() => {
+        clearInterval(interval);
+        source.disconnect();
+        analyser.disconnect();
+        console.log('Audio monitoring completed');
+      }, 10000);
+    } else {
+      console.log('Consumer not found for peer:', peerId);
+    }
+  };
 
   // Make refs available for debugging
   window.consumersRef = consumersRef;
   window.gainNodesRef = gainNodesRef;
   window.audioContextRef = audioContextRef;
+  
+  // Add function to test direct audio from MediaStreamSource
+  window.testDirectAudio = (peerId) => {
+    console.log('Testing direct audio from MediaStreamSource for peer:', peerId);
+    const consumer = [...consumersRef.current.values()].find(c => 
+      c.appData?.peerId === peerId || 
+      [...peers.keys()].includes(peerId)
+    );
+    
+    if (consumer) {
+      const stream = new MediaStream([consumer.track]);
+      const source = audioContextRef.current.createMediaStreamSource(stream);
+      const gainNode = audioContextRef.current.createGain();
+      gainNode.gain.value = 0.5; // Moderate volume
+      
+      source.connect(gainNode);
+      gainNode.connect(audioContextRef.current.destination);
+      
+      console.log('Direct audio connection established for 5 seconds');
+      setTimeout(() => {
+        source.disconnect();
+        gainNode.disconnect();
+        console.log('Direct audio connection disconnected');
+      }, 5000);
+    } else {
+      console.log('Consumer not found for peer:', peerId);
+    }
+  };
 
   // Add debug function
   const debugAudioState = useCallback(() => {
@@ -3345,6 +3461,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       });
     }
     
+    console.log('=== DEBUG FUNCTIONS AVAILABLE ===');
+    console.log('window.listPeers() - List all peers and their audio state');
+    console.log('window.playTestAudioForPeer(peerId) - Test audio through peer gain node');
+    console.log('window.testDirectAudio(peerId) - Test direct audio from MediaStreamSource');
+    console.log('window.checkTrackDetails(peerId) - Check track details and monitor audio');
     console.log('=== END DEBUG ===');
   }, [peers]);
 
@@ -3515,6 +3636,27 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           const source = audioContext.createMediaStreamSource(stream);
           console.log('handleConsume: Created MediaStreamSource from stream');
           
+          // Debug: Check if MediaStreamSource is receiving audio data
+          const debugAnalyser = audioContext.createAnalyser();
+          debugAnalyser.fftSize = 256;
+          source.connect(debugAnalyser);
+          
+          const checkAudioData = () => {
+            const dataArray = new Uint8Array(debugAnalyser.frequencyBinCount);
+            debugAnalyser.getByteFrequencyData(dataArray);
+            const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+            console.log(`handleConsume: Audio data for peer ${producer.producerSocketId}: average=${average}, max=${Math.max(...dataArray)}`);
+          };
+          
+          // Check audio data every 2 seconds
+          const audioCheckInterval = setInterval(checkAudioData, 2000);
+          
+          // Store interval for cleanup
+          if (!audioRef.current.has(producer.producerSocketId)) {
+            audioRef.current.set(producer.producerSocketId, new Map());
+          }
+          audioRef.current.get(producer.producerSocketId).set('audioCheckInterval', audioCheckInterval);
+          
           const analyser = createAudioAnalyser(audioContext);
           
           // Create gain node для регулировки громкости
@@ -3536,6 +3678,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           analyser.connect(gainNode);
           gainNode.connect(audioContext.destination);
           console.log('handleConsume: Connected audio nodes: source -> analyser -> gainNode -> destination');
+          
+          // Debug: Also connect debugAnalyser to the main chain for monitoring
+          debugAnalyser.connect(analyser);
           
           // Добавляем периодическую проверку gain node
           const checkGainInterval = setInterval(() => {
