@@ -1264,9 +1264,29 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     };
 
     const handleInteraction = async () => {
+      console.log('User interaction detected, resuming audio...');
       await resumeAudioContext();
+      
+      // Создаем тестовый звук для разблокировки аудио
+      if (audioContextRef.current && audioContextRef.current.state === 'running') {
+        try {
+          const oscillator = audioContextRef.current.createOscillator();
+          const gainNode = audioContextRef.current.createGain();
+          oscillator.frequency.value = 440;
+          gainNode.gain.value = 0.1; // Тихий звук
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContextRef.current.destination);
+          oscillator.start();
+          oscillator.stop(audioContextRef.current.currentTime + 0.1);
+          console.log('Test audio played to unlock browser audio');
+        } catch (error) {
+          console.error('Failed to play test audio:', error);
+        }
+      }
+      
       document.removeEventListener('click', handleInteraction);
       document.removeEventListener('touchstart', handleInteraction);
+      document.removeEventListener('keydown', handleInteraction);
     };
 
     if (socketRef.current) {
@@ -1297,10 +1317,12 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
     document.addEventListener('click', handleInteraction);
     document.addEventListener('touchstart', handleInteraction);
+    document.addEventListener('keydown', handleInteraction);
 
     return () => {
       document.removeEventListener('click', handleInteraction);
       document.removeEventListener('touchstart', handleInteraction);
+      document.removeEventListener('keydown', handleInteraction);
     };
   }, []);
 
@@ -1755,6 +1777,15 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             console.log('AudioContext state before resume:', audioContextRef.current.state);
             await audioContextRef.current.resume();
             console.log('AudioContext state after resume:', audioContextRef.current.state);
+            
+            // Проверяем политику автовоспроизведения
+            if (navigator.getAutoplayPolicy) {
+              const policy = navigator.getAutoplayPolicy('mediaelement');
+              console.log('Autoplay policy:', policy);
+              if (policy === 'disallowed') {
+                console.warn('Autoplay is disallowed - user interaction required for audio');
+              }
+            }
 
             // Load device with router capabilities
             console.log('Loading device with router capabilities...');
@@ -3189,6 +3220,27 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
 
 
+  // Add test audio function
+  const playTestAudio = useCallback(() => {
+    if (audioContextRef.current && audioContextRef.current.state === 'running') {
+      try {
+        const oscillator = audioContextRef.current.createOscillator();
+        const gainNode = audioContextRef.current.createGain();
+        oscillator.frequency.value = 880; // A5 note
+        gainNode.gain.value = 0.2; // Moderate volume
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContextRef.current.destination);
+        oscillator.start();
+        oscillator.stop(audioContextRef.current.currentTime + 0.2);
+        console.log('Test beep played');
+      } catch (error) {
+        console.error('Failed to play test beep:', error);
+      }
+    } else {
+      console.log('AudioContext not ready for test audio');
+    }
+  }, []);
+
   // Add noise suppression toggle handler
   const handleNoiseSuppressionToggle = async () => {
     try {
@@ -3672,6 +3724,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                   title={isAudioEnabled ? "Disable audio output" : "Enable audio output"}
                 >
                   {isAudioEnabled ? <Headset /> : <HeadsetOff />}
+                </IconButton>
+                <IconButton
+                  sx={styles.iconButton}
+                  onClick={playTestAudio}
+                  title="Test audio (play beep)"
+                >
+                  <VolumeUp />
                 </IconButton>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <IconButton
