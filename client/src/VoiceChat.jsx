@@ -3317,6 +3317,37 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   window.gainNodesRef = gainNodesRef;
   window.audioContextRef = audioContextRef;
 
+  // Add debug function
+  const debugAudioState = useCallback(() => {
+    console.log('=== AUDIO DEBUG ===');
+    console.log('Consumers count:', consumersRef.current.size);
+    console.log('Gain nodes count:', gainNodesRef.current.size);
+    console.log('AudioContext state:', audioContextRef.current?.state);
+    console.log('Peers:', Array.from(peers.keys()));
+    
+    // Check each consumer
+    for (let [id, consumer] of consumersRef.current) {
+      console.log('Consumer:', id, {
+        kind: consumer.kind,
+        paused: consumer.paused,
+        producerId: consumer.producerId,
+        trackState: consumer.track.readyState,
+        trackEnabled: consumer.track.enabled,
+        trackMuted: consumer.track.muted
+      });
+    }
+    
+    // Check each gain node
+    for (let [peerId, gainNode] of gainNodesRef.current) {
+      console.log('Gain node for peer', peerId, ':', {
+        gainValue: gainNode.gain.value,
+        connected: gainNode.numberOfInputs > 0 && gainNode.numberOfOutputs > 0
+      });
+    }
+    
+    console.log('=== END DEBUG ===');
+  }, [peers]);
+
   // Add noise suppression toggle handler
   const handleNoiseSuppressionToggle = async () => {
     try {
@@ -3822,6 +3853,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                   title="Test audio (play beep)"
                 >
                   <VolumeUp />
+                </IconButton>
+                <IconButton
+                  sx={styles.iconButton}
+                  onClick={debugAudioState}
+                  title="Debug audio state"
+                >
+                  <NoiseAware />
                 </IconButton>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <IconButton
