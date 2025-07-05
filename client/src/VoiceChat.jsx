@@ -2057,6 +2057,23 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
               id: track.id
             });
             
+            // Добавляем дополнительную проверку статистики consumer
+            const stats = await consumer.getStats();
+            console.log('Consumer stats after resume:', stats);
+            
+            // Проверяем RTP статистику
+            stats.forEach((report) => {
+              if (report.type === 'inbound-rtp' && report.kind === 'audio') {
+                console.log('Audio RTP stats:', {
+                  packetsReceived: report.packetsReceived,
+                  packetsLost: report.packetsLost,
+                  bytesReceived: report.bytesReceived,
+                  audioLevel: report.audioLevel,
+                  totalAudioEnergy: report.totalAudioEnergy
+                });
+              }
+            });
+            
             resolve();
           } catch (err) {
             console.error('Failed to resume consumer:', err);
@@ -3370,6 +3387,33 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         capabilities: track.getCapabilities()
       });
       
+      // Check consumer stats
+      const checkStats = async () => {
+        try {
+          const stats = await consumer.getStats();
+          console.log('Consumer WebRTC stats:');
+          stats.forEach((report) => {
+            if (report.type === 'inbound-rtp' && report.kind === 'audio') {
+              console.log('Audio RTP report:', {
+                packetsReceived: report.packetsReceived,
+                packetsLost: report.packetsLost,
+                bytesReceived: report.bytesReceived,
+                audioLevel: report.audioLevel,
+                totalAudioEnergy: report.totalAudioEnergy,
+                jitter: report.jitter,
+                fractionLost: report.fractionLost
+              });
+            }
+          });
+        } catch (error) {
+          console.error('Failed to get consumer stats:', error);
+        }
+      };
+      
+      // Check stats immediately and then every 2 seconds
+      checkStats();
+      const statsInterval = setInterval(checkStats, 2000);
+      
       // Check if track is producing audio
       const stream = new MediaStream([track]);
       const audioContext = audioContextRef.current;
@@ -3387,13 +3431,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         console.log(`Real-time audio check: average=${average}, max=${max}`);
       };
       
-      console.log('Starting 10-second audio monitoring...');
-      const interval = setInterval(checkAudio, 500);
+      console.log('Starting 10-second audio and stats monitoring...');
+      const audioInterval = setInterval(checkAudio, 500);
       setTimeout(() => {
-        clearInterval(interval);
+        clearInterval(audioInterval);
+        clearInterval(statsInterval);
         source.disconnect();
         analyser.disconnect();
-        console.log('Audio monitoring completed');
+        console.log('Audio and stats monitoring completed');
       }, 10000);
     } else {
       console.log('Consumer not found for peer:', peerId);
@@ -3404,6 +3449,44 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   window.consumersRef = consumersRef;
   window.gainNodesRef = gainNodesRef;
   window.audioContextRef = audioContextRef;
+  
+  // Add function to force consumer refresh
+  window.forceConsumerRefresh = async (peerId) => {
+    console.log('Forcing consumer refresh for peer:', peerId);
+    const consumer = [...consumersRef.current.values()].find(c => 
+      c.appData?.peerId === peerId || 
+      [...peers.keys()].includes(peerId)
+    );
+    
+    if (consumer) {
+      try {
+        console.log('Pausing consumer...');
+        await consumer.pause();
+        console.log('Consumer paused');
+        
+        // Wait a bit
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        console.log('Resuming consumer...');
+        await consumer.resume();
+        console.log('Consumer resumed');
+        
+        // Request server to resume as well
+        socketRef.current.emit('resumeConsumer', { consumerId: consumer.id }, (error) => {
+          if (error) {
+            console.error('Server resume failed:', error);
+          } else {
+            console.log('Server consumer resumed');
+          }
+        });
+        
+      } catch (error) {
+        console.error('Failed to refresh consumer:', error);
+      }
+    } else {
+      console.log('Consumer not found for peer:', peerId);
+    }
+  };
   
   // Add function to test direct audio from MediaStreamSource
   window.testDirectAudio = (peerId) => {
@@ -3466,6 +3549,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     console.log('window.playTestAudioForPeer(peerId) - Test audio through peer gain node');
     console.log('window.testDirectAudio(peerId) - Test direct audio from MediaStreamSource');
     console.log('window.checkTrackDetails(peerId) - Check track details and monitor audio');
+    console.log('window.forceConsumerRefresh(peerId) - Force consumer pause/resume cycle');
     console.log('=== END DEBUG ===');
   }, [peers]);
 
