@@ -1563,14 +1563,22 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         localStreamRef.current = null;
       }
 
-      // Cleanup voice detectors
+      // Cleanup voice detectors and intervals
       audioRef.current.forEach((audio) => {
-        if (audio instanceof Map && audio.has('voiceDetector')) {
-          // Очищаем voice detector если есть
-          const voiceDetector = audio.get('voiceDetector');
-          if (voiceDetector) {
-            voiceDetector.port.close();
-            voiceDetector.disconnect();
+        if (audio instanceof Map) {
+          if (audio.has('voiceDetector')) {
+            // Очищаем voice detector если есть
+            const voiceDetector = audio.get('voiceDetector');
+            if (voiceDetector) {
+              voiceDetector.port.close();
+              voiceDetector.disconnect();
+            }
+          }
+          if (audio.has('gainCheckInterval')) {
+            const interval = audio.get('gainCheckInterval');
+            if (interval) {
+              clearInterval(interval);
+            }
           }
         }
       });
@@ -1975,12 +1983,20 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           gainNode.connect(audioContext.destination);
           console.log('Connected audio nodes: source -> analyser -> gainNode -> destination');
           
-          // Тестовый сигнал для проверки работы Web Audio API (закомментировано)
-          // const oscillator = audioContext.createOscillator();
-          // oscillator.frequency.value = 440; // A4 note
-          // oscillator.connect(gainNode);
-          // oscillator.start();
-          // setTimeout(() => oscillator.stop(), 100); // Играет 100ms
+          // Добавляем периодическую проверку gain node
+          const checkGainInterval = setInterval(() => {
+            console.log(`Gain check for peer ${producer.producerSocketId}:`, {
+              gainValue: gainNode.gain.value,
+              isAudioEnabled: isAudioEnabledRef.current,
+              individualVolume: volumes.get(producer.producerSocketId) || 100
+            });
+          }, 5000);
+          
+          // Сохраняем интервал для очистки
+          if (!audioRef.current.has(producer.producerSocketId)) {
+            audioRef.current.set(producer.producerSocketId, new Map());
+          }
+          audioRef.current.get(producer.producerSocketId).set('gainCheckInterval', checkGainInterval);
 
           // Store references
           analyserNodesRef.current.set(producer.producerSocketId, analyser);
@@ -2004,8 +2020,19 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             return;
           }
           try {
+            console.log('Resuming consumer:', consumer.id, 'current state:', consumer.paused);
             await consumer.resume();
-            console.log('Consumer resumed');
+            console.log('Consumer resumed successfully, new state:', consumer.paused);
+            
+            // Проверяем, что трек активен после возобновления
+            const track = consumer.track;
+            console.log('Consumer track after resume:', {
+              enabled: track.enabled,
+              muted: track.muted,
+              readyState: track.readyState,
+              id: track.id
+            });
+            
             resolve();
           } catch (err) {
             console.error('Failed to resume consumer:', err);
@@ -2634,13 +2661,21 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             analyserNodesRef.current.delete(producerSocketId);
           }
 
-          // Очищаем voice detector если есть
+          // Очищаем voice detector и интервалы если есть
           const peerAudio = audioRef.current.get(producerSocketId);
-          if (peerAudio instanceof Map && peerAudio.has('voiceDetector')) {
-            const voiceDetector = peerAudio.get('voiceDetector');
-            if (voiceDetector) {
-              voiceDetector.port.close();
-              voiceDetector.disconnect();
+          if (peerAudio instanceof Map) {
+            if (peerAudio.has('voiceDetector')) {
+              const voiceDetector = peerAudio.get('voiceDetector');
+              if (voiceDetector) {
+                voiceDetector.port.close();
+                voiceDetector.disconnect();
+              }
+            }
+            if (peerAudio.has('gainCheckInterval')) {
+              const interval = peerAudio.get('gainCheckInterval');
+              if (interval) {
+                clearInterval(interval);
+              }
             }
           }
           audioRef.current.delete(producerSocketId);
@@ -3241,6 +3276,42 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     }
   }, []);
 
+  // Add test audio function for specific peer (accessible via console)
+  window.playTestAudioForPeer = (peerId) => {
+    console.log('Testing audio for peer:', peerId);
+    const gainNode = gainNodesRef.current.get(peerId);
+    if (gainNode && audioContextRef.current && audioContextRef.current.state === 'running') {
+      try {
+        const oscillator = audioContextRef.current.createOscillator();
+        const testGainNode = audioContextRef.current.createGain();
+        oscillator.frequency.value = 440; // A4 note
+        testGainNode.gain.value = 0.3; // Test volume
+        oscillator.connect(testGainNode);
+        testGainNode.connect(gainNode); // Connect to peer's gain node
+        oscillator.start();
+        oscillator.stop(audioContextRef.current.currentTime + 0.3);
+        console.log('Test beep played for peer:', peerId);
+      } catch (error) {
+        console.error('Failed to play test beep for peer:', error);
+      }
+    } else {
+      console.log('Gain node not found for peer:', peerId, 'or AudioContext not ready');
+    }
+  };
+
+  // Add function to list all peers (accessible via console)
+  window.listPeers = () => {
+    console.log('Available peers:');
+    const peerList = Array.from(peers.entries()).map(([id, peer]) => ({
+      id,
+      name: peer.name,
+      hasGainNode: gainNodesRef.current.has(id),
+      gainValue: gainNodesRef.current.get(id)?.gain?.value || 'N/A'
+    }));
+    console.table(peerList);
+    return peerList;
+  };
+
   // Add noise suppression toggle handler
   const handleNoiseSuppressionToggle = async () => {
     try {
@@ -3429,6 +3500,21 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           analyser.connect(gainNode);
           gainNode.connect(audioContext.destination);
           console.log('handleConsume: Connected audio nodes: source -> analyser -> gainNode -> destination');
+          
+          // Добавляем периодическую проверку gain node
+          const checkGainInterval = setInterval(() => {
+            console.log(`handleConsume: Gain check for peer ${producer.producerSocketId}:`, {
+              gainValue: gainNode.gain.value,
+              isAudioEnabled: isAudioEnabledRef.current,
+              individualVolume: volumes.get(producer.producerSocketId) || 100
+            });
+          }, 5000);
+          
+          // Сохраняем интервал для очистки
+          if (!audioRef.current.has(producer.producerSocketId)) {
+            audioRef.current.set(producer.producerSocketId, new Map());
+          }
+          audioRef.current.get(producer.producerSocketId).set('gainCheckInterval', checkGainInterval);
 
           analyserNodesRef.current.set(producer.producerSocketId, analyser);
           gainNodesRef.current.set(producer.producerSocketId, gainNode);
