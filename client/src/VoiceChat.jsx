@@ -1265,23 +1265,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       console.log('User interaction detected, resuming audio...');
       await resumeAudioContext();
       
-      // Создаем тестовый звук для разблокировки аудио
-      if (audioContextRef.current && audioContextRef.current.state === 'running') {
-        try {
-          const oscillator = audioContextRef.current.createOscillator();
-          const gainNode = audioContextRef.current.createGain();
-          oscillator.frequency.value = 440;
-          gainNode.gain.value = 0.1; // Тихий звук
-          oscillator.connect(gainNode);
-          gainNode.connect(audioContextRef.current.destination);
-          oscillator.start();
-          oscillator.stop(audioContextRef.current.currentTime + 0.1);
-          console.log('Test audio played to unlock browser audio');
-        } catch (error) {
-          console.error('Failed to play test audio:', error);
-        }
-      }
-      
       document.removeEventListener('click', handleInteraction);
       document.removeEventListener('touchstart', handleInteraction);
       document.removeEventListener('keydown', handleInteraction);
@@ -3487,28 +3470,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
 
 
-  // Add test audio function for specific peer (accessible via console)
-  window.playTestAudioForPeer = (peerId) => {
-    console.log('Testing audio for peer:', peerId);
-    const gainNode = gainNodesRef.current.get(peerId);
-    if (gainNode && audioContextRef.current && audioContextRef.current.state === 'running') {
-      try {
-        const oscillator = audioContextRef.current.createOscillator();
-        const testGainNode = audioContextRef.current.createGain();
-        oscillator.frequency.value = 440; // A4 note
-        testGainNode.gain.value = 0.3; // Test volume
-        oscillator.connect(testGainNode);
-        testGainNode.connect(gainNode); // Connect to peer's gain node
-        oscillator.start();
-        oscillator.stop(audioContextRef.current.currentTime + 0.3);
-        console.log('Test beep played for peer:', peerId);
-      } catch (error) {
-        console.error('Failed to play test beep for peer:', error);
-      }
-    } else {
-      console.log('Gain node not found for peer:', peerId, 'or AudioContext not ready');
-    }
-  };
+
 
   // Add function to list all peers (accessible via console)
   window.listPeers = () => {
@@ -3646,33 +3608,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     }
   };
   
-  // Add function to test direct audio from MediaStreamSource
-  window.testDirectAudio = (peerId) => {
-    console.log('Testing direct audio from MediaStreamSource for peer:', peerId);
-    const consumer = [...consumersRef.current.values()].find(c => 
-      c.appData?.peerId === peerId || 
-      [...peers.keys()].includes(peerId)
-    );
-    
-    if (consumer) {
-      const stream = new MediaStream([consumer.track]);
-      const source = audioContextRef.current.createMediaStreamSource(stream);
-      const gainNode = audioContextRef.current.createGain();
-      gainNode.gain.value = 0.5; // Moderate volume
-      
-      source.connect(gainNode);
-      gainNode.connect(audioContextRef.current.destination);
-      
-      console.log('Direct audio connection established for 5 seconds');
-      setTimeout(() => {
-        source.disconnect();
-        gainNode.disconnect();
-        console.log('Direct audio connection disconnected');
-      }, 5000);
-    } else {
-      console.log('Consumer not found for peer:', peerId);
-    }
-  };
+
 
 
 
