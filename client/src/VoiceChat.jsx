@@ -3312,6 +3312,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     return peerList;
   };
 
+  // Make refs available for debugging
+  window.consumersRef = consumersRef;
+  window.gainNodesRef = gainNodesRef;
+  window.audioContextRef = audioContextRef;
+
   // Add noise suppression toggle handler
   const handleNoiseSuppressionToggle = async () => {
     try {
