@@ -11,7 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.Limits.MaxRequestBodySize = 500 * 1024 * 1024; // 500 MB
+    options.Limits.MaxRequestBodySize = 500 * 1024 * 1024; // 500 MBSystem.IO.DirectoryNotFoundException: "C:\BD\WithinTest\Messenger\Messenger\wwwroot\"
 });
 
 builder.Services.AddDbContext<MessengerContext>(options =>
