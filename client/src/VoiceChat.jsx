@@ -1744,13 +1744,17 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
             // Initialize Web Audio API context
             if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+              console.log('Creating new AudioContext...');
               audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)({
                 sampleRate: 48000,
                 latencyHint: 'interactive'
               });
+              console.log('AudioContext created, state:', audioContextRef.current.state);
             }
             
+            console.log('AudioContext state before resume:', audioContextRef.current.state);
             await audioContextRef.current.resume();
+            console.log('AudioContext state after resume:', audioContextRef.current.state);
 
             // Load device with router capabilities
             console.log('Loading device with router capabilities...');
@@ -1892,7 +1896,30 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         try {
           // Create audio context and nodes for Web Audio API processing
           const audioContext = audioContextRef.current;
+          console.log('AudioContext state:', audioContext.state);
+          
+          // Resume audio context if suspended
+          if (audioContext.state === 'suspended') {
+            console.log('Resuming suspended AudioContext...');
+            await audioContext.resume();
+            console.log('AudioContext resumed, new state:', audioContext.state);
+          }
+          
+          // Проверяем, что поток содержит активные треки
+          const audioTracks = stream.getAudioTracks();
+          console.log('Stream audio tracks:', audioTracks.length);
+          audioTracks.forEach((track, index) => {
+            console.log(`Track ${index}:`, {
+              enabled: track.enabled,
+              muted: track.muted,
+              readyState: track.readyState,
+              label: track.label,
+              settings: track.getSettings()
+            });
+          });
+          
           const source = audioContext.createMediaStreamSource(stream);
+          console.log('Created MediaStreamSource from stream');
           
           // Add analyzer for voice activity detection
           const analyser = createAudioAnalyser(audioContext);
@@ -1900,13 +1927,29 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // Create gain node для регулировки громкости
           const gainNode = audioContext.createGain();
           // Начальная громкость зависит от глобального состояния звука
+          console.log('isAudioEnabledRef.current:', isAudioEnabledRef.current);
           const initialVolume = isAudioEnabledRef.current ? 100 : 0;
           gainNode.gain.value = (initialVolume / 100.0) * 2.0; // 100% = 2.0 gain
+          console.log('Created gain node with initial volume:', initialVolume, 'gain value:', gainNode.gain.value);
+          
+          // Принудительно устанавливаем громкость для отладки
+          if (gainNode.gain.value === 0) {
+            console.warn('Gain is 0, forcing to 2.0 for debugging');
+            gainNode.gain.value = 2.0;
+          }
 
           // Подключаем цепочку аудио узлов
           source.connect(analyser);
           analyser.connect(gainNode);
           gainNode.connect(audioContext.destination);
+          console.log('Connected audio nodes: source -> analyser -> gainNode -> destination');
+          
+          // Тестовый сигнал для проверки работы Web Audio API (закомментировано)
+          // const oscillator = audioContext.createOscillator();
+          // oscillator.frequency.value = 440; // A4 note
+          // oscillator.connect(gainNode);
+          // oscillator.start();
+          // setTimeout(() => oscillator.stop(), 100); // Играет 100ms
 
           // Store references
           analyserNodesRef.current.set(producer.producerSocketId, analyser);
@@ -1915,6 +1958,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
           // Start voice detection
           detectSpeaking(analyser, producer.producerSocketId, producer.producerId);
+          console.log('Audio setup completed for peer:', producer.producerSocketId);
         } catch (error) {
           console.error('Error setting up audio:', error);
         }
@@ -3287,20 +3331,52 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         try {
           // Create audio context and nodes for Web Audio API processing
           const audioContext = audioContextRef.current;
+          console.log('handleConsume: AudioContext state:', audioContext.state);
+          
+          // Resume audio context if suspended
+          if (audioContext.state === 'suspended') {
+            console.log('handleConsume: Resuming suspended AudioContext...');
+            await audioContext.resume();
+            console.log('handleConsume: AudioContext resumed, new state:', audioContext.state);
+          }
+          
+          // Проверяем, что поток содержит активные треки
+          const audioTracks = stream.getAudioTracks();
+          console.log('handleConsume: Stream audio tracks:', audioTracks.length);
+          audioTracks.forEach((track, index) => {
+            console.log(`handleConsume: Track ${index}:`, {
+              enabled: track.enabled,
+              muted: track.muted,
+              readyState: track.readyState,
+              label: track.label,
+              settings: track.getSettings()
+            });
+          });
+          
           const source = audioContext.createMediaStreamSource(stream);
+          console.log('handleConsume: Created MediaStreamSource from stream');
           
           const analyser = createAudioAnalyser(audioContext);
           
           // Create gain node для регулировки громкости
           const gainNode = audioContext.createGain();
           // Начальная громкость зависит от глобального состояния звука
+          console.log('handleConsume: isAudioEnabledRef.current:', isAudioEnabledRef.current);
           const initialVolume = isAudioEnabledRef.current ? 100 : 0;
           gainNode.gain.value = (initialVolume / 100.0) * 2.0; // 100% = 2.0 gain
+          console.log('handleConsume: Created gain node with initial volume:', initialVolume, 'gain value:', gainNode.gain.value);
+          
+          // Принудительно устанавливаем громкость для отладки
+          if (gainNode.gain.value === 0) {
+            console.warn('handleConsume: Gain is 0, forcing to 2.0 for debugging');
+            gainNode.gain.value = 2.0;
+          }
 
           // Подключаем цепочку аудио узлов
           source.connect(analyser);
           analyser.connect(gainNode);
           gainNode.connect(audioContext.destination);
+          console.log('handleConsume: Connected audio nodes: source -> analyser -> gainNode -> destination');
 
           analyserNodesRef.current.set(producer.producerSocketId, analyser);
           gainNodesRef.current.set(producer.producerSocketId, gainNode);
@@ -3308,6 +3384,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
           // Start voice detection with producerId
           detectSpeaking(analyser, producer.producerSocketId, producer.producerId);
+          console.log('handleConsume: Audio setup completed for peer:', producer.producerSocketId);
         } catch (error) {
           console.error('Error setting up audio:', error);
         }
