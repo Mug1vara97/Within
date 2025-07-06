@@ -23,7 +23,6 @@
     <Folder Include="Uploads\Banners\" />
     <Folder Include="Uploads\Avatars\" />
     <Folder Include="Uploads\ServerBanner\" />
-    <Folder Include="wwwroot\" />
   </ItemGroup>
 
 </Project>

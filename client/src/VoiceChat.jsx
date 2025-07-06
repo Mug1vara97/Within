@@ -45,8 +45,6 @@ import { Device } from 'mediasoup-client';
 import { io } from 'socket.io-client';
 import { NoiseSuppressionManager } from './utils/noiseSuppression';
 import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
-import { HubConnectionBuilder, LogLevel, HttpTransportType } from '@microsoft/signalr';
-import { BASE_URL } from './config/apiConfig';
 
 
 
@@ -1188,40 +1186,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     }
   }, [userId, serverId]);
 
-  // SignalR connection для серверных голосовых каналов
-  useEffect(() => {
-    if (serverId && userId) {
-      const createServerConnection = async () => {
-        try {
-          const connection = new HubConnectionBuilder()
-            .withUrl(`${BASE_URL}/serverhub`, {
-              skipNegotiation: true,
-              transport: HttpTransportType.WebSockets,
-              accessTokenFactory: () => localStorage.getItem('token')
-            })
-            .configureLogging(LogLevel.Information)
-            .withAutomaticReconnect()
-            .build();
-
-          await connection.start();
-          await connection.invoke("JoinServerGroup", serverId.toString());
-          serverConnectionRef.current = connection;
-        } catch (error) {
-          console.error('Failed to connect to server hub:', error);
-        }
-      };
-
-      createServerConnection();
-
-      return () => {
-        if (serverConnectionRef.current) {
-          serverConnectionRef.current.stop();
-          serverConnectionRef.current = null;
-        }
-      };
-    }
-  }, [serverId, userId]);
-
 
 
   // Обработка изменения roomId
@@ -1283,9 +1247,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   // Добавляем новый ref для хранения состояний mute
   const mutedPeersRef = useRef(new Map());
-
-  // SignalR connection для уведомления сервера
-  const serverConnectionRef = useRef(null);
 
   const [fullscreenShare, setFullscreenShare] = useState(null);
 
@@ -1887,16 +1848,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             console.log('Setting joined state to true');
             setIsJoined(true);
 
-            // Уведомляем сервер о присоединении к голосовому каналу
-            if (serverConnectionRef.current && serverId && roomId) {
-              try {
-                await serverConnectionRef.current.invoke("JoinVoiceChannel", parseInt(roomId), parseInt(userId));
-                console.log('Server notified about voice channel join');
-              } catch (error) {
-                console.error('Failed to notify server about voice channel join:', error);
-              }
-            }
-
           } catch (err) {
             console.error('Failed to initialize:', err);
             setError('Failed to initialize connection: ' + err.message);
@@ -2365,22 +2316,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
               console.log('Restarting voice detection after unmute');
               detectSpeaking(analyser, socketRef.current.id);
             }
-          }
-        }
-
-        // Уведомляем сервер об изменении состояния микрофона
-        if (serverConnectionRef.current && serverId && roomId) {
-          try {
-            serverConnectionRef.current.invoke("UpdateVoiceChannelUserState", 
-              parseInt(roomId), 
-              parseInt(userId), 
-              newMuteState, 
-              false, // isSpeaking
-              isAudioEnabled
-            );
-            console.log('Server notified about mute state change');
-          } catch (error) {
-            console.error('Failed to notify server about mute state change:', error);
           }
         }
 
@@ -3024,17 +2959,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   const handleLeaveCall = () => {
     console.log('Leaving voice call...');
-
-    // Уведомляем сервер о покидании голосового канала
-    if (serverConnectionRef.current && serverId && roomId && isJoined) {
-      try {
-        serverConnectionRef.current.invoke("LeaveVoiceChannel", parseInt(roomId), parseInt(userId));
-        console.log('Server notified about voice channel leave');
-      } catch (error) {
-        console.error('Failed to notify server about voice channel leave:', error);
-      }
-    }
-
     // Очищаем локальное состояние
     cleanup();
     setIsJoined(false);
@@ -4031,22 +3955,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         }
       }
     });
-
-    // Уведомляем сервер об изменении состояния аудио
-    if (serverConnectionRef.current && serverId && roomId) {
-      try {
-        serverConnectionRef.current.invoke("UpdateVoiceChannelUserState", 
-          parseInt(roomId), 
-          parseInt(userId), 
-          isMuted, 
-          false, // isSpeaking
-          newState
-        );
-        console.log('Server notified about audio state change');
-      } catch (error) {
-        console.error('Failed to notify server about audio state change:', error);
-      }
-    }
 
     // Вызываем коллбек для уведомления внешних компонентов
     if (onAudioStateChange) {

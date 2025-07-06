@@ -2,23 +2,17 @@ import React from 'react';
 import { FaMicrophone, FaMicrophoneSlash, FaHeadphones, FaHeadphonesAlt } from 'react-icons/fa';
 import './styles/VoiceChannelUsers.css';
 
-const VoiceChannelUsers = ({ users = {}, currentUserId }) => {
-    const usersList = Object.values(users).filter(Boolean);
-    
-    if (!usersList || usersList.length === 0) {
+const VoiceChannelUsers = ({ users = [], currentUserId }) => {
+    if (!users || users.length === 0) {
         return null;
     }
 
     return (
         <div className="voice-channel-users">
-            {usersList.map((user) => (
+            {users.map((user) => (
                 <div key={user.id} className={`voice-user ${user.id === currentUserId ? 'current-user' : ''}`}>
-                    <div className="voice-user-avatar" style={{ backgroundColor: user.avatarColor || '#7289da' }}>
-                        {user.avatarUrl ? (
-                            <img src={user.avatarUrl} alt={user.name} />
-                        ) : (
-                            user.name ? user.name[0].toUpperCase() : 'U'
-                        )}
+                    <div className="voice-user-avatar">
+                        {user.name ? user.name[0].toUpperCase() : 'U'}
                     </div>
                     <div className="voice-user-info">
                         <span className="voice-user-name">{user.name || 'Unknown'}</span>

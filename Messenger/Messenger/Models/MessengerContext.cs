@@ -45,11 +45,9 @@ public partial class MessengerContext : DbContext
 
     public virtual DbSet<ServerAuditLog> ServerAuditLogs { get; set; }
 
-    public virtual DbSet<VoiceChannelUser> VoiceChannelUsers { get; set; }
-
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseNpgsql("Host=db;Port=5432;Database=WhithinTest;Username=postgres;Password=1000-7");
+        => optionsBuilder.UseNpgsql("Host=db;Port=5432;Database=Whithin;Username=postgres;Password=1000-7");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -475,21 +473,6 @@ public partial class MessengerContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("server_audit_logs_user_id_fkey");
-        });
-
-        modelBuilder.Entity<VoiceChannelUser>(entity =>
-        {
-            entity.HasKey(e => new { e.UserId, e.ChatId });
-
-            entity.HasOne(e => e.User)
-                .WithMany()
-                .HasForeignKey(e => e.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasOne(e => e.Chat)
-                .WithMany()
-                .HasForeignKey(e => e.ChatId)
-                .OnDelete(DeleteBehavior.Cascade);
         });
 
         OnModelCreatingPartial(modelBuilder);

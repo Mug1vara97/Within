@@ -1104,163 +1104,37 @@ namespace Messenger
 
         public async Task GetAuditLog(int serverId, int page = 1, int pageSize = 50)
         {
-            var offset = (page - 1) * pageSize;
-            var auditLogs = await _context.ServerAuditLogs
-                .Where(al => al.ServerId == serverId)
-                .OrderByDescending(al => al.Timestamp)
-                .Skip(offset)
-                .Take(pageSize)
-                .ToListAsync();
-
-            var totalCount = await _context.ServerAuditLogs
-                .Where(al => al.ServerId == serverId)
-                .CountAsync();
-
-            var result = new
+            try
             {
-                logs = auditLogs,
-                totalCount,
-                currentPage = page,
-                totalPages = (int)Math.Ceiling((double)totalCount / pageSize)
-            };
+                var auditLogs = await _context.ServerAuditLogs
+                    .Where(log => log.ServerId == serverId)
+                    .Include(log => log.User)
+                    .OrderByDescending(log => log.Timestamp)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(log => new
+                    {
+                        log.AuditLogId,
+                        log.ActionType,
+                        log.Details,
+                        log.Timestamp,
+                        User = new
+                        {
+                            log.User.UserId,
+                            log.User.Username,
+                            Avatar = log.User.UserProfile.Avatar,
+                            AvatarColor = log.User.UserProfile.AvatarColor
+                        }
+                    })
+                    .ToListAsync();
 
-            await Clients.Caller.SendAsync("AuditLogReceived", result);
-        }
-
-        // Методы для отслеживания пользователей в голосовых каналах
-        public async Task JoinVoiceChannel(int chatId, int userId)
-        {
-            var user = await _context.Users
-                .Include(u => u.UserProfile)
-                .FirstOrDefaultAsync(u => u.UserId == userId);
-            if (user == null) return;
-
-            var chat = await _context.Chats
-                .Include(c => c.Server)
-                .FirstOrDefaultAsync(c => c.ChatId == chatId);
-            if (chat == null) return;
-
-            // Проверяем, существует ли уже запись
-            var existingUser = await _context.VoiceChannelUsers
-                .FirstOrDefaultAsync(v => v.ChatId == chatId && v.UserId == userId);
-
-            if (existingUser != null)
-            {
-                // Обновляем существующую запись
-                existingUser.IsMuted = false;
-                existingUser.IsSpeaking = false;
-                existingUser.IsAudioEnabled = true;
-                existingUser.JoinedAt = DateTime.UtcNow;
+                await Clients.Caller.SendAsync("AuditLogLoaded", auditLogs);
             }
-            else
+            catch (Exception ex)
             {
-                // Создаем новую запись
-                var voiceChannelUser = new VoiceChannelUser
-                {
-                    UserId = userId,
-                    ChatId = chatId,
-                    IsMuted = false,
-                    IsSpeaking = false,
-                    IsAudioEnabled = true,
-                    JoinedAt = DateTime.UtcNow
-                };
-                _context.VoiceChannelUsers.Add(voiceChannelUser);
+                Console.WriteLine($"GetAuditLog error: {ex}");
+                throw new HubException($"Ошибка получения журнала аудита: {ex.Message}");
             }
-
-            await _context.SaveChangesAsync();
-
-            var userInfo = new
-            {
-                id = user.UserId,
-                name = user.Username,
-                isMuted = false,
-                isSpeaking = false,
-                isAudioEnabled = true,
-                avatarUrl = user.UserProfile.Avatar,
-                avatarColor = user.UserProfile.AvatarColor
-            };
-
-            await Clients.Group(chat.ServerId.ToString())
-                .SendAsync("UserJoinedVoiceChannel", chatId, userInfo);
-        }
-
-        public async Task LeaveVoiceChannel(int chatId, int userId)
-        {
-            var voiceChannelUser = await _context.VoiceChannelUsers
-                .FirstOrDefaultAsync(v => v.ChatId == chatId && v.UserId == userId);
-            
-            if (voiceChannelUser != null)
-            {
-                _context.VoiceChannelUsers.Remove(voiceChannelUser);
-                await _context.SaveChangesAsync();
-            }
-
-            var chat = await _context.Chats
-                .Include(c => c.Server)
-                .FirstOrDefaultAsync(c => c.ChatId == chatId);
-            if (chat == null) return;
-
-            await Clients.Group(chat.ServerId.ToString())
-                .SendAsync("UserLeftVoiceChannel", chatId, userId);
-        }
-
-        public async Task UpdateVoiceChannelUserState(int chatId, int userId, bool isMuted, bool isSpeaking, bool isAudioEnabled)
-        {
-            var voiceChannelUser = await _context.VoiceChannelUsers
-                .FirstOrDefaultAsync(v => v.ChatId == chatId && v.UserId == userId);
-            
-            if (voiceChannelUser != null)
-            {
-                voiceChannelUser.IsMuted = isMuted;
-                voiceChannelUser.IsSpeaking = isSpeaking;
-                voiceChannelUser.IsAudioEnabled = isAudioEnabled;
-                await _context.SaveChangesAsync();
-            }
-
-            var chat = await _context.Chats
-                .Include(c => c.Server)
-                .FirstOrDefaultAsync(c => c.ChatId == chatId);
-            if (chat == null) return;
-
-            var user = await _context.Users
-                .Include(u => u.UserProfile)
-                .FirstOrDefaultAsync(u => u.UserId == userId);
-            if (user == null) return;
-
-            var userInfo = new
-            {
-                id = user.UserId,
-                name = user.Username,
-                isMuted,
-                isSpeaking,
-                isAudioEnabled,
-                avatarUrl = user.UserProfile.Avatar,
-                avatarColor = user.UserProfile.AvatarColor
-            };
-
-            await Clients.Group(chat.ServerId.ToString())
-                .SendAsync("VoiceChannelUserStateUpdated", chatId, userInfo);
-        }
-
-        public async Task GetVoiceChannelUsers(int chatId)
-        {
-            var users = await _context.VoiceChannelUsers
-                .Include(v => v.User)
-                .ThenInclude(u => u.UserProfile)
-                .Where(v => v.ChatId == chatId)
-                .Select(v => new
-                {
-                    id = v.User.UserId,
-                    name = v.User.Username,
-                    isMuted = v.IsMuted,
-                    isSpeaking = v.IsSpeaking,
-                    isAudioEnabled = v.IsAudioEnabled,
-                    avatarUrl = v.User.UserProfile.Avatar,
-                    avatarColor = v.User.UserProfile.AvatarColor
-                })
-                .ToListAsync();
-            
-            await Clients.Caller.SendAsync("VoiceChannelUsersLoaded", chatId, users);
         }
 
         private async Task LogAuditAction(int serverId, int userId, string actionType, string details)

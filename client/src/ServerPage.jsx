@@ -14,9 +14,6 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
     const [connection, setConnection] = useState(null);
     const [roles, setRoles] = useState([]);
     const [userRoles, setUserRoles] = useState([]);
-    
-    // Состояние для отслеживания пользователей в голосовых каналах
-    const [voiceChannelUsers, setVoiceChannelUsers] = useState({});
 
     const updateServerState = useCallback((updater) => {
         setServer(prev => {
@@ -336,69 +333,19 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
             // Обновляем список участников сервера
             connection.invoke("GetServerMembers", parseInt(serverId, 10))
                 .catch(error => console.error('Error updating server members:', error));
-        },
-
-        // Обработчики для голосовых каналов
-        "UserJoinedVoiceChannel": (chatId, userInfo) => {
-            console.log('User joined voice channel:', chatId, userInfo);
-            setVoiceChannelUsers(prev => ({
-                ...prev,
-                [chatId]: {
-                    ...prev[chatId],
-                    [userInfo.id]: userInfo
-                }
-            }));
-        },
-
-        "UserLeftVoiceChannel": (chatId, userId) => {
-            console.log('User left voice channel:', chatId, userId);
-            setVoiceChannelUsers(prev => ({
-                ...prev,
-                [chatId]: {
-                    ...prev[chatId],
-                    [userId]: undefined
-                }
-            }));
-        },
-
-        "VoiceChannelUserStateUpdated": (chatId, userInfo) => {
-            console.log('Voice channel user state updated:', chatId, userInfo);
-            setVoiceChannelUsers(prev => ({
-                ...prev,
-                [chatId]: {
-                    ...prev[chatId],
-                    [userInfo.id]: {
-                        ...(prev[chatId]?.[userInfo.id] || {}),
-                        ...userInfo
-                    }
-                }
-            }));
-        },
-
-        "VoiceChannelUsersLoaded": (chatId, users) => {
-            console.log('Voice channel users loaded:', chatId, users);
-            setVoiceChannelUsers(prev => ({
-                ...prev,
-                [chatId]: users.reduce((acc, user) => {
-                    acc[user.id] = user;
-                    return acc;
-                }, {})
-            }));
         }
     };
 
-    // Register all handlers
-    Object.entries(handlers).forEach(([method, handler]) => {
-        connection.on(method, handler);
+    Object.entries(handlers).forEach(([name, handler]) => {
+        connection.on(name, handler);
     });
 
     return () => {
-        // Cleanup handlers
-        Object.entries(handlers).forEach(([method, handler]) => {
-            connection.off(method, handler);
+        Object.entries(handlers).forEach(([name, handler]) => {
+            connection.off(name, handler);
         });
     };
-}, [connection, server]);
+}, [connection]);
 
 const loadUserPermissions = useCallback(async () => {
     if (!connection || !serverId || !userId) return;
@@ -861,7 +808,6 @@ return (
                 isAudioEnabled={isAudioEnabled}
                 onToggleMute={onToggleMute}
                 onToggleAudio={onToggleAudio}
-                voiceChannelUsers={voiceChannelUsers}
             />
 
             <Modals
