@@ -683,6 +683,39 @@ namespace Messenger.Migrations
                     b.ToTable("user_server_roles", (string)null);
                 });
 
+            modelBuilder.Entity("Messenger.Models.VoiceChannelUser", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("userid");
+
+                    b.Property<int>("ChatId")
+                        .HasColumnType("integer")
+                        .HasColumnName("chatid");
+
+                    b.Property<bool>("IsAudioEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("isaudioenabled");
+
+                    b.Property<bool>("IsMuted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("ismuted");
+
+                    b.Property<bool>("IsSpeaking")
+                        .HasColumnType("boolean")
+                        .HasColumnName("isspeaking");
+
+                    b.Property<DateTime>("JoinedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("joinedat");
+
+                    b.HasKey("UserId", "ChatId");
+
+                    b.HasIndex("ChatId");
+
+                    b.ToTable("voicechannelusers");
+                });
+
             modelBuilder.Entity("Messenger.Models.AuditLog", b =>
                 {
                     b.HasOne("Messenger.Models.Server", "Server")
@@ -964,6 +997,25 @@ namespace Messenger.Migrations
                     b.Navigation("Role");
 
                     b.Navigation("Server");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Messenger.Models.VoiceChannelUser", b =>
+                {
+                    b.HasOne("Messenger.Models.Chat", "Chat")
+                        .WithMany()
+                        .HasForeignKey("ChatId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Messenger.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Chat");
 
                     b.Navigation("User");
                 });

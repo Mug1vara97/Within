@@ -1130,7 +1130,9 @@ namespace Messenger
         // Методы для отслеживания пользователей в голосовых каналах
         public async Task JoinVoiceChannel(int chatId, int userId)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+            var user = await _context.Users
+                .Include(u => u.UserProfile)
+                .FirstOrDefaultAsync(u => u.UserId == userId);
             if (user == null) return;
 
             var chat = await _context.Chats
@@ -1138,13 +1140,28 @@ namespace Messenger
                 .FirstOrDefaultAsync(c => c.ChatId == chatId);
             if (chat == null) return;
 
+            var voiceChannelUser = new VoiceChannelUser
+            {
+                UserId = userId,
+                ChatId = chatId,
+                IsMuted = false,
+                IsSpeaking = false,
+                IsAudioEnabled = true,
+                JoinedAt = DateTime.UtcNow
+            };
+
+            _context.VoiceChannelUsers.Add(voiceChannelUser);
+            await _context.SaveChangesAsync();
+
             var userInfo = new
             {
                 id = user.UserId,
                 name = user.Username,
                 isMuted = false,
                 isSpeaking = false,
-                isAudioEnabled = true
+                isAudioEnabled = true,
+                avatarUrl = user.UserProfile.Avatar,
+                avatarColor = user.UserProfile.AvatarColor
             };
 
             await Clients.Group(chat.ServerId.ToString())
@@ -1153,6 +1170,15 @@ namespace Messenger
 
         public async Task LeaveVoiceChannel(int chatId, int userId)
         {
+            var voiceChannelUser = await _context.VoiceChannelUsers
+                .FirstOrDefaultAsync(v => v.ChatId == chatId && v.UserId == userId);
+            
+            if (voiceChannelUser != null)
+            {
+                _context.VoiceChannelUsers.Remove(voiceChannelUser);
+                await _context.SaveChangesAsync();
+            }
+
             var chat = await _context.Chats
                 .Include(c => c.Server)
                 .FirstOrDefaultAsync(c => c.ChatId == chatId);
@@ -1164,12 +1190,25 @@ namespace Messenger
 
         public async Task UpdateVoiceChannelUserState(int chatId, int userId, bool isMuted, bool isSpeaking, bool isAudioEnabled)
         {
+            var voiceChannelUser = await _context.VoiceChannelUsers
+                .FirstOrDefaultAsync(v => v.ChatId == chatId && v.UserId == userId);
+            
+            if (voiceChannelUser != null)
+            {
+                voiceChannelUser.IsMuted = isMuted;
+                voiceChannelUser.IsSpeaking = isSpeaking;
+                voiceChannelUser.IsAudioEnabled = isAudioEnabled;
+                await _context.SaveChangesAsync();
+            }
+
             var chat = await _context.Chats
                 .Include(c => c.Server)
                 .FirstOrDefaultAsync(c => c.ChatId == chatId);
             if (chat == null) return;
 
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+            var user = await _context.Users
+                .Include(u => u.UserProfile)
+                .FirstOrDefaultAsync(u => u.UserId == userId);
             if (user == null) return;
 
             var userInfo = new
@@ -1178,7 +1217,9 @@ namespace Messenger
                 name = user.Username,
                 isMuted,
                 isSpeaking,
-                isAudioEnabled
+                isAudioEnabled,
+                avatarUrl = user.UserProfile.Avatar,
+                avatarColor = user.UserProfile.AvatarColor
             };
 
             await Clients.Group(chat.ServerId.ToString())
@@ -1187,9 +1228,21 @@ namespace Messenger
 
         public async Task GetVoiceChannelUsers(int chatId)
         {
-            // В реальном приложении здесь бы была логика для получения пользователей из кэша или базы данных
-            // Пока возвращаем пустой список, так как нужно интегрировать с системой голосовых каналов
-            var users = new List<object>();
+            var users = await _context.VoiceChannelUsers
+                .Include(v => v.User)
+                .ThenInclude(u => u.UserProfile)
+                .Where(v => v.ChatId == chatId)
+                .Select(v => new
+                {
+                    id = v.User.UserId,
+                    name = v.User.Username,
+                    isMuted = v.IsMuted,
+                    isSpeaking = v.IsSpeaking,
+                    isAudioEnabled = v.IsAudioEnabled,
+                    avatarUrl = v.User.UserProfile.Avatar,
+                    avatarColor = v.User.UserProfile.AvatarColor
+                })
+                .ToListAsync();
             
             await Clients.Caller.SendAsync("VoiceChannelUsersLoaded", chatId, users);
         }

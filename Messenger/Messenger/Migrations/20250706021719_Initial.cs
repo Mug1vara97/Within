@@ -408,6 +408,34 @@ namespace Messenger.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "voicechannelusers",
+                columns: table => new
+                {
+                    userid = table.Column<int>(type: "integer", nullable: false),
+                    chatid = table.Column<int>(type: "integer", nullable: false),
+                    ismuted = table.Column<bool>(type: "boolean", nullable: false),
+                    isspeaking = table.Column<bool>(type: "boolean", nullable: false),
+                    isaudioenabled = table.Column<bool>(type: "boolean", nullable: false),
+                    joinedat = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_voicechannelusers", x => new { x.userid, x.chatid });
+                    table.ForeignKey(
+                        name: "FK_voicechannelusers_chats_chatid",
+                        column: x => x.chatid,
+                        principalTable: "chats",
+                        principalColumn: "chat_id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_voicechannelusers_users_userid",
+                        column: x => x.userid,
+                        principalTable: "users",
+                        principalColumn: "user_id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "message_reads",
                 columns: table => new
                 {
@@ -597,6 +625,11 @@ namespace Messenger.Migrations
                 table: "users",
                 column: "username",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_voicechannelusers_chatid",
+                table: "voicechannelusers",
+                column: "chatid");
         }
 
         /// <inheritdoc />
@@ -625,6 +658,9 @@ namespace Messenger.Migrations
 
             migrationBuilder.DropTable(
                 name: "user_server_roles");
+
+            migrationBuilder.DropTable(
+                name: "voicechannelusers");
 
             migrationBuilder.DropTable(
                 name: "messages");
