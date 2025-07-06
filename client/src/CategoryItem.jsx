@@ -14,7 +14,9 @@ const CategoryItem = ({
     serverId,
     userPermissions,
     isServerOwner,
-    selectedChat
+    selectedChat,
+    voiceChannelUsers,
+    userId
 }) => {
     const [isCollapsed, setIsCollapsed] = useState(() => {
         const savedState = localStorage.getItem(`categoryCollapsed_${serverId}_${category.categoryId}`);
@@ -107,6 +109,8 @@ const CategoryItem = ({
                                                     userPermissions={userPermissions}
                                                     isServerOwner={isServerOwner}
                                                     selectedChat={selectedChat}
+                                                    voiceChannelUsers={voiceChannelUsers}
+                                                    userId={userId}
                                                 />
                                             ))
                                     ) : (

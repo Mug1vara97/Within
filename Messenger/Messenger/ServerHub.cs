@@ -1104,37 +1104,94 @@ namespace Messenger
 
         public async Task GetAuditLog(int serverId, int page = 1, int pageSize = 50)
         {
-            try
-            {
-                var auditLogs = await _context.ServerAuditLogs
-                    .Where(log => log.ServerId == serverId)
-                    .Include(log => log.User)
-                    .OrderByDescending(log => log.Timestamp)
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .Select(log => new
-                    {
-                        log.AuditLogId,
-                        log.ActionType,
-                        log.Details,
-                        log.Timestamp,
-                        User = new
-                        {
-                            log.User.UserId,
-                            log.User.Username,
-                            Avatar = log.User.UserProfile.Avatar,
-                            AvatarColor = log.User.UserProfile.AvatarColor
-                        }
-                    })
-                    .ToListAsync();
+            var offset = (page - 1) * pageSize;
+            var auditLogs = await _context.ServerAuditLogs
+                .Where(al => al.ServerId == serverId)
+                .OrderByDescending(al => al.CreatedAt)
+                .Skip(offset)
+                .Take(pageSize)
+                .ToListAsync();
 
-                await Clients.Caller.SendAsync("AuditLogLoaded", auditLogs);
-            }
-            catch (Exception ex)
+            var totalCount = await _context.ServerAuditLogs
+                .Where(al => al.ServerId == serverId)
+                .CountAsync();
+
+            var result = new
             {
-                Console.WriteLine($"GetAuditLog error: {ex}");
-                throw new HubException($"Ошибка получения журнала аудита: {ex.Message}");
-            }
+                logs = auditLogs,
+                totalCount,
+                currentPage = page,
+                totalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+            };
+
+            await Clients.Caller.SendAsync("AuditLogReceived", result);
+        }
+
+        // Методы для отслеживания пользователей в голосовых каналах
+        public async Task JoinVoiceChannel(int chatId, int userId)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+            if (user == null) return;
+
+            var chat = await _context.Chats
+                .Include(c => c.Server)
+                .FirstOrDefaultAsync(c => c.ChatId == chatId);
+            if (chat == null) return;
+
+            var userInfo = new
+            {
+                id = user.UserId,
+                name = user.Username,
+                isMuted = false,
+                isSpeaking = false,
+                isAudioEnabled = true
+            };
+
+            await Clients.Group(chat.ServerId.ToString())
+                .SendAsync("UserJoinedVoiceChannel", chatId, userInfo);
+        }
+
+        public async Task LeaveVoiceChannel(int chatId, int userId)
+        {
+            var chat = await _context.Chats
+                .Include(c => c.Server)
+                .FirstOrDefaultAsync(c => c.ChatId == chatId);
+            if (chat == null) return;
+
+            await Clients.Group(chat.ServerId.ToString())
+                .SendAsync("UserLeftVoiceChannel", chatId, userId);
+        }
+
+        public async Task UpdateVoiceChannelUserState(int chatId, int userId, bool isMuted, bool isSpeaking, bool isAudioEnabled)
+        {
+            var chat = await _context.Chats
+                .Include(c => c.Server)
+                .FirstOrDefaultAsync(c => c.ChatId == chatId);
+            if (chat == null) return;
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+            if (user == null) return;
+
+            var userInfo = new
+            {
+                id = user.UserId,
+                name = user.Username,
+                isMuted,
+                isSpeaking,
+                isAudioEnabled
+            };
+
+            await Clients.Group(chat.ServerId.ToString())
+                .SendAsync("VoiceChannelUserStateUpdated", chatId, userInfo);
+        }
+
+        public async Task GetVoiceChannelUsers(int chatId)
+        {
+            // В реальном приложении здесь бы была логика для получения пользователей из кэша или базы данных
+            // Пока возвращаем пустой список, так как нужно интегрировать с системой голосовых каналов
+            var users = new List<object>();
+            
+            await Clients.Caller.SendAsync("VoiceChannelUsersLoaded", chatId, users);
         }
 
         private async Task LogAuditAction(int serverId, int userId, string actionType, string details)

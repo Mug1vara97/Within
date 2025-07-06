@@ -14,6 +14,9 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
     const [connection, setConnection] = useState(null);
     const [roles, setRoles] = useState([]);
     const [userRoles, setUserRoles] = useState([]);
+    
+    // Состояние для отслеживания пользователей в голосовых каналах
+    const [voiceChannelUsers, setVoiceChannelUsers] = useState({});
 
     const updateServerState = useCallback((updater) => {
         setServer(prev => {
@@ -333,6 +336,28 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
             // Обновляем список участников сервера
             connection.invoke("GetServerMembers", parseInt(serverId, 10))
                 .catch(error => console.error('Error updating server members:', error));
+        },
+
+        // Обработчики для голосовых каналов
+        "UserJoinedVoiceChannel": (chatId, user) => {
+            setVoiceChannelUsers(prev => ({
+                ...prev,
+                [chatId]: [...(prev[chatId] || []), user]
+            }));
+        },
+
+        "UserLeftVoiceChannel": (chatId, userId) => {
+            setVoiceChannelUsers(prev => ({
+                ...prev,
+                [chatId]: (prev[chatId] || []).filter(u => u.id !== userId)
+            }));
+        },
+
+        "VoiceChannelUsersLoaded": (chatId, users) => {
+            setVoiceChannelUsers(prev => ({
+                ...prev,
+                [chatId]: users || []
+            }));
         }
     };
 
@@ -808,6 +833,7 @@ return (
                 isAudioEnabled={isAudioEnabled}
                 onToggleMute={onToggleMute}
                 onToggleAudio={onToggleAudio}
+                voiceChannelUsers={voiceChannelUsers}
             />
 
             <Modals
