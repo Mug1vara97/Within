@@ -339,7 +339,7 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
         },
 
         // Обработчики для голосовых каналов
-        "userjoinedvoicechannel": (chatId, userInfo) => {
+        "UserJoinedVoiceChannel": (chatId, userInfo) => {
             console.log('User joined voice channel:', chatId, userInfo);
             setVoiceChannelUsers(prev => ({
                 ...prev,
@@ -350,7 +350,7 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
             }));
         },
 
-        "userleftvoicechannel": (chatId, userId) => {
+        "UserLeftVoiceChannel": (chatId, userId) => {
             console.log('User left voice channel:', chatId, userId);
             setVoiceChannelUsers(prev => ({
                 ...prev,
@@ -361,7 +361,7 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
             }));
         },
 
-        "voicechanneluserstateupdated": (chatId, userInfo) => {
+        "VoiceChannelUserStateUpdated": (chatId, userInfo) => {
             console.log('Voice channel user state updated:', chatId, userInfo);
             setVoiceChannelUsers(prev => ({
                 ...prev,
@@ -375,7 +375,7 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
             }));
         },
 
-        "voicechannelusersloaded": (chatId, users) => {
+        "VoiceChannelUsersLoaded": (chatId, users) => {
             console.log('Voice channel users loaded:', chatId, users);
             setVoiceChannelUsers(prev => ({
                 ...prev,
