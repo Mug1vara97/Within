@@ -3,7 +3,10 @@ import { FaMicrophone, FaMicrophoneSlash } from 'react-icons/fa';
 import './VoiceChannelUsersList.css';
 
 const VoiceChannelUsersList = ({ users = [], currentUserId }) => {
+    console.log('VoiceChannelUsersList render:', { users, currentUserId });
+    
     if (!users || users.length === 0) {
+        console.log('VoiceChannelUsersList: no users, returning null');
         return null;
     }
 
