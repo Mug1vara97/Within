@@ -1140,17 +1140,33 @@ namespace Messenger
                 .FirstOrDefaultAsync(c => c.ChatId == chatId);
             if (chat == null) return;
 
-            var voiceChannelUser = new VoiceChannelUser
-            {
-                UserId = userId,
-                ChatId = chatId,
-                IsMuted = false,
-                IsSpeaking = false,
-                IsAudioEnabled = true,
-                JoinedAt = DateTime.UtcNow
-            };
+            // Проверяем, существует ли уже запись
+            var existingUser = await _context.VoiceChannelUsers
+                .FirstOrDefaultAsync(v => v.ChatId == chatId && v.UserId == userId);
 
-            _context.VoiceChannelUsers.Add(voiceChannelUser);
+            if (existingUser != null)
+            {
+                // Обновляем существующую запись
+                existingUser.IsMuted = false;
+                existingUser.IsSpeaking = false;
+                existingUser.IsAudioEnabled = true;
+                existingUser.JoinedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                // Создаем новую запись
+                var voiceChannelUser = new VoiceChannelUser
+                {
+                    UserId = userId,
+                    ChatId = chatId,
+                    IsMuted = false,
+                    IsSpeaking = false,
+                    IsAudioEnabled = true,
+                    JoinedAt = DateTime.UtcNow
+                };
+                _context.VoiceChannelUsers.Add(voiceChannelUser);
+            }
+
             await _context.SaveChangesAsync();
 
             var userInfo = new
