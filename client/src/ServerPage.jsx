@@ -339,37 +339,50 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
         },
 
         // Обработчики для голосовых каналов
-        "UserJoinedVoiceChannel": (chatId, user) => {
-            setVoiceChannelUsers(prev => ({
-                ...prev,
-                [chatId]: [...(prev[chatId] || []), user]
-            }));
-        },
-
-        "UserLeftVoiceChannel": (chatId, userId) => {
-            setVoiceChannelUsers(prev => ({
-                ...prev,
-                [chatId]: (prev[chatId] || []).filter(u => u.id !== userId)
-            }));
-        },
-
-        "VoiceChannelUsersLoaded": (chatId, users) => {
-            setVoiceChannelUsers(prev => ({
-                ...prev,
-                [chatId]: users.reduce((acc, user) => {
-                    acc[user.userId] = user;
-                    return acc;
-                }, {})
-            }));
-        },
-
-        "VoiceChannelUserStateUpdated": (userId, chatId, state) => {
+        "UserJoinedVoiceChannel": (chatId, userInfo) => {
+            console.log('User joined voice channel:', chatId, userInfo);
             setVoiceChannelUsers(prev => ({
                 ...prev,
                 [chatId]: {
                     ...prev[chatId],
-                    [userId]: state
+                    [userInfo.id]: userInfo
                 }
+            }));
+        },
+
+        "UserLeftVoiceChannel": (chatId, userId) => {
+            console.log('User left voice channel:', chatId, userId);
+            setVoiceChannelUsers(prev => ({
+                ...prev,
+                [chatId]: {
+                    ...prev[chatId],
+                    [userId]: undefined
+                }
+            }));
+        },
+
+        "VoiceChannelUserStateUpdated": (chatId, userInfo) => {
+            console.log('Voice channel user state updated:', chatId, userInfo);
+            setVoiceChannelUsers(prev => ({
+                ...prev,
+                [chatId]: {
+                    ...prev[chatId],
+                    [userInfo.id]: {
+                        ...(prev[chatId]?.[userInfo.id] || {}),
+                        ...userInfo
+                    }
+                }
+            }));
+        },
+
+        "VoiceChannelUsersLoaded": (chatId, users) => {
+            console.log('Voice channel users loaded:', chatId, users);
+            setVoiceChannelUsers(prev => ({
+                ...prev,
+                [chatId]: users.reduce((acc, user) => {
+                    acc[user.id] = user;
+                    return acc;
+                }, {})
             }));
         }
     };
