@@ -1107,7 +1107,7 @@ namespace Messenger
             var offset = (page - 1) * pageSize;
             var auditLogs = await _context.ServerAuditLogs
                 .Where(al => al.ServerId == serverId)
-                .OrderByDescending(al => al.CreatedAt)
+                .OrderByDescending(al => al.Timestamp)
                 .Skip(offset)
                 .Take(pageSize)
                 .ToListAsync();
