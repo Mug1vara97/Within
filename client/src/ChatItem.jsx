@@ -17,7 +17,13 @@ const ChatItem = ({
 }) => {
     const isDragDisabled = !(isServerOwner || userPermissions?.manageChannels);
     const isVoiceChannel = chat.typeId === 2; // 2 = voice channel
-    const voiceUsers = voiceChannelUsers?.[chat.chatId] || [];
+    const voiceUsers = Object.values(voiceChannelUsers?.[chat.chatId] || {}).map(user => ({
+        id: user.userId,
+        name: user.username,
+        isMuted: user.isMuted,
+        isSpeaking: user.isSpeaking,
+        isAudioEnabled: user.isAudioEnabled
+    }));
 
     console.log('ChatItem render:', {
         chatId: chat.chatId,

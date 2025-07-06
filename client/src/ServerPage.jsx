@@ -356,21 +356,36 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
         "VoiceChannelUsersLoaded": (chatId, users) => {
             setVoiceChannelUsers(prev => ({
                 ...prev,
-                [chatId]: users || []
+                [chatId]: users.reduce((acc, user) => {
+                    acc[user.userId] = user;
+                    return acc;
+                }, {})
+            }));
+        },
+
+        "VoiceChannelUserStateUpdated": (userId, chatId, state) => {
+            setVoiceChannelUsers(prev => ({
+                ...prev,
+                [chatId]: {
+                    ...prev[chatId],
+                    [userId]: state
+                }
             }));
         }
     };
 
-    Object.entries(handlers).forEach(([name, handler]) => {
-        connection.on(name, handler);
+    // Register all handlers
+    Object.entries(handlers).forEach(([method, handler]) => {
+        connection.on(method, handler);
     });
 
     return () => {
-        Object.entries(handlers).forEach(([name, handler]) => {
-            connection.off(name, handler);
+        // Cleanup handlers
+        Object.entries(handlers).forEach(([method, handler]) => {
+            connection.off(method, handler);
         });
     };
-}, [connection]);
+}, [connection, server]);
 
 const loadUserPermissions = useCallback(async () => {
     if (!connection || !serverId || !userId) return;
