@@ -43,13 +43,7 @@ builder.Services.AddCors(options =>
         builder =>
         {
             builder
-                .WithOrigins(
-                    "http://localhost:3000",
-                    "https://localhost:3000",
-                    "https://4931257-dv98943.twc1.net",
-                    "http://4931257-dv98943.twc1.net",
-                    "http://localhost:8081"
-                )
+                .SetIsOriginAllowed(_ => true) // Разрешаем все origins в режиме разработки
                 .AllowAnyHeader()
                 .AllowAnyMethod()
                 .AllowCredentials()
@@ -69,14 +63,13 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        // Если ошибка связана с существующей таблицей, продолжаем работу
         if (ex.Message.Contains("already exists"))
         {
             Console.WriteLine("Some tables already exist, continuing...");
         }
         else
         {
-            throw; // Если другая ошибка, выбрасываем её
+            throw;
         }
     }
 }
@@ -84,10 +77,11 @@ using (var scope = app.Services.CreateScope())
 // Перемещаем CORS в начало конвейера middleware
 app.UseCors("AllowAllOrigins");
 
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
+// Отключаем HTTPS редирект для разработки
+// if (!app.Environment.IsDevelopment())
+// {
+//     app.UseHttpsRedirection();
+// }
 
 app.UseWebSockets();
 app.UseMiddleware<WebSocketMiddleware>();
