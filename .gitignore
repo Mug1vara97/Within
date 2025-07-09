@@ -57,4 +57,16 @@ Thumbs.db
 /server/node_modules
 /server/.env
 /server/logs
-/server/*.log 
+/server/*.log
+
+# Mobile app is explicitly included - do not ignore WithinMobile directory
+!WithinMobile/
+!WithinMobile/**/*
+
+# But still ignore node_modules and build files in mobile app
+WithinMobile/node_modules/
+WithinMobile/android/app/build/
+WithinMobile/android/.gradle/
+WithinMobile/android/build/
+WithinMobile/ios/build/
+WithinMobile/ios/Pods/ 
