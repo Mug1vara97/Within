@@ -27,7 +27,7 @@ services:
       - "8080:8080"
     volumes:
       - ./Messenger/Messenger/Uploads:/app/Uploads
-      #- ./ssl:/app/ssl
+      - ./ssl:/app/ssl
       - uploads_data:/app/Uploads
       - uploads_avatars:/app/Uploads/Avatars
       - uploads_banners:/app/Uploads/Banners
@@ -53,7 +53,7 @@ services:
       - "40000-40100:40000-40100/udp"
       - "40000-40100:40000-40100/tcp"
     volumes:
-      #- ./ssl:/app/ssl
+      - ./ssl:/app/ssl
     environment:
       - NODE_ENV=production
       - LISTEN_IP=0.0.0.0
@@ -66,13 +66,13 @@ services:
     restart: unless-stopped
 
   nginx:
-    image: nginx:latest
+    image: nginx:alpine
     ports:
       - "80:80"
-      #- "443:443"
+      - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
-      #- ./ssl:/etc/nginx/ssl
+      - ./ssl:/etc/nginx/ssl
     depends_on:
       - client
       - server
@@ -88,7 +88,7 @@ services:
     ports:
       - "3001:3001"
     volumes:
-      #- ./ssl:/etc/nginx/ssl
+      - ./ssl:/etc/nginx/ssl
     depends_on:
       - csharp-server
       - server
