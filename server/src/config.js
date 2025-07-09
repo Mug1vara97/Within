@@ -12,8 +12,8 @@ module.exports = {
     mediasoup: {
         numWorkers: Object.keys(require('os').cpus()).length,
         worker: {
-            rtcMinPort: 40000,
-            rtcMaxPort: 40100,
+            rtcMinPort: 50000,
+            rtcMaxPort: 50100,
             logLevel: 'debug',
             logTags: [
                 'info',
