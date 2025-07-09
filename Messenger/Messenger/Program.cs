@@ -47,7 +47,8 @@ builder.Services.AddCors(options =>
                     "http://localhost:3000",
                     "https://localhost:3000",
                     "https://4931257-dv98943.twc1.net",
-                    "http://4931257-dv98943.twc1.net"
+                    "http://4931257-dv98943.twc1.net",
+                    "http://localhost:8081"
                 )
                 .AllowAnyHeader()
                 .AllowAnyMethod()
