@@ -25,7 +25,7 @@ const options = {
 const server = https.createServer(options, app);
 const io = new Server(server, {
     cors: {
-        origin: ["https://4931257-dv98943.twc1.net"],
+        origin: ["https://whithin.ru"],
         methods: ["GET", "POST"],
         credentials: true
     }
@@ -33,7 +33,7 @@ const io = new Server(server, {
 
 // Configure CORS for Express
 app.use(cors({
-    origin: ["https://4931257-dv98943.twc1.net"],
+    origin: ["https://whithin.ru"],
     credentials: true
 }));
 app.use(compression());

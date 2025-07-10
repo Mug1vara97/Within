@@ -50,7 +50,7 @@ import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
 
 const config = {
   server: {
-    url: 'https://4931257-dv98943.twc1.net'
+    url: 'https://whithin.ru'
   },
   iceServers: [
     {
