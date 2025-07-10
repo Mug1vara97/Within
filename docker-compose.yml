@@ -57,9 +57,9 @@ services:
     environment:
       - NODE_ENV=production
       - LISTEN_IP=0.0.0.0
-      - ANNOUNCED_IP=4931257-dv98943.twc1.net
+      - ANNOUNCED_IP=whithin.ru
       - MEDIASOUP_LISTEN_IP=0.0.0.0
-      - MEDIASOUP_ANNOUNCED_IP=4931257-dv98943.twc1.net
+      - MEDIASOUP_ANNOUNCED_IP=whithin.ru
       - HTTPS=true
     networks:
       - app-network
