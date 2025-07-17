@@ -1995,7 +1995,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           audioElement.playsInline = true;
           // Initialize volume based on individual mute state and global audio state
           const isIndividuallyMutedForAudio = individualMutedPeersRef.current.get(producer.producerSocketId) ?? false;
-          audioElement.volume = (isAudioEnabledRef.current && !isIndividuallyMutedForAudio) ? 1.0 : 0.0;
+          const individualVolume = volumes.get(producer.producerSocketId) || 100;
+          audioElement.volume = (isAudioEnabledRef.current && !isIndividuallyMutedForAudio) ? (individualVolume / 100.0) : 0.0;
           audioElement.style.display = 'none';
           document.body.appendChild(audioElement);
           
@@ -2375,8 +2376,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
           if (!isIndividuallyMuted) {
             const individualVolume = volumes.get(peerId) || 100;
-                      const gainValue = (individualVolume / 100.0) * 4.0;
-          gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
+            const gainValue = (individualVolume / 100.0) * 4.0;
+            gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
           } else {
             gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
           }
