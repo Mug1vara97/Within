@@ -113,6 +113,29 @@ export const VoiceChannelProvider = ({ children }) => {
       });
     });
 
+    // Слушаем когда пир покидает комнату (дополнительная обработка)
+    newSocket.on('peerLeft', ({ peerId }) => {
+      console.log('VoiceChannelContext: Peer left:', { peerId });
+      // Находим канал, в котором был этот пир
+      setVoiceChannels(prev => {
+        const newChannels = new Map(prev);
+        for (const [channelId, channel] of newChannels.entries()) {
+          if (channel.participants.has(peerId)) {
+            channel.participants.delete(peerId);
+            console.log('VoiceChannelContext: Removed peer from channel:', { channelId, peerId });
+            
+            // Если канал стал пустым, удаляем его
+            if (channel.participants.size === 0) {
+              newChannels.delete(channelId);
+              console.log('VoiceChannelContext: Removed empty channel after peer left:', channelId);
+            }
+            break;
+          }
+        }
+        return newChannels;
+      });
+    });
+
     return () => {
       clearInterval(syncInterval);
       newSocket.disconnect();

@@ -1153,6 +1153,14 @@ io.on('connection', async (socket) => {
                         channelId: roomId,
                         participants: participants
                     });
+                } else {
+                    // Если комната пустая, удаляем её и уведомляем
+                    console.log(`Room ${roomId} is empty, removing it`);
+                    rooms.delete(roomId);
+                    io.emit('voiceChannelParticipantsUpdate', {
+                        channelId: roomId,
+                        participants: []
+                    });
                 }
             });
         } catch (error) {
@@ -1186,6 +1194,8 @@ io.on('connection', async (socket) => {
                 if (peer) {
                     room.removePeer(peer);
                     console.log(`User ${userId} removed from room ${channelId}`);
+                } else {
+                    console.log(`User ${userId} not found in room ${channelId}, but room exists`);
                 }
                 
                 // Если комната стала пустой, удаляем её и уведомляем всех клиентов
@@ -1207,6 +1217,11 @@ io.on('connection', async (socket) => {
                 }
             } else {
                 console.log(`Room ${channelId} not found for user ${userId}`);
+                // Даже если комната не найдена, отправляем обновление с пустым списком участников
+                io.emit('voiceChannelParticipantsUpdate', {
+                    channelId: channelId,
+                    participants: []
+                });
             }
         } catch (error) {
             console.error('Error in userLeftVoiceChannel:', error);
@@ -1255,6 +1270,12 @@ io.on('connection', async (socket) => {
                 } else {
                     // Уведомляем остальных участников о выходе
                     socket.to(roomId).emit('peerLeft', { peerId: socket.id });
+                    
+                    // Также отправляем уведомление о выходе пользователя всем клиентам
+                    io.emit('userLeftVoiceChannel', {
+                        channelId: roomId,
+                        userId: socket.id
+                    });
                 }
             }
             
