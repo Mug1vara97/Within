@@ -40,6 +40,7 @@ export const VoiceChannelProvider = ({ children }) => {
           newChannels.set(channelId, { participants: participantsMap });
           console.log('VoiceChannelContext: Updated channel participants:', channelId, participantsMap.size);
         } else {
+          // Если участников нет, удаляем канал из списка
           newChannels.delete(channelId);
           console.log('VoiceChannelContext: Removed empty channel:', channelId);
         }
@@ -85,7 +86,7 @@ export const VoiceChannelProvider = ({ children }) => {
           console.log('VoiceChannelContext: Participant removal result:', { userId, wasRemoved, remainingParticipants: channel.participants.size });
           if (channel.participants.size === 0) {
             newChannels.delete(channelId);
-            console.log('VoiceChannelContext: Removed empty channel:', channelId);
+            console.log('VoiceChannelContext: Removed empty channel after last participant left:', channelId);
           }
         } else {
           console.log('VoiceChannelContext: Channel not found for user removal:', channelId);

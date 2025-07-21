@@ -1120,6 +1120,12 @@ io.on('connection', async (socket) => {
                 if (room.peers.size === 0) {
                     console.log('Removing empty room:', roomId);
                     rooms.delete(roomId);
+                    
+                    // Уведомляем всех клиентов о том, что комната стала пустой
+                    io.emit('voiceChannelParticipantsUpdate', {
+                        channelId: roomId,
+                        participants: []
+                    });
                 }
             }
 
@@ -1168,11 +1174,25 @@ io.on('connection', async (socket) => {
     // Обработчик для уведомления о выходе пользователя из голосового канала
     socket.on('userLeftVoiceChannel', ({ channelId, userId }) => {
         try {
-            // Отправляем уведомление всем клиентам
-            io.emit('userLeftVoiceChannel', {
-                channelId,
-                userId
-            });
+            // Проверяем, есть ли еще участники в комнате
+            const room = rooms.get(channelId);
+            if (room && room.peers.size === 0) {
+                // Если комната пустая, удаляем её и уведомляем всех клиентов
+                rooms.delete(channelId);
+                console.log(`Empty room ${channelId} removed via userLeftVoiceChannel`);
+                
+                // Уведомляем всех клиентов о том, что комната стала пустой
+                io.emit('voiceChannelParticipantsUpdate', {
+                    channelId: channelId,
+                    participants: []
+                });
+            } else {
+                // Отправляем уведомление всем клиентам о выходе конкретного пользователя
+                io.emit('userLeftVoiceChannel', {
+                    channelId,
+                    userId
+                });
+            }
         } catch (error) {
             console.error('Error in userLeftVoiceChannel:', error);
         }
@@ -1207,10 +1227,16 @@ io.on('connection', async (socket) => {
                 room.removePeer(peer);
                 console.log(`Peer ${socket.id} removed from room ${roomId}`);
                 
-                // Если комната пустая, удаляем её
+                // Если комната пустая, удаляем её и уведомляем всех клиентов
                 if (room.peers.size === 0) {
                     rooms.delete(roomId);
                     console.log(`Empty room ${roomId} removed`);
+                    
+                    // Уведомляем всех клиентов о том, что комната стала пустой
+                    io.emit('voiceChannelParticipantsUpdate', {
+                        channelId: roomId,
+                        participants: []
+                    });
                 } else {
                     // Уведомляем остальных участников о выходе
                     socket.to(roomId).emit('peerLeft', { peerId: socket.id });
