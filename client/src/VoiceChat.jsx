@@ -3112,6 +3112,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       setTimeout(() => {
         socketRef.current.emit('getVoiceChannelParticipants');
       }, 3000);
+      
+      // Дополнительно запрашиваем обновление сразу после отправки уведомления
+      socketRef.current.emit('getVoiceChannelParticipants');
     }
     
     // Очищаем локальное состояние

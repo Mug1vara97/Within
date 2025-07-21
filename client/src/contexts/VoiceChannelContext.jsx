@@ -93,6 +93,10 @@ export const VoiceChannelProvider = ({ children }) => {
           }
         } else {
           console.log('VoiceChannelContext: Channel not found for user removal:', channelId);
+          // Если канал не найден, но пользователь вышел, возможно канал уже пустой
+          // Удаляем канал на всякий случай
+          newChannels.delete(channelId);
+          console.log('VoiceChannelContext: Removed channel that was not found:', channelId);
         }
         return newChannels;
       });
