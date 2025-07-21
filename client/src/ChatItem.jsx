@@ -63,10 +63,7 @@ const ChatItem = ({
                                 
                                 const participantCount = uniqueParticipants.length;
                                 
-                                // Если участников нет, не показываем канал
-                                if (participantCount === 0) {
-                                    return null;
-                                }
+
                                 console.log('Voice channel participants:', {
                                     chatId: chat.chatId,
                                     chatIdAlt: chat.id,
