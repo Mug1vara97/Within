@@ -1493,10 +1493,18 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           userId: userId
         });
         
-        // Запрашиваем обновленные данные о участниках
+        // Запрашиваем обновленные данные о участниках несколько раз с интервалом
         setTimeout(() => {
           socketRef.current.emit('getVoiceChannelParticipants');
-        }, 1000); // Небольшая задержка, чтобы сервер успел обработать выход
+        }, 500);
+        
+        setTimeout(() => {
+          socketRef.current.emit('getVoiceChannelParticipants');
+        }, 1500);
+        
+        setTimeout(() => {
+          socketRef.current.emit('getVoiceChannelParticipants');
+        }, 3000);
       }
     }
     
@@ -3092,10 +3100,18 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         userId: userId
       });
       
-      // Запрашиваем обновленные данные о участниках
+      // Запрашиваем обновленные данные о участниках несколько раз с интервалом
       setTimeout(() => {
         socketRef.current.emit('getVoiceChannelParticipants');
-      }, 1000); // Небольшая задержка, чтобы сервер успел обработать выход
+      }, 500);
+      
+      setTimeout(() => {
+        socketRef.current.emit('getVoiceChannelParticipants');
+      }, 1500);
+      
+      setTimeout(() => {
+        socketRef.current.emit('getVoiceChannelParticipants');
+      }, 3000);
     }
     
     // Очищаем локальное состояние

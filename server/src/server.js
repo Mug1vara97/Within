@@ -1116,18 +1116,22 @@ io.on('connection', async (socket) => {
     socket.on('getVoiceChannelParticipants', () => {
         try {
             // Очищаем пустые комнаты
+            const emptyRooms = [];
             for (const [roomId, room] of rooms.entries()) {
                 if (room.peers.size === 0) {
                     console.log('Removing empty room:', roomId);
+                    emptyRooms.push(roomId);
                     rooms.delete(roomId);
-                    
-                    // Уведомляем всех клиентов о том, что комната стала пустой
-                    io.emit('voiceChannelParticipantsUpdate', {
-                        channelId: roomId,
-                        participants: []
-                    });
                 }
             }
+
+            // Уведомляем всех клиентов о пустых комнатах
+            emptyRooms.forEach(roomId => {
+                io.emit('voiceChannelParticipantsUpdate', {
+                    channelId: roomId,
+                    participants: []
+                });
+            });
 
             // Отправляем информацию о всех активных голосовых каналах
             rooms.forEach((room, roomId) => {

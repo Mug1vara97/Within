@@ -43,6 +43,9 @@ export const VoiceChannelProvider = ({ children }) => {
           // Если участников нет, удаляем канал из списка
           newChannels.delete(channelId);
           console.log('VoiceChannelContext: Removed empty channel:', channelId);
+          
+          // Дополнительно уведомляем о том, что канал пустой
+          console.log('VoiceChannelContext: Channel is now empty, all participants left');
         }
         return newChannels;
       });
@@ -212,6 +215,11 @@ export const VoiceChannelProvider = ({ children }) => {
         console.log('VoiceChannelContext: Force syncing participants');
         _socket.emit('getVoiceChannelParticipants');
       }
+    },
+    // Функция для принудительной очистки всех данных
+    clearAllChannels: () => {
+      console.log('VoiceChannelContext: Clearing all channels');
+      setVoiceChannels(new Map());
     }
   };
 
