@@ -1,6 +1,7 @@
 import React from 'react';
 import { Draggable } from '@hello-pangea/dnd';
-import { FaHashtag, FaMicrophone, FaCog, FaLock } from 'react-icons/fa';
+import { FaHashtag, FaMicrophone, FaCog, FaLock, FaUser } from 'react-icons/fa';
+import { useVoiceChannel } from './contexts/VoiceChannelContext';
 
 const ChatItem = ({ 
     chat, 
@@ -13,6 +14,7 @@ const ChatItem = ({
     handleGroupChatClick
 }) => {
     const isDragDisabled = !(isServerOwner || userPermissions?.manageChannels);
+    const { getVoiceChannelParticipants, getVoiceChannelParticipantCount } = useVoiceChannel();
 
     console.log('ChatItem render:', {
         chatId: chat.chatId,
@@ -65,6 +67,27 @@ const ChatItem = ({
                                     {chat.isPrivate && <FaLock className="private-icon" />}
                                 </div>
                                 <span className="channel-name">{chat.name}</span>
+                                {chat.typeId === 2 && (() => {
+                                    const participantCount = getVoiceChannelParticipantCount(chat.chatId);
+                                    const participants = getVoiceChannelParticipants(chat.chatId);
+                                    return participantCount > 0 ? (
+                                        <div className="voice-channel-participants">
+                                            <span className="participant-count">{participantCount}</span>
+                                            <div className="participant-avatars">
+                                                {participants.slice(0, 3).map((participant, index) => (
+                                                    <div key={index} className="participant-avatar">
+                                                        <FaUser />
+                                                    </div>
+                                                ))}
+                                                {participants.length > 3 && (
+                                                    <div className="more-participants">
+                                                        +{participants.length - 3}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ) : null;
+                                })()}
                             </div>
                             {(isServerOwner || userPermissions?.manageRoles) && (
                                 <div 

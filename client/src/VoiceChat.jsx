@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, useContext, forwardRef, useImperativeHandle } from 'react';
+import { useVoiceChannel } from './contexts/VoiceChannelContext';
 import { createPortal } from 'react-dom';
 import {
   Container,
@@ -1163,6 +1164,7 @@ const VideoView = React.memo(({
 });
 
 const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true }, ref) => {
+  const { addVoiceChannelParticipant, removeVoiceChannelParticipant, updateVoiceChannelParticipant } = useVoiceChannel();
   const [isJoined, setIsJoined] = useState(false);
 
   const [isMuted, setIsMuted] = useState(initialMuted);
@@ -1384,6 +1386,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
     // Обработчики состояния говорения и отключения звука
     socket.on('speakingStateChanged', ({ peerId, speaking }) => {
+      // Update voice channel context
+      updateVoiceChannelParticipant(roomId, peerId, { isSpeaking: Boolean(speaking) });
+      
       setSpeakingStates(prev => {
         const newStates = new Map(prev);
         newStates.set(peerId, speaking);
@@ -1392,6 +1397,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     });
 
     socket.on('peerMuteStateChanged', ({ peerId, isMuted }) => {
+      // Update voice channel context
+      updateVoiceChannelParticipant(roomId, peerId, { isMuted: Boolean(isMuted) });
+      
       setVolumes(prev => {
         const newVolumes = new Map(prev);
         newVolumes.set(peerId, isMuted ? 0 : 100);
@@ -1439,6 +1447,15 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     setIsAudioEnabled(initialAudioEnabled);
     isAudioEnabledRef.current = initialAudioEnabled;
     setIsMuted(initialMuted); // Reset to initial mute state
+    
+    // Clear voice channel participants
+    if (roomId) {
+      // Remove all participants from this voice channel
+      const currentPeers = Array.from(peers.keys());
+      currentPeers.forEach(peerId => {
+        removeVoiceChannelParticipant(roomId, peerId);
+      });
+    }
     
     // Reset all UI states
     setPeers(new Map());
@@ -1684,6 +1701,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       socket.on('peerJoined', ({ peerId, name, isMuted, isAudioEnabled }) => {
         console.log('New peer joined:', { peerId, name, isMuted, isAudioEnabled });
         
+        // Add participant to voice channel context
+        addVoiceChannelParticipant(roomId, peerId, {
+          name: name,
+          isMuted: Boolean(isMuted),
+          isSpeaking: false
+        });
+        
         // Update peers state
         setPeers(prev => {
           const newPeers = new Map(prev);
@@ -1726,6 +1750,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
       socket.on('peerLeft', ({ peerId }) => {
         console.log('Peer left:', peerId);
+        
+        // Remove participant from voice channel context
+        removeVoiceChannelParticipant(roomId, peerId);
+        
         setPeers(prev => {
           const newPeers = new Map(prev);
           newPeers.delete(peerId);

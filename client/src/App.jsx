@@ -5,6 +5,7 @@ import Login from './Authentication/Login';
 import Register from './Authentication/Register';
 import "./UserProfile.css"
 import { AudioProvider } from './contexts/AudioContext';
+import { VoiceChannelProvider } from './contexts/VoiceChannelContext';
 
 
 const App = () => {
@@ -26,6 +27,7 @@ const App = () => {
 
     return (
         <AudioProvider>
+            <VoiceChannelProvider>
                 <Router>
                     <Routes>
                         <Route path="/*" element={user.username ? <Home user={user} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />} />
@@ -33,6 +35,7 @@ const App = () => {
                         <Route path="/register" element={<Register />} />
                     </Routes>
                 </Router>
+            </VoiceChannelProvider>
         </AudioProvider>
     );
 };
