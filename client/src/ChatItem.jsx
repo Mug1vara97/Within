@@ -69,15 +69,13 @@ const ChatItem = ({
                                 </div>
                                 <span className="channel-name">{chat.name}</span>
                                 {(() => {
-                                    const isVoiceChannel = chat.chatType === 4;
+                                    const isVoiceChannel = chat.typeId === 4;
                                     console.log('Voice channel condition check:', {
                                         chatId: chat.chatId,
                                         chatName: chat.name,
                                         typeId: chat.typeId,
                                         chatType: chat.chatType,
-                                        isVoiceChannel,
-                                        condition1: chat.typeId === 2,
-                                        condition2: chat.chatType === 4
+                                        isVoiceChannel
                                     });
                                     return isVoiceChannel ? (() => {
                                         const channelId = chat.chatId || chat.id;
