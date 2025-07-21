@@ -82,7 +82,7 @@ const config = {
     autoGainControl: true,
     sampleRate: 48000,
     channelCount: 2,
-    volume: 1.0,
+    volume: 4.0,
     latency: 0,
     suppressLocalAudioPlayback: true,
     advanced: [
