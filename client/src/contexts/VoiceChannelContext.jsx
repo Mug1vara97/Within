@@ -9,14 +9,7 @@ export const VoiceChannelProvider = ({ children }) => {
 
   // Инициализация WebSocket соединения для получения информации о участниках
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    const newSocket = io('http://localhost:5000', {
-      auth: {
-        token: localStorage.getItem('token')
-      }
-    });
+    const newSocket = io('https://whithin.ru');
 
     setSocket(newSocket);
 
