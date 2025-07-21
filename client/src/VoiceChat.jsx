@@ -1455,6 +1455,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       currentPeers.forEach(peerId => {
         removeVoiceChannelParticipant(roomId, peerId);
       });
+      // Remove current user from voice channel context
+      removeVoiceChannelParticipant(roomId, userId);
     }
     
     // Reset all UI states
@@ -1702,6 +1704,12 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         console.log('New peer joined:', { peerId, name, isMuted, isAudioEnabled });
         
         // Add participant to voice channel context
+        console.log('Adding voice channel participant:', {
+          roomId,
+          peerId,
+          name,
+          isMuted: Boolean(isMuted)
+        });
         addVoiceChannelParticipant(roomId, peerId, {
           name: name,
           isMuted: Boolean(isMuted),
@@ -1789,6 +1797,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           try {
             console.log('Joined room, initializing connection...');
             
+            // Add current user to voice channel context
+            addVoiceChannelParticipant(roomId, userId, {
+              name: userName,
+              isMuted: initialMuted,
+              isSpeaking: false
+            });
+            
             // Update peers state with existing peers
             if (existingPeers && existingPeers.length > 0) {
               console.log('Setting existing peers:', existingPeers);
@@ -1797,6 +1812,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
               const volumesMap = new Map();
               
               existingPeers.forEach(peer => {
+                // Add existing peer to voice channel context
+                addVoiceChannelParticipant(roomId, peer.id, {
+                  name: peer.name,
+                  isMuted: peer.isMuted || false,
+                  isSpeaking: false
+                });
+                
                 peersMap.set(peer.id, { 
                   id: peer.id, 
                   name: peer.name, 

@@ -24,11 +24,18 @@ export const VoiceChannelProvider = ({ children }) => {
     };
 
     const addVoiceChannelParticipant = (channelId, userId, participantData) => {
+        console.log('VoiceChannelContext: Adding participant:', {
+            channelId,
+            userId,
+            participantData,
+            currentChannels: Array.from(voiceChannels.keys())
+        });
         setVoiceChannels(prev => {
             const newChannels = new Map(prev);
             const channel = newChannels.get(channelId) || { participants: new Map() };
             channel.participants.set(userId, participantData);
             newChannels.set(channelId, channel);
+            console.log('VoiceChannelContext: Updated channels:', Array.from(newChannels.keys()));
             return newChannels;
         });
     };
@@ -66,12 +73,17 @@ export const VoiceChannelProvider = ({ children }) => {
 
     const getVoiceChannelParticipants = (channelId) => {
         const channel = voiceChannels.get(channelId);
-        return channel ? Array.from(channel.participants.values()) : [];
+        const participants = channel ? Array.from(channel.participants.values()) : [];
+        console.log('VoiceChannelContext: Getting participants for channel', channelId, ':', participants);
+        console.log('VoiceChannelContext: All channels:', Array.from(voiceChannels.keys()));
+        return participants;
     };
 
     const getVoiceChannelParticipantCount = (channelId) => {
         const channel = voiceChannels.get(channelId);
-        return channel ? channel.participants.size : 0;
+        const count = channel ? channel.participants.size : 0;
+        console.log('VoiceChannelContext: Getting participant count for channel', channelId, ':', count);
+        return count;
     };
 
     const value = {

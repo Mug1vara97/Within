@@ -18,6 +18,7 @@ const ChatItem = ({
 
     console.log('ChatItem render:', {
         chatId: chat.chatId,
+        chat: chat,
         index,
         isDragDisabled,
         hasManageChannels: userPermissions?.manageChannels,
@@ -63,13 +64,22 @@ const ChatItem = ({
                         >
                             <div className="channel-content">
                                 <div className="channel-icons">
-                                    {chat.typeId === 3 ? <FaHashtag /> : <FaMicrophone />}
+                                    {(chat.typeId === 3 || chat.chatType === 3) ? <FaHashtag /> : <FaMicrophone />}
                                     {chat.isPrivate && <FaLock className="private-icon" />}
                                 </div>
                                 <span className="channel-name">{chat.name}</span>
-                                {chat.typeId === 2 && (() => {
-                                    const participantCount = getVoiceChannelParticipantCount(chat.chatId);
-                                    const participants = getVoiceChannelParticipants(chat.chatId);
+                                {(chat.typeId === 2 || chat.chatType === 4) && (() => {
+                                    const channelId = chat.chatId || chat.id;
+                                    const participantCount = getVoiceChannelParticipantCount(channelId);
+                                    const participants = getVoiceChannelParticipants(channelId);
+                                    console.log('Voice channel participants:', {
+                                        chatId: chat.chatId,
+                                        chatIdAlt: chat.id,
+                                        channelId,
+                                        chatName: chat.name,
+                                        participantCount,
+                                        participants
+                                    });
                                     return participantCount > 0 ? (
                                         <div className="voice-channel-participants">
                                             <span className="participant-count">{participantCount}</span>
