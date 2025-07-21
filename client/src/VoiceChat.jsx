@@ -1388,6 +1388,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     socket.on('speakingStateChanged', ({ peerId, speaking }) => {
       // Update voice channel context
       updateVoiceChannelParticipant(roomId, peerId, { isSpeaking: Boolean(speaking) });
+
+      // Уведомляем сервер об изменении состояния участника
+      socket.emit('voiceChannelParticipantStateChanged', {
+        channelId: roomId,
+        userId: peerId,
+        isMuted: false, // Получаем из текущего состояния
+        isSpeaking: Boolean(speaking)
+      });
       
       setSpeakingStates(prev => {
         const newStates = new Map(prev);
@@ -1399,6 +1407,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     socket.on('peerMuteStateChanged', ({ peerId, isMuted }) => {
       // Update voice channel context
       updateVoiceChannelParticipant(roomId, peerId, { isMuted: Boolean(isMuted) });
+
+      // Уведомляем сервер об изменении состояния участника
+      socket.emit('voiceChannelParticipantStateChanged', {
+        channelId: roomId,
+        userId: peerId,
+        isMuted: Boolean(isMuted),
+        isSpeaking: false // Получаем из текущего состояния
+      });
       
       setVolumes(prev => {
         const newVolumes = new Map(prev);
@@ -1715,6 +1731,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           isMuted: Boolean(isMuted),
           isSpeaking: false
         });
+
+        // Уведомляем сервер о присоединении пользователя к голосовому каналу
+        socket.emit('userJoinedVoiceChannel', {
+          channelId: roomId,
+          userId: peerId,
+          userName: name,
+          isMuted: Boolean(isMuted)
+        });
         
         // Update peers state
         setPeers(prev => {
@@ -1761,6 +1785,12 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         
         // Remove participant from voice channel context
         removeVoiceChannelParticipant(roomId, peerId);
+
+        // Уведомляем сервер о выходе пользователя из голосового канала
+        socket.emit('userLeftVoiceChannel', {
+          channelId: roomId,
+          userId: peerId
+        });
         
         setPeers(prev => {
           const newPeers = new Map(prev);

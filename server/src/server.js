@@ -1111,6 +1111,77 @@ io.on('connection', async (socket) => {
             callback([]);
         }
     });
+
+    // Обработчик для получения информации о участниках голосовых каналов
+    socket.on('getVoiceChannelParticipants', () => {
+        try {
+            // Отправляем информацию о всех активных голосовых каналах
+            rooms.forEach((room, roomId) => {
+                if (room.peers.size > 0) {
+                    const participants = [];
+                    room.peers.forEach((peer) => {
+                        participants.push({
+                            userId: peer.id,
+                            name: peer.name,
+                            isMuted: peer.isMuted(),
+                            isSpeaking: peer.isSpeaking()
+                        });
+                    });
+                    
+                    // Отправляем информацию всем подключенным клиентам
+                    io.emit('voiceChannelParticipantsUpdate', {
+                        channelId: roomId,
+                        participants: participants
+                    });
+                }
+            });
+        } catch (error) {
+            console.error('Error in getVoiceChannelParticipants:', error);
+        }
+    });
+
+    // Обработчик для уведомления о присоединении пользователя к голосовому каналу
+    socket.on('userJoinedVoiceChannel', ({ channelId, userId, userName, isMuted }) => {
+        try {
+            // Отправляем уведомление всем клиентам
+            io.emit('userJoinedVoiceChannel', {
+                channelId,
+                userId,
+                userName,
+                isMuted
+            });
+        } catch (error) {
+            console.error('Error in userJoinedVoiceChannel:', error);
+        }
+    });
+
+    // Обработчик для уведомления о выходе пользователя из голосового канала
+    socket.on('userLeftVoiceChannel', ({ channelId, userId }) => {
+        try {
+            // Отправляем уведомление всем клиентам
+            io.emit('userLeftVoiceChannel', {
+                channelId,
+                userId
+            });
+        } catch (error) {
+            console.error('Error in userLeftVoiceChannel:', error);
+        }
+    });
+
+    // Обработчик для уведомления об изменении состояния участника
+    socket.on('voiceChannelParticipantStateChanged', ({ channelId, userId, isMuted, isSpeaking }) => {
+        try {
+            // Отправляем уведомление всем клиентам
+            io.emit('voiceChannelParticipantStateChanged', {
+                channelId,
+                userId,
+                isMuted,
+                isSpeaking
+            });
+        } catch (error) {
+            console.error('Error in voiceChannelParticipantStateChanged:', error);
+        }
+    });
 });
 
 async function run() {
