@@ -1180,22 +1180,33 @@ io.on('connection', async (socket) => {
         try {
             // Проверяем, есть ли еще участники в комнате
             const room = rooms.get(channelId);
-            if (room && room.peers.size === 0) {
-                // Если комната пустая, удаляем её и уведомляем всех клиентов
-                rooms.delete(channelId);
-                console.log(`Empty room ${channelId} removed via userLeftVoiceChannel`);
+            if (room) {
+                // Удаляем пользователя из комнаты
+                const peer = Array.from(room.peers.values()).find(p => p.id === userId);
+                if (peer) {
+                    room.removePeer(peer);
+                    console.log(`User ${userId} removed from room ${channelId}`);
+                }
                 
-                // Уведомляем всех клиентов о том, что комната стала пустой
-                io.emit('voiceChannelParticipantsUpdate', {
-                    channelId: channelId,
-                    participants: []
-                });
+                // Если комната стала пустой, удаляем её и уведомляем всех клиентов
+                if (room.peers.size === 0) {
+                    rooms.delete(channelId);
+                    console.log(`Empty room ${channelId} removed via userLeftVoiceChannel`);
+                    
+                    // Уведомляем всех клиентов о том, что комната стала пустой
+                    io.emit('voiceChannelParticipantsUpdate', {
+                        channelId: channelId,
+                        participants: []
+                    });
+                } else {
+                    // Отправляем уведомление всем клиентам о выходе конкретного пользователя
+                    io.emit('userLeftVoiceChannel', {
+                        channelId,
+                        userId
+                    });
+                }
             } else {
-                // Отправляем уведомление всем клиентам о выходе конкретного пользователя
-                io.emit('userLeftVoiceChannel', {
-                    channelId,
-                    userId
-                });
+                console.log(`Room ${channelId} not found for user ${userId}`);
             }
         } catch (error) {
             console.error('Error in userLeftVoiceChannel:', error);

@@ -14,7 +14,7 @@ const ChatItem = ({
     handleGroupChatClick
 }) => {
     const isDragDisabled = !(isServerOwner || userPermissions?.manageChannels);
-    const { getVoiceChannelParticipants, forceSync, voiceChannels, clearAllChannels } = useVoiceChannel();
+    const { getVoiceChannelParticipants, voiceChannels } = useVoiceChannel();
 
     console.log('ChatItem render:', {
         chatId: chat.chatId,
@@ -62,6 +62,11 @@ const ChatItem = ({
                                 );
                                 
                                 const participantCount = uniqueParticipants.length;
+                                
+                                // Если участников нет, не показываем канал
+                                if (participantCount === 0) {
+                                    return null;
+                                }
                                 console.log('Voice channel participants:', {
                                     chatId: chat.chatId,
                                     chatIdAlt: chat.id,
@@ -112,48 +117,7 @@ const ChatItem = ({
                                                         {participantCount}
                                                     </span>
                                                 )}
-                                                {isVoiceChannel && (
-                                                    <>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                forceSync();
-                                                            }}
-                                                            style={{
-                                                                marginLeft: '8px',
-                                                                fontSize: '0.7em',
-                                                                padding: '2px 4px',
-                                                                backgroundColor: '#4a4a4a',
-                                                                border: 'none',
-                                                                borderRadius: '3px',
-                                                                color: '#8e9297',
-                                                                cursor: 'pointer'
-                                                            }}
-                                                            title="Синхронизировать участников"
-                                                        >
-                                                            🔄
-                                                        </button>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                clearAllChannels();
-                                                            }}
-                                                            style={{
-                                                                marginLeft: '4px',
-                                                                fontSize: '0.7em',
-                                                                padding: '2px 4px',
-                                                                backgroundColor: '#ed4245',
-                                                                border: 'none',
-                                                                borderRadius: '3px',
-                                                                color: '#ffffff',
-                                                                cursor: 'pointer'
-                                                            }}
-                                                            title="Очистить все данные"
-                                                        >
-                                                            🗑️
-                                                        </button>
-                                                    </>
-                                                )}
+
                                             </div>
                                             {(isServerOwner || userPermissions?.manageRoles) && (
                                                 <div 

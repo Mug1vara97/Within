@@ -209,18 +209,7 @@ export const VoiceChannelProvider = ({ children }) => {
     updateVoiceChannelParticipant,
     getVoiceChannelParticipants,
     getVoiceChannelParticipantCount,
-    // Функция для принудительной синхронизации
-    forceSync: () => {
-      if (_socket) {
-        console.log('VoiceChannelContext: Force syncing participants');
-        _socket.emit('getVoiceChannelParticipants');
-      }
-    },
-    // Функция для принудительной очистки всех данных
-    clearAllChannels: () => {
-      console.log('VoiceChannelContext: Clearing all channels');
-      setVoiceChannels(new Map());
-    }
+
   };
 
   return (
