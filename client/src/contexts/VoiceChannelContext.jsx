@@ -1,17 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import io from 'socket.io-client';
-import { useAuth } from './AuthContext';
 
 const VoiceChannelContext = createContext();
 
 export const VoiceChannelProvider = ({ children }) => {
   const [voiceChannels, setVoiceChannels] = useState(new Map());
-  const { user } = useAuth();
   const [_socket, setSocket] = useState(null);
 
   // Инициализация WebSocket соединения для получения информации о участниках
   useEffect(() => {
-    if (!user) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
 
     const newSocket = io('http://localhost:5000', {
       auth: {
@@ -100,7 +99,7 @@ export const VoiceChannelProvider = ({ children }) => {
     return () => {
       newSocket.disconnect();
     };
-  }, [user]);
+  }, []);
 
   const updateVoiceChannelParticipants = useCallback((channelId, participants) => {
     console.log('VoiceChannelContext: Updating participants for channel:', channelId, participants);
