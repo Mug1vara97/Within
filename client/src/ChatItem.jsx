@@ -68,35 +68,47 @@ const ChatItem = ({
                                     {chat.isPrivate && <FaLock className="private-icon" />}
                                 </div>
                                 <span className="channel-name">{chat.name}</span>
-                                {(chat.typeId === 2 || chat.chatType === 4) && (() => {
-                                    const channelId = chat.chatId || chat.id;
-                                    const participantCount = getVoiceChannelParticipantCount(channelId);
-                                    const participants = getVoiceChannelParticipants(channelId);
-                                    console.log('Voice channel participants:', {
+                                {(() => {
+                                    const isVoiceChannel = chat.chatType === 4;
+                                    console.log('Voice channel condition check:', {
                                         chatId: chat.chatId,
-                                        chatIdAlt: chat.id,
-                                        channelId,
                                         chatName: chat.name,
-                                        participantCount,
-                                        participants
+                                        typeId: chat.typeId,
+                                        chatType: chat.chatType,
+                                        isVoiceChannel,
+                                        condition1: chat.typeId === 2,
+                                        condition2: chat.chatType === 4
                                     });
-                                    return participantCount > 0 ? (
-                                        <div className="voice-channel-participants">
-                                            <span className="participant-count">{participantCount}</span>
-                                            <div className="participant-avatars">
-                                                {participants.slice(0, 3).map((participant, index) => (
-                                                    <div key={index} className="participant-avatar">
-                                                        <FaUser />
-                                                    </div>
-                                                ))}
-                                                {participants.length > 3 && (
-                                                    <div className="more-participants">
-                                                        +{participants.length - 3}
-                                                    </div>
-                                                )}
+                                    return isVoiceChannel ? (() => {
+                                        const channelId = chat.chatId || chat.id;
+                                        const participantCount = getVoiceChannelParticipantCount(channelId);
+                                        const participants = getVoiceChannelParticipants(channelId);
+                                        console.log('Voice channel participants:', {
+                                            chatId: chat.chatId,
+                                            chatIdAlt: chat.id,
+                                            channelId,
+                                            chatName: chat.name,
+                                            participantCount,
+                                            participants
+                                        });
+                                        return participantCount > 0 ? (
+                                            <div className="voice-channel-participants">
+                                                <span className="participant-count">{participantCount}</span>
+                                                <div className="participant-avatars">
+                                                    {participants.slice(0, 3).map((participant, index) => (
+                                                        <div key={index} className="participant-avatar">
+                                                            <FaUser />
+                                                        </div>
+                                                    ))}
+                                                    {participants.length > 3 && (
+                                                        <div className="more-participants">
+                                                            +{participants.length - 3}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ) : null;
+                                        ) : null;
+                                    })() : null;
                                 })()}
                             </div>
                             {(isServerOwner || userPermissions?.manageRoles) && (
