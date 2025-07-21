@@ -1252,6 +1252,23 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   const [fullscreenShare, setFullscreenShare] = useState(null);
 
+  // Обработчик для уведомления о выходе при закрытии вкладки
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (roomId && userId && socketRef.current) {
+        socketRef.current.emit('userLeftVoiceChannel', {
+          channelId: roomId,
+          userId: userId
+        });
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [roomId, userId]);
+
   useEffect(() => {
     const resumeAudioContext = async () => {
       if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
@@ -1473,6 +1490,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       });
       // Remove current user from voice channel context
       removeVoiceChannelParticipant(roomId, userId);
+
+      // Уведомляем сервер о выходе текущего пользователя из голосового канала
+      if (socketRef.current) {
+        socketRef.current.emit('userLeftVoiceChannel', {
+          channelId: roomId,
+          userId: userId
+        });
+      }
     }
     
     // Reset all UI states
@@ -1710,6 +1735,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       socket.on('disconnect', () => {
         console.log('Socket disconnected');
 
+        // Уведомляем сервер о выходе пользователя из голосового канала при отключении
+        if (roomId && userId) {
+          socket.emit('userLeftVoiceChannel', {
+            channelId: roomId,
+            userId: userId
+          });
+        }
+
         setIsJoined(false);
         setPeers(new Map());
         cleanup();
@@ -1833,6 +1866,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
               isMuted: initialMuted,
               isSpeaking: false
             });
+
+            // Уведомляем сервер о присоединении пользователя к голосовому каналу
+            socket.emit('userJoinedVoiceChannel', {
+              channelId: roomId,
+              userId: userId,
+              userName: userName,
+              isMuted: initialMuted
+            });
             
             // Update peers state with existing peers
             if (existingPeers && existingPeers.length > 0) {
@@ -1847,6 +1888,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                   name: peer.name,
                   isMuted: peer.isMuted || false,
                   isSpeaking: false
+                });
+
+                // Уведомляем сервер о существующих участниках
+                socket.emit('userJoinedVoiceChannel', {
+                  channelId: roomId,
+                  userId: peer.id,
+                  userName: peer.name,
+                  isMuted: peer.isMuted || false
                 });
                 
                 peersMap.set(peer.id, { 
@@ -3040,6 +3089,15 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   const handleLeaveCall = () => {
     console.log('Leaving voice call...');
+    
+    // Уведомляем сервер о выходе пользователя из голосового канала
+    if (roomId && socketRef.current) {
+      socketRef.current.emit('userLeftVoiceChannel', {
+        channelId: roomId,
+        userId: userId
+      });
+    }
+    
     // Очищаем локальное состояние
     cleanup();
     setIsJoined(false);
