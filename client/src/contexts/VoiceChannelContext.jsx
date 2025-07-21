@@ -48,12 +48,20 @@ export const VoiceChannelProvider = ({ children }) => {
           newChannels.set(channelId, { participants: new Map() });
         }
         const channel = newChannels.get(channelId);
-        channel.participants.set(userId, {
-          id: userId,
-          name: userName,
-          isMuted: Boolean(isMuted),
-          isSpeaking: false
-        });
+        
+        // Проверяем, не существует ли уже участник с таким ID
+        if (!channel.participants.has(userId)) {
+          channel.participants.set(userId, {
+            id: userId,
+            name: userName,
+            isMuted: Boolean(isMuted),
+            isSpeaking: false
+          });
+          console.log('VoiceChannelContext: Added new participant:', userId);
+        } else {
+          console.log('VoiceChannelContext: Participant already exists:', userId);
+        }
+        
         return newChannels;
       });
     });
@@ -119,10 +127,18 @@ export const VoiceChannelProvider = ({ children }) => {
         newChannels.set(channelId, { participants: new Map() });
       }
       const channel = newChannels.get(channelId);
-      channel.participants.set(userId, {
-        id: userId,
-        ...participantData
-      });
+      
+      // Проверяем, не существует ли уже участник с таким ID
+      if (!channel.participants.has(userId)) {
+        channel.participants.set(userId, {
+          id: userId,
+          ...participantData
+        });
+        console.log('VoiceChannelContext: Added new participant via addVoiceChannelParticipant:', userId);
+      } else {
+        console.log('VoiceChannelContext: Participant already exists via addVoiceChannelParticipant:', userId);
+      }
+      
       return newChannels;
     });
   }, []);

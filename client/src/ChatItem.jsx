@@ -14,7 +14,7 @@ const ChatItem = ({
     handleGroupChatClick
 }) => {
     const isDragDisabled = !(isServerOwner || userPermissions?.manageChannels);
-    const { getVoiceChannelParticipants, getVoiceChannelParticipantCount } = useVoiceChannel();
+    const { getVoiceChannelParticipants } = useVoiceChannel();
 
     console.log('ChatItem render:', {
         chatId: chat.chatId,
@@ -54,15 +54,21 @@ const ChatItem = ({
                             
                             if (isVoiceChannel) {
                                 const channelId = chat.chatId || chat.id;
-                                const participantCount = getVoiceChannelParticipantCount(channelId);
                                 const participants = getVoiceChannelParticipants(channelId);
+                                
+                                // Убираем дубликаты участников по ID
+                                const uniqueParticipants = participants.filter((participant, index, self) => 
+                                    index === self.findIndex(p => p.id === participant.id)
+                                );
+                                
+                                const participantCount = uniqueParticipants.length;
                                 console.log('Voice channel participants:', {
                                     chatId: chat.chatId,
                                     chatIdAlt: chat.id,
                                     channelId,
                                     chatName: chat.name,
                                     participantCount,
-                                    participants
+                                    participants: uniqueParticipants
                                 });
                                 
                                 return (
@@ -129,9 +135,9 @@ const ChatItem = ({
                                                 </div>
                                             )}
                                         </li>
-                                        {participantCount > 0 && participants.map((participant, index) => (
+                                        {participantCount > 0 && uniqueParticipants.map((participant) => (
                                             <li
-                                                key={`participant-${channelId}-${index}`}
+                                                key={`participant-${channelId}-${participant.id}`}
                                                 className="voice-channel-participant"
                                                 style={{
                                                     paddingLeft: '20px',

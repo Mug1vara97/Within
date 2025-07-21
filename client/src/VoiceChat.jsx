@@ -1889,14 +1889,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                   isMuted: peer.isMuted || false,
                   isSpeaking: false
                 });
-
-                // Уведомляем сервер о существующих участниках
-                socket.emit('userJoinedVoiceChannel', {
-                  channelId: roomId,
-                  userId: peer.id,
-                  userName: peer.name,
-                  isMuted: peer.isMuted || false
-                });
                 
                 peersMap.set(peer.id, { 
                   id: peer.id, 
