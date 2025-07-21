@@ -93,6 +93,18 @@ const ChatItem = ({
                                                     {chat.isPrivate && <FaLock className="private-icon" />}
                                                 </div>
                                                 <span className="channel-name">{chat.name}</span>
+                                                {participantCount > 0 && (
+                                                    <span className="participant-count" style={{ 
+                                                        marginLeft: 'auto', 
+                                                        fontSize: '0.8em', 
+                                                        color: '#8e9297',
+                                                        backgroundColor: '#36393f',
+                                                        padding: '2px 6px',
+                                                        borderRadius: '10px'
+                                                    }}>
+                                                        {participantCount}
+                                                    </span>
+                                                )}
                                             </div>
                                             {(isServerOwner || userPermissions?.manageRoles) && (
                                                 <div 
@@ -128,7 +140,10 @@ const ChatItem = ({
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     gap: '8px',
-                                                    height: '28px'
+                                                    height: '28px',
+                                                    backgroundColor: 'transparent',
+                                                    border: 'none',
+                                                    cursor: 'default'
                                                 }}
                                             >
                                                 <FaUser style={{ fontSize: '12px' }} />
