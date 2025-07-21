@@ -1115,6 +1115,14 @@ io.on('connection', async (socket) => {
     // Обработчик для получения информации о участниках голосовых каналов
     socket.on('getVoiceChannelParticipants', () => {
         try {
+            // Очищаем пустые комнаты
+            for (const [roomId, room] of rooms.entries()) {
+                if (room.peers.size === 0) {
+                    console.log('Removing empty room:', roomId);
+                    rooms.delete(roomId);
+                }
+            }
+
             // Отправляем информацию о всех активных голосовых каналах
             rooms.forEach((room, roomId) => {
                 if (room.peers.size > 0) {
@@ -1127,6 +1135,8 @@ io.on('connection', async (socket) => {
                             isSpeaking: peer.isSpeaking()
                         });
                     });
+                    
+                    console.log(`Room ${roomId} has ${participants.length} participants`);
                     
                     // Отправляем информацию всем подключенным клиентам
                     io.emit('voiceChannelParticipantsUpdate', {
@@ -1180,6 +1190,35 @@ io.on('connection', async (socket) => {
             });
         } catch (error) {
             console.error('Error in voiceChannelParticipantStateChanged:', error);
+        }
+    });
+
+    // Обработчик отключения сокета
+    socket.on('disconnect', () => {
+        console.log('Client disconnected:', socket.id);
+        
+        const peer = peers.get(socket.id);
+        if (peer) {
+            const roomId = peer.roomId;
+            const room = rooms.get(roomId);
+            
+            if (room) {
+                // Удаляем peer из комнаты
+                room.removePeer(peer);
+                console.log(`Peer ${socket.id} removed from room ${roomId}`);
+                
+                // Если комната пустая, удаляем её
+                if (room.peers.size === 0) {
+                    rooms.delete(roomId);
+                    console.log(`Empty room ${roomId} removed`);
+                } else {
+                    // Уведомляем остальных участников о выходе
+                    socket.to(roomId).emit('peerLeft', { peerId: socket.id });
+                }
+            }
+            
+            // Удаляем peer из глобального списка
+            peers.delete(socket.id);
         }
     });
 });

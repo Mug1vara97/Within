@@ -14,7 +14,7 @@ const ChatItem = ({
     handleGroupChatClick
 }) => {
     const isDragDisabled = !(isServerOwner || userPermissions?.manageChannels);
-    const { getVoiceChannelParticipants } = useVoiceChannel();
+    const { getVoiceChannelParticipants, forceSync } = useVoiceChannel();
 
     console.log('ChatItem render:', {
         chatId: chat.chatId,
@@ -110,6 +110,27 @@ const ChatItem = ({
                                                     }}>
                                                         {participantCount}
                                                     </span>
+                                                )}
+                                                {isVoiceChannel && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            forceSync();
+                                                        }}
+                                                        style={{
+                                                            marginLeft: '8px',
+                                                            fontSize: '0.7em',
+                                                            padding: '2px 4px',
+                                                            backgroundColor: '#4a4a4a',
+                                                            border: 'none',
+                                                            borderRadius: '3px',
+                                                            color: '#8e9297',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                        title="Синхронизировать участников"
+                                                    >
+                                                        🔄
+                                                    </button>
                                                 )}
                                             </div>
                                             {(isServerOwner || userPermissions?.manageRoles) && (

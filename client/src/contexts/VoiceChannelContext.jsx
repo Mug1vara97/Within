@@ -16,11 +16,17 @@ export const VoiceChannelProvider = ({ children }) => {
     // Получаем информацию о всех голосовых каналах и их участниках
     newSocket.emit('getVoiceChannelParticipants');
 
+    // Периодически запрашиваем актуальные данные о участниках
+    const syncInterval = setInterval(() => {
+      newSocket.emit('getVoiceChannelParticipants');
+    }, 30000); // Каждые 30 секунд
+
     // Слушаем обновления участников голосовых каналов
     newSocket.on('voiceChannelParticipantsUpdate', ({ channelId, participants }) => {
       console.log('VoiceChannelContext: Received participants update:', { channelId, participants });
       setVoiceChannels(prev => {
         const newChannels = new Map(prev);
+        // Полностью заменяем данные о участниках для этого канала
         if (participants && participants.length > 0) {
           const participantsMap = new Map();
           participants.forEach(participant => {
@@ -32,8 +38,10 @@ export const VoiceChannelProvider = ({ children }) => {
             });
           });
           newChannels.set(channelId, { participants: participantsMap });
+          console.log('VoiceChannelContext: Updated channel participants:', channelId, participantsMap.size);
         } else {
           newChannels.delete(channelId);
+          console.log('VoiceChannelContext: Removed empty channel:', channelId);
         }
         return newChannels;
       });
@@ -98,6 +106,7 @@ export const VoiceChannelProvider = ({ children }) => {
     });
 
     return () => {
+      clearInterval(syncInterval);
       newSocket.disconnect();
     };
   }, []);
@@ -174,7 +183,9 @@ export const VoiceChannelProvider = ({ children }) => {
   const getVoiceChannelParticipants = useCallback((channelId) => {
     const channel = voiceChannels.get(channelId);
     if (!channel) return [];
-    return Array.from(channel.participants.values());
+    const participants = Array.from(channel.participants.values());
+    console.log(`VoiceChannelContext: Getting participants for channel ${channelId}:`, participants.length, participants);
+    return participants;
   }, [voiceChannels]);
 
   const getVoiceChannelParticipantCount = useCallback((channelId) => {
@@ -189,7 +200,14 @@ export const VoiceChannelProvider = ({ children }) => {
     removeVoiceChannelParticipant,
     updateVoiceChannelParticipant,
     getVoiceChannelParticipants,
-    getVoiceChannelParticipantCount
+    getVoiceChannelParticipantCount,
+    // Функция для принудительной синхронизации
+    forceSync: () => {
+      if (_socket) {
+        console.log('VoiceChannelContext: Force syncing participants');
+        _socket.emit('getVoiceChannelParticipants');
+      }
+    }
   };
 
   return (
