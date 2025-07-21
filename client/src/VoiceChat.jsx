@@ -1481,14 +1481,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     isAudioEnabledRef.current = initialAudioEnabled;
     setIsMuted(initialMuted); // Reset to initial mute state
     
-    // Clear voice channel participants
+    // Clear voice channel participants - удаляем только текущего пользователя
     if (roomId) {
-      // Remove all participants from this voice channel
-      const currentPeers = Array.from(peers.keys());
-      currentPeers.forEach(peerId => {
-        removeVoiceChannelParticipant(roomId, peerId);
-      });
-      // Remove current user from voice channel context
+      // Remove only current user from voice channel context
       removeVoiceChannelParticipant(roomId, userId);
 
       // Уведомляем сервер о выходе текущего пользователя из голосового канала
@@ -1497,6 +1492,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           channelId: roomId,
           userId: userId
         });
+        
+        // Запрашиваем обновленные данные о участниках
+        setTimeout(() => {
+          socketRef.current.emit('getVoiceChannelParticipants');
+        }, 1000); // Небольшая задержка, чтобы сервер успел обработать выход
       }
     }
     
@@ -1874,6 +1874,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
               userName: userName,
               isMuted: initialMuted
             });
+
+            // Запрашиваем актуальные данные о участниках
+            socket.emit('getVoiceChannelParticipants');
             
             // Update peers state with existing peers
             if (existingPeers && existingPeers.length > 0) {
@@ -3088,6 +3091,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         channelId: roomId,
         userId: userId
       });
+      
+      // Запрашиваем обновленные данные о участниках
+      setTimeout(() => {
+        socketRef.current.emit('getVoiceChannelParticipants');
+      }, 1000); // Небольшая задержка, чтобы сервер успел обработать выход
     }
     
     // Очищаем локальное состояние

@@ -14,7 +14,7 @@ const ChatItem = ({
     handleGroupChatClick
 }) => {
     const isDragDisabled = !(isServerOwner || userPermissions?.manageChannels);
-    const { getVoiceChannelParticipants, forceSync } = useVoiceChannel();
+    const { getVoiceChannelParticipants, forceSync, voiceChannels } = useVoiceChannel();
 
     console.log('ChatItem render:', {
         chatId: chat.chatId,
@@ -68,7 +68,8 @@ const ChatItem = ({
                                     channelId,
                                     chatName: chat.name,
                                     participantCount,
-                                    participants: uniqueParticipants
+                                    participants: uniqueParticipants,
+                                    allChannels: Array.from(voiceChannels.keys())
                                 });
                                 
                                 return (

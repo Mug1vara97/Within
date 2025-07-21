@@ -81,10 +81,14 @@ export const VoiceChannelProvider = ({ children }) => {
         const newChannels = new Map(prev);
         const channel = newChannels.get(channelId);
         if (channel) {
-          channel.participants.delete(userId);
+          const wasRemoved = channel.participants.delete(userId);
+          console.log('VoiceChannelContext: Participant removal result:', { userId, wasRemoved, remainingParticipants: channel.participants.size });
           if (channel.participants.size === 0) {
             newChannels.delete(channelId);
+            console.log('VoiceChannelContext: Removed empty channel:', channelId);
           }
+        } else {
+          console.log('VoiceChannelContext: Channel not found for user removal:', channelId);
         }
         return newChannels;
       });
