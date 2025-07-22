@@ -1183,6 +1183,28 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   const prevRoomIdRef = useRef(roomId);
 
+  // Функция для получения профиля пользователя
+  const fetchUserProfile = async (userId) => {
+    try {
+      const response = await fetch(`${BASE_URL}/api/profile/${userId}/profile`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.avatar && !data.avatar.startsWith('http')) {
+          data.avatar = `${BASE_URL}${data.avatar}`;
+        }
+        setUserProfiles(prev => {
+          const newProfiles = new Map(prev);
+          newProfiles.set(userId, data);
+          return newProfiles;
+        });
+        return data;
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+    return null;
+  };
+
   // Use userId and serverId in socket connection
   useEffect(() => {
     if (socketRef.current) {
@@ -1195,7 +1217,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     if (userId) {
       fetchUserProfile(userId);
     }
-  }, [userId, fetchUserProfile]);
+  }, [userId]);
 
 
 
@@ -1260,28 +1282,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const mutedPeersRef = useRef(new Map());
 
   const [fullscreenShare, setFullscreenShare] = useState(null);
-
-  // Функция для получения профиля пользователя
-  const fetchUserProfile = useCallback(async (userId) => {
-    try {
-      const response = await fetch(`${BASE_URL}/api/profile/${userId}/profile`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.avatar && !data.avatar.startsWith('http')) {
-          data.avatar = `${BASE_URL}${data.avatar}`;
-        }
-        setUserProfiles(prev => {
-          const newProfiles = new Map(prev);
-          newProfiles.set(userId, data);
-          return newProfiles;
-        });
-        return data;
-      }
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-    }
-    return null;
-  }, []);
 
   // Обработчик для уведомления о выходе при закрытии вкладки
   useEffect(() => {
