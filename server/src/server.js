@@ -1277,13 +1277,6 @@ io.on('connection', async (socket) => {
                         userId: socket.id
                     });
                 }
-            } else {
-                console.log(`Room ${roomId} not found for peer ${socket.id}`);
-                // Даже если комната не найдена, отправляем обновление с пустым списком участников
-                io.emit('voiceChannelParticipantsUpdate', {
-                    channelId: roomId,
-                    participants: []
-                });
             }
             
             // Удаляем peer из глобального списка

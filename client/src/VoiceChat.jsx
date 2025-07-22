@@ -1176,6 +1176,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const [peers, setPeers] = useState(new Map());
   const [error, setError] = useState('');
   const [userProfiles, setUserProfiles] = useState(new Map());
+  const [peerIdToUserId, setPeerIdToUserId] = useState(new Map());
       const [volumes, setVolumes] = useState(new Map());
     const [speakingStates, setSpeakingStates] = useState(new Map());
     const [audioStates, setAudioStates] = useState(new Map());
@@ -1183,10 +1184,36 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   const prevRoomIdRef = useRef(roomId);
 
+  // Функция для получения числового ID пользователя по WebRTC ID
+  const getNumericUserId = (peerId) => {
+    // Сначала проверяем маппинг
+    const mappedUserId = peerIdToUserId.get(peerId);
+    if (mappedUserId) {
+      return mappedUserId;
+    }
+    
+    // Если нет в маппинге, пробуем получить из контекста VoiceChannel
+    const participants = getVoiceChannelParticipants(roomId);
+    const participant = participants.find(p => p.id === peerId);
+    if (participant) {
+      return participant.id;
+    }
+    
+    // Если все еще не найдено, возвращаем null
+    return null;
+  };
+
   // Функция для получения профиля пользователя
   const fetchUserProfile = async (userId) => {
+    // Проверяем, является ли userId числовым
+    const numericUserId = parseInt(userId, 10);
+    if (isNaN(numericUserId)) {
+      console.warn('Invalid userId for profile fetch:', userId);
+      return null;
+    }
+
     try {
-      const response = await fetch(`${BASE_URL}/api/profile/${userId}/profile`);
+      const response = await fetch(`${BASE_URL}/api/profile/${numericUserId}/profile`);
       if (response.ok) {
         const data = await response.json();
         if (data.avatar && !data.avatar.startsWith('http')) {
@@ -1215,7 +1242,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   // Получаем профиль локального пользователя
   useEffect(() => {
     if (userId) {
-      fetchUserProfile(userId);
+      const numericUserId = parseInt(userId, 10);
+      if (!isNaN(numericUserId)) {
+        fetchUserProfile(numericUserId);
+      }
     }
   }, [userId]);
 
@@ -1225,7 +1255,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       const participants = getVoiceChannelParticipants(roomId);
       participants.forEach(participant => {
         if (participant.id !== userId) { // Не получаем профиль для себя
-          fetchUserProfile(participant.id);
+          const numericUserId = parseInt(participant.id, 10);
+          if (!isNaN(numericUserId)) {
+            fetchUserProfile(numericUserId);
+          }
         }
       });
     }
@@ -1237,8 +1270,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       const interval = setInterval(() => {
         const participants = getVoiceChannelParticipants(roomId);
         participants.forEach(participant => {
-          if (participant.id !== userId && !userProfiles.has(participant.id)) {
-            fetchUserProfile(participant.id);
+          if (participant.id !== userId) {
+            const numericUserId = parseInt(participant.id, 10);
+            if (!isNaN(numericUserId) && !userProfiles.has(numericUserId)) {
+              fetchUserProfile(numericUserId);
+            }
           }
         });
       }, 10000); // Проверяем каждые 10 секунд
@@ -1575,6 +1611,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     setRemoteVideos(new Map());
     setRemoteScreens(new Map());
     setUserProfiles(new Map());
+    setPeerIdToUserId(new Map());
 
     setIsJoined(false);
     setError('');
@@ -1881,7 +1918,12 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         individualMutedPeersRef.current.set(peerId, false);
 
         // Получаем профиль пользователя
-        fetchUserProfile(peerId);
+        const numericUserId = getNumericUserId(peerId);
+        if (numericUserId) {
+          fetchUserProfile(numericUserId);
+        } else {
+          console.warn('No numeric userId found for peer:', peerId);
+        }
       });
 
       socket.on('peerLeft', ({ peerId }) => {
@@ -1908,11 +1950,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         });
         
         // Удаляем профиль пользователя
-        setUserProfiles(prev => {
-          const newProfiles = new Map(prev);
-          newProfiles.delete(peerId);
-          return newProfiles;
-        });
+        const numericUserId = getNumericUserId(peerId);
+        if (numericUserId) {
+          setUserProfiles(prev => {
+            const newProfiles = new Map(prev);
+            newProfiles.delete(numericUserId);
+            return newProfiles;
+          });
+        }
       });
 
       // Обработчик обновлений участников из контекста
@@ -1921,7 +1966,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           console.log('VoiceChat: Received participants update:', { channelId, participants });
           participants.forEach(participant => {
             if (participant.userId !== userId) { // Не получаем профиль для себя
-              fetchUserProfile(participant.userId);
+              const numericUserId = parseInt(participant.userId, 10);
+              if (!isNaN(numericUserId)) {
+                fetchUserProfile(numericUserId);
+              }
             }
           });
         }
@@ -1931,7 +1979,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       socket.on('userJoinedVoiceChannel', ({ channelId, userId: joinedUserId, userName, isMuted }) => {
         if (channelId === roomId && joinedUserId !== userId) {
           console.log('VoiceChat: User joined from context:', { channelId, joinedUserId, userName });
-          fetchUserProfile(joinedUserId);
+          const numericUserId = parseInt(joinedUserId, 10);
+          if (!isNaN(numericUserId)) {
+            fetchUserProfile(numericUserId);
+          }
         }
       });
 
@@ -1939,11 +1990,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       socket.on('userLeftVoiceChannel', ({ channelId, userId: leftUserId }) => {
         if (channelId === roomId && leftUserId !== userId) {
           console.log('VoiceChat: User left from context:', { channelId, leftUserId });
-          setUserProfiles(prev => {
-            const newProfiles = new Map(prev);
-            newProfiles.delete(leftUserId);
-            return newProfiles;
-          });
+          const numericUserId = parseInt(leftUserId, 10);
+          if (!isNaN(numericUserId)) {
+            setUserProfiles(prev => {
+              const newProfiles = new Map(prev);
+              newProfiles.delete(numericUserId);
+              return newProfiles;
+            });
+          }
         }
       });
 
@@ -4364,11 +4418,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                     }}>
                       <Box sx={{
                         ...styles.userAvatar,
-                        backgroundColor: userProfiles.get(userId)?.avatarColor || '#5865F2'
+                        backgroundColor: userProfiles.get(parseInt(userId, 10))?.avatarColor || '#5865F2'
                       }}>
-                        {userProfiles.get(userId)?.avatar ? (
+                        {userProfiles.get(parseInt(userId, 10))?.avatar ? (
                           <img 
-                            src={userProfiles.get(userId).avatar} 
+                            src={userProfiles.get(parseInt(userId, 10)).avatar} 
                             alt="User avatar" 
                             style={{
                               width: '100%',
@@ -4423,11 +4477,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                       }}>
                         <Box sx={{
                           ...styles.userAvatar,
-                          backgroundColor: userProfiles.get(peer.id)?.avatarColor || '#5865F2'
+                          backgroundColor: userProfiles.get(getNumericUserId(peer.id))?.avatarColor || '#5865F2'
                         }}>
-                          {userProfiles.get(peer.id)?.avatar ? (
+                          {userProfiles.get(getNumericUserId(peer.id))?.avatar ? (
                             <img 
-                              src={userProfiles.get(peer.id).avatar} 
+                              src={userProfiles.get(getNumericUserId(peer.id)).avatar} 
                               alt="User avatar" 
                               style={{
                                 width: '100%',
