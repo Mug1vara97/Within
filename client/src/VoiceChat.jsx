@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, useContext, forwardRef, useImperativeHandle } from 'react';
 import { useVoiceChannel } from './contexts/VoiceChannelContext';
 import { createPortal } from 'react-dom';
-import { BASE_URL } from './config/apiConfig';
 import {
   Container,
   Paper,
@@ -1165,7 +1164,7 @@ const VideoView = React.memo(({
 });
 
 const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true }, ref) => {
-  const { addVoiceChannelParticipant, removeVoiceChannelParticipant, updateVoiceChannelParticipant, getVoiceChannelParticipants } = useVoiceChannel();
+  const { addVoiceChannelParticipant, removeVoiceChannelParticipant, updateVoiceChannelParticipant } = useVoiceChannel();
   const [isJoined, setIsJoined] = useState(false);
 
   const [isMuted, setIsMuted] = useState(initialMuted);
@@ -1175,8 +1174,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const [isVideoEnabled, setIsVideoEnabled] = useState(false);
   const [peers, setPeers] = useState(new Map());
   const [error, setError] = useState('');
-  const [userProfiles, setUserProfiles] = useState(new Map());
-  const [peerIdToUserId, setPeerIdToUserId] = useState(new Map());
       const [volumes, setVolumes] = useState(new Map());
     const [speakingStates, setSpeakingStates] = useState(new Map());
     const [audioStates, setAudioStates] = useState(new Map());
@@ -1184,104 +1181,12 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   const prevRoomIdRef = useRef(roomId);
 
-  // Функция для получения числового ID пользователя по WebRTC ID
-  const getNumericUserId = (peerId) => {
-    // Сначала проверяем маппинг
-    const mappedUserId = peerIdToUserId.get(peerId);
-    if (mappedUserId) {
-      return mappedUserId;
-    }
-    
-    // Если нет в маппинге, пробуем получить из контекста VoiceChannel
-    const participants = getVoiceChannelParticipants(roomId);
-    const participant = participants.find(p => p.id === peerId);
-    if (participant) {
-      return participant.id;
-    }
-    
-    // Если все еще не найдено, возвращаем null
-    return null;
-  };
-
-  // Функция для получения профиля пользователя
-  const fetchUserProfile = async (userId) => {
-    // Проверяем, является ли userId числовым
-    const numericUserId = parseInt(userId, 10);
-    if (isNaN(numericUserId)) {
-      console.warn('Invalid userId for profile fetch:', userId);
-      return null;
-    }
-
-    try {
-      const response = await fetch(`${BASE_URL}/api/profile/${numericUserId}/profile`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.avatar && !data.avatar.startsWith('http')) {
-          data.avatar = `${BASE_URL}${data.avatar}`;
-        }
-        setUserProfiles(prev => {
-          const newProfiles = new Map(prev);
-          newProfiles.set(userId, data);
-          return newProfiles;
-        });
-        return data;
-      }
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-    }
-    return null;
-  };
-
   // Use userId and serverId in socket connection
   useEffect(() => {
     if (socketRef.current) {
       socketRef.current.emit('setUserInfo', { userId, serverId });
     }
   }, [userId, serverId]);
-
-  // Получаем профиль локального пользователя
-  useEffect(() => {
-    if (userId) {
-      const numericUserId = parseInt(userId, 10);
-      if (!isNaN(numericUserId)) {
-        fetchUserProfile(numericUserId);
-      }
-    }
-  }, [userId]);
-
-  // Получаем профили всех существующих участников
-  useEffect(() => {
-    if (roomId) {
-      const participants = getVoiceChannelParticipants(roomId);
-      participants.forEach(participant => {
-        if (participant.id !== userId) { // Не получаем профиль для себя
-          const numericUserId = parseInt(participant.id, 10);
-          if (!isNaN(numericUserId)) {
-            fetchUserProfile(numericUserId);
-          }
-        }
-      });
-    }
-  }, [roomId, userId, getVoiceChannelParticipants]);
-
-  // Периодически обновляем профили всех участников
-  useEffect(() => {
-    if (roomId) {
-      const interval = setInterval(() => {
-        const participants = getVoiceChannelParticipants(roomId);
-        participants.forEach(participant => {
-          if (participant.id !== userId) {
-            const numericUserId = parseInt(participant.id, 10);
-            if (!isNaN(numericUserId) && !userProfiles.has(numericUserId)) {
-              fetchUserProfile(numericUserId);
-            }
-          }
-        });
-      }, 10000); // Проверяем каждые 10 секунд
-
-      return () => clearInterval(interval);
-    }
-  }, [roomId, userId, getVoiceChannelParticipants, userProfiles]);
 
 
 
@@ -1610,8 +1515,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     setAudioStates(new Map());
     setRemoteVideos(new Map());
     setRemoteScreens(new Map());
-    setUserProfiles(new Map());
-    setPeerIdToUserId(new Map());
 
     setIsJoined(false);
     setError('');
@@ -1916,14 +1819,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
         // Initialize individual mute state - NOT muted by default (isMuted is for microphone, not for hearing this peer)
         individualMutedPeersRef.current.set(peerId, false);
-
-        // Получаем профиль пользователя
-        const numericUserId = getNumericUserId(peerId);
-        if (numericUserId) {
-          fetchUserProfile(numericUserId);
-        } else {
-          console.warn('No numeric userId found for peer:', peerId);
-        }
       });
 
       socket.on('peerLeft', ({ peerId }) => {
@@ -1948,57 +1843,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           newStates.delete(peerId);
           return newStates;
         });
-        
-        // Удаляем профиль пользователя
-        const numericUserId = getNumericUserId(peerId);
-        if (numericUserId) {
-          setUserProfiles(prev => {
-            const newProfiles = new Map(prev);
-            newProfiles.delete(numericUserId);
-            return newProfiles;
-          });
-        }
-      });
-
-      // Обработчик обновлений участников из контекста
-      socket.on('voiceChannelParticipantsUpdate', ({ channelId, participants }) => {
-        if (channelId === roomId && participants) {
-          console.log('VoiceChat: Received participants update:', { channelId, participants });
-          participants.forEach(participant => {
-            if (participant.userId !== userId) { // Не получаем профиль для себя
-              const numericUserId = parseInt(participant.userId, 10);
-              if (!isNaN(numericUserId)) {
-                fetchUserProfile(numericUserId);
-              }
-            }
-          });
-        }
-      });
-
-      // Обработчик присоединения пользователя из контекста
-      socket.on('userJoinedVoiceChannel', ({ channelId, userId: joinedUserId, userName, isMuted }) => {
-        if (channelId === roomId && joinedUserId !== userId) {
-          console.log('VoiceChat: User joined from context:', { channelId, joinedUserId, userName });
-          const numericUserId = parseInt(joinedUserId, 10);
-          if (!isNaN(numericUserId)) {
-            fetchUserProfile(numericUserId);
-          }
-        }
-      });
-
-      // Обработчик выхода пользователя из контекста
-      socket.on('userLeftVoiceChannel', ({ channelId, userId: leftUserId }) => {
-        if (channelId === roomId && leftUserId !== userId) {
-          console.log('VoiceChat: User left from context:', { channelId, leftUserId });
-          const numericUserId = parseInt(leftUserId, 10);
-          if (!isNaN(numericUserId)) {
-            setUserProfiles(prev => {
-              const newProfiles = new Map(prev);
-              newProfiles.delete(numericUserId);
-              return newProfiles;
-            });
-          }
-        }
       });
 
       socket.on('newProducer', async ({ producerId, producerSocketId, kind }) => {
@@ -4416,24 +4260,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                       justifyContent: 'center',
                       alignItems: 'center'
                     }}>
-                      <Box sx={{
-                        ...styles.userAvatar,
-                        backgroundColor: userProfiles.get(parseInt(userId, 10))?.avatarColor || '#5865F2'
-                      }}>
-                        {userProfiles.get(parseInt(userId, 10))?.avatar ? (
-                          <img 
-                            src={userProfiles.get(parseInt(userId, 10)).avatar} 
-                            alt="User avatar" 
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              borderRadius: '50%',
-                              objectFit: 'cover'
-                            }}
-                          />
-                        ) : (
-                          userName[0].toUpperCase()
-                        )}
+                      <Box sx={styles.userAvatar}>
+                        {userName[0].toUpperCase()}
                       </Box>
                       <VideoOverlay
                         peerName={userName}
@@ -4475,24 +4303,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                         justifyContent: 'center',
                         alignItems: 'center'
                       }}>
-                        <Box sx={{
-                          ...styles.userAvatar,
-                          backgroundColor: userProfiles.get(getNumericUserId(peer.id))?.avatarColor || '#5865F2'
-                        }}>
-                          {userProfiles.get(getNumericUserId(peer.id))?.avatar ? (
-                            <img 
-                              src={userProfiles.get(getNumericUserId(peer.id)).avatar} 
-                              alt="User avatar" 
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                borderRadius: '50%',
-                                objectFit: 'cover'
-                              }}
-                            />
-                          ) : (
-                            peer.name[0].toUpperCase()
-                          )}
+                        <Box sx={styles.userAvatar}>
+                          {peer.name[0].toUpperCase()}
                         </Box>
                         <VideoOverlay
                           peerName={peer.name}
