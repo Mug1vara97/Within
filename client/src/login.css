@@ -403,25 +403,25 @@ height: 100%;
 color: #72767d;
 }
 
-.server-page {
+/* .server-page {
 display: flex;
 flex: 1;
 background-color: #36393f;
 color: white;
-}
+} */
 
-.server-sidebar {
+/* .server-sidebar {
 width: 240px;
 background-color: #2f3136;
 padding: 10px;
 display: flex;
   flex-direction: column;
-}
+} */
 
-.tree {
+/* .tree {
 flex: 1;
 overflow-y: auto;
-}
+} */
 
 .modal-overlay {
 position: fixed;
