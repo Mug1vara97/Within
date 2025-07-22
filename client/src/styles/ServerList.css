@@ -306,4 +306,141 @@ textarea.modal-input {
     height: 100%;
     object-fit: cover;
     border-radius: 8px;
+}
+
+.users-modal {
+    background: #2f3136;
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 800px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #40444b;
+    padding-bottom: 10px;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    color: #72767d;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.close-button:hover {
+    background-color: #40444b;
+    color: #ffffff;
+}
+
+.users-list {
+    margin-bottom: 20px;
+}
+
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #36393f;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.users-table th {
+    background: #40444b;
+    color: #ffffff;
+    padding: 12px 8px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 14px;
+    border-bottom: 1px solid #2f3136;
+}
+
+.users-table td {
+    padding: 12px 8px;
+    color: #dcddde;
+    font-size: 14px;
+    border-bottom: 1px solid #2f3136;
+}
+
+.users-table tr:hover {
+    background-color: #40444b;
+}
+
+.users-table tr:last-child td {
+    border-bottom: none;
+}
+
+.users-button {
+    background: #5865f2;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    transition: background-color 0.2s;
+}
+
+.users-button:hover {
+    background: #4752c4;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #40444b;
+}
+
+.modal-actions button {
+    background: #5865f2;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.modal-actions button:hover {
+    background: #4752c4;
+}
+
+.modal-actions button:last-child {
+    background: #4f545c;
+}
+
+.modal-actions button:last-child:hover {
+    background: #5d6269;
 } 

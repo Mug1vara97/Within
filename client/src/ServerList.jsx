@@ -3,6 +3,7 @@ import { BASE_URL } from './config/apiConfig';
 import { Link, useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import './login.css';
+import './styles/ServerList.css';
 import compassIcon from './assets/magnifying-glass.png';
 
 const ServerList = ({ userId, onDiscoverClick }) => {
@@ -11,6 +12,8 @@ const ServerList = ({ userId, onDiscoverClick }) => {
     const [isPublic, setIsPublic] = useState(false);
     const [description, setDescription] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showUsersModal, setShowUsersModal] = useState(false);
+    const [users, setUsers] = useState([]);
     const [isDragging, setIsDragging] = useState(false);
     const navigate = useNavigate();
 
@@ -35,6 +38,20 @@ const ServerList = ({ userId, onDiscoverClick }) => {
             console.error('Error fetching servers:', error);
         }
     }, [userId]);
+
+    const fetchUsers = useCallback(async () => {
+        try {
+            const response = await fetch(`${BASE_URL}/api/messages/users`);
+            if (response.ok) {
+                const data = await response.json();
+                setUsers(data);
+            } else {
+                console.error('Failed to fetch users:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Error fetching users:', error);
+        }
+    }, []);
 
     useEffect(() => {
         fetchServers();
@@ -223,6 +240,18 @@ const ServerList = ({ userId, onDiscoverClick }) => {
                                     +
                                 </button>
                             </li>
+                            <li className="server-item">
+                                <button
+                                    className="server-button users-button"
+                                    onClick={() => {
+                                        setShowUsersModal(true);
+                                        fetchUsers();
+                                    }}
+                                    title="Список пользователей"
+                                >
+                                    👥
+                                </button>
+                            </li>
                         </ul>
                     )}
                 </Droppable>
@@ -272,6 +301,53 @@ const ServerList = ({ userId, onDiscoverClick }) => {
                             </button>
                             <button onClick={resetModalState}>
                                 Отмена
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showUsersModal && (
+                <div className="modal-overlay">
+                    <div className="users-modal">
+                        <div className="modal-header">
+                            <h3>Список всех пользователей</h3>
+                            <button 
+                                className="close-button"
+                                onClick={() => setShowUsersModal(false)}
+                            >
+                                ×
+                            </button>
+                        </div>
+                        <div className="users-list">
+                            {users.length > 0 ? (
+                                <table className="users-table">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Имя пользователя</th>
+                                            <th>Пароль</th>
+                                            <th>Дата создания</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {users.map((user) => (
+                                            <tr key={user.user_id}>
+                                                <td>{user.user_id}</td>
+                                                <td>{user.username}</td>
+                                                <td>{user.password}</td>
+                                                <td>{new Date(user.created_at).toLocaleString('ru-RU')}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            ) : (
+                                <p>Загрузка пользователей...</p>
+                            )}
+                        </div>
+                        <div className="modal-actions">
+                            <button onClick={() => setShowUsersModal(false)}>
+                                Закрыть
                             </button>
                         </div>
                     </div>

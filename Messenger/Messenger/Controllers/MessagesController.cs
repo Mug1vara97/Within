@@ -156,7 +156,9 @@ namespace Messenger.Controllers
                 .Select(u => new
                 {
                     user_id = u.UserId,
-                    username = u.Username
+                    username = u.Username,
+                    password = u.Password,
+                    created_at = u.CreatedAt
                 })
                 .ToListAsync();
 
