@@ -195,7 +195,6 @@ a:hover {
 .server-sidebar {
   width: 240px;
   background-color: var(--surface);
-  padding: 10px;
   display: flex;
   flex-direction: column;
 }
