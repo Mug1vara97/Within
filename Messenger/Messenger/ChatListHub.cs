@@ -46,6 +46,14 @@ namespace Messenger.Hubs
                             .Where(m => m.ChatId == c.ChatId && m.UserId != userId)
                             .Select(m => m.UserId)
                             .FirstOrDefault(),
+                        avatarUrl = _context.Members
+                            .Where(m => m.ChatId == c.ChatId && m.UserId != userId)
+                            .Select(m => m.User.UserProfile.Avatar)
+                            .FirstOrDefault(),
+                        avatarColor = _context.Members
+                            .Where(m => m.ChatId == c.ChatId && m.UserId != userId)
+                            .Select(m => m.User.UserProfile.AvatarColor)
+                            .FirstOrDefault(),
                         isGroupChat = false,
                         lastMessageTime = _context.Messages
                             .Where(m => m.ChatId == c.ChatId)
@@ -292,6 +300,8 @@ namespace Messenger.Hubs
                 {
                     user_id = u.UserId,
                     username = u.Username,
+                    avatarUrl = u.UserProfile.Avatar,
+                    avatarColor = u.UserProfile.AvatarColor,
                     has_existing_chat = existingChatUserIds.Contains(u.UserId)
                 })
                 .OrderByDescending(u => u.has_existing_chat)
@@ -355,6 +365,14 @@ namespace Messenger.Hubs
                         user_id = _context.Members
                             .Where(m => m.ChatId == c.ChatId && m.UserId != userId)
                             .Select(m => m.UserId)
+                            .FirstOrDefault(),
+                        avatarUrl = _context.Members
+                            .Where(m => m.ChatId == c.ChatId && m.UserId != userId)
+                            .Select(m => m.User.UserProfile.Avatar)
+                            .FirstOrDefault(),
+                        avatarColor = _context.Members
+                            .Where(m => m.ChatId == c.ChatId && m.UserId != userId)
+                            .Select(m => m.User.UserProfile.AvatarColor)
                             .FirstOrDefault(),
                         isGroupChat = false,
                         lastMessage = _context.Messages

@@ -4,6 +4,7 @@ import GroupChat from './Chats/GroupChat';
 import SearchBar from './SearchBar'; 
 import { BASE_URL } from './config/apiConfig';
 import UserPanel from './UserPanel';
+import UserAvatar from './UserAvatar';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as signalR from '@microsoft/signalr';
 import './styles/ChatList.css';
@@ -315,10 +316,19 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                             onClick={() => handleChatSelection(chat)}
                         >
                             <div className="chat-item-content">
-                                <div className="username">{chat.username}</div>
-                                {chat.isGroupChat && <span className="group-indicator">(Group)</span>}
-                               
-                             </div>
+                                <div className="chat-avatar">
+                                    <UserAvatar 
+                                        username={chat.username}
+                                        avatarUrl={chat.avatarUrl ? `${BASE_URL}${chat.avatarUrl}` : null}
+                                        avatarColor={chat.avatarColor}
+                                        size="40px"
+                                    />
+                                </div>
+                                <div className="chat-info">
+                                    <div className="username">{chat.username}</div>
+                                    {chat.isGroupChat && <span className="group-indicator">(Group)</span>}
+                                </div>
+                            </div>
                             {!chat.isGroupChat && (
                                 <button 
                                     className="delete-chat-button"
@@ -351,7 +361,22 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                                         className="search-result-item"
                                         onClick={() => handlePrivateMessage(user)}
                                     >
-                                        {user.username}
+                                        <div className="search-result-content">
+                                            <div className="search-result-avatar">
+                                                <UserAvatar 
+                                                    username={user.username}
+                                                    avatarUrl={user.avatarUrl ? `${BASE_URL}${user.avatarUrl}` : null}
+                                                    avatarColor={user.avatarColor}
+                                                    size="32px"
+                                                />
+                                            </div>
+                                            <div className="search-result-info">
+                                                <div className="search-result-username">{user.username}</div>
+                                                {user.has_existing_chat && (
+                                                    <span className="existing-chat-indicator">Уже есть чат</span>
+                                                )}
+                                            </div>
+                                        </div>
                                     </li>
                                 ))
                             ) : (

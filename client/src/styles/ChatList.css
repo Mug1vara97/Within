@@ -37,8 +37,20 @@
 .chat-item-content {
     flex: 1;
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    gap: 12px;
     overflow: hidden;
+}
+
+.chat-avatar {
+    flex-shrink: 0;
+}
+
+.chat-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .chat-item-content .username {
@@ -129,6 +141,9 @@
     background-color: #36393f;
     color: #ffffff;
     transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .search-results-container .search-result-item:hover {
@@ -175,8 +190,21 @@
 
 .chat-sidebar .search-result-content {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+.search-result-avatar {
+    flex-shrink: 0;
+}
+
+.search-result-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .chat-sidebar .search-result-username {
