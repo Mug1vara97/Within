@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, useContext, forwardRef, useImperativeHandle } from 'react';
 import { useVoiceChannel } from './contexts/VoiceChannelContext';
 import { useUserProfile } from './hooks/useUserProfile';
+import UserAvatar from './UserAvatar';
 import { createPortal } from 'react-dom';
 import {
   Container,
@@ -242,8 +243,8 @@ const styles = {
     }
   },
   userAvatar: {
-    width: '80px',
-    height: '80px',
+    width: '100px',
+    height: '100px',
     borderRadius: '50%',
     backgroundColor: '#404249',
     display: 'flex',
@@ -254,6 +255,7 @@ const styles = {
     fontWeight: 500,
     marginBottom: '12px',
     transition: 'transform 0.2s ease',
+    overflow: 'hidden',
     '&:hover': {
       transform: 'scale(1.05)'
     }
@@ -908,6 +910,8 @@ const VideoOverlay = React.memo(({
   showVolumeSlider,
   onVolumeSliderChange,
   onToggleVolumeSlider,
+  avatarUrl,
+  avatarColor,
   children
 }) => {
   const [isVolumeOff, setIsVolumeOff] = useState(isAudioMuted || volume === 0);
@@ -981,6 +985,12 @@ const VideoOverlay = React.memo(({
         {!isAudioEnabled && (
           <HeadsetOff sx={{ fontSize: 16, color: '#ed4245' }} />
         )}
+        <UserAvatar 
+          username={peerName}
+          avatarUrl={avatarUrl}
+          avatarColor={avatarColor}
+          size="20px"
+        />
         {peerName}
       </Box>
       
@@ -1103,6 +1113,8 @@ const VideoOverlay = React.memo(({
     prevProps.volume === nextProps.volume &&
     prevProps.isAudioMuted === nextProps.isAudioMuted &&
     prevProps.showVolumeSlider === nextProps.showVolumeSlider &&
+    prevProps.avatarUrl === nextProps.avatarUrl &&
+    prevProps.avatarColor === nextProps.avatarColor &&
     prevProps.children === nextProps.children
   );
 });
@@ -1121,6 +1133,8 @@ const VideoView = React.memo(({
   showVolumeSlider,
   onVolumeSliderChange,
   onToggleVolumeSlider,
+  avatarUrl,
+  avatarColor,
   children 
 }) => {
   return (
@@ -1160,6 +1174,8 @@ const VideoView = React.memo(({
     prevProps.volume === nextProps.volume &&
     prevProps.isAudioMuted === nextProps.isAudioMuted &&
     prevProps.showVolumeSlider === nextProps.showVolumeSlider &&
+    prevProps.avatarUrl === nextProps.avatarUrl &&
+    prevProps.avatarColor === nextProps.avatarColor &&
     prevProps.children === nextProps.children
   );
 });
@@ -4268,6 +4284,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                       isAudioEnabled={isAudioEnabled}
                       isLocal={true}
                       isAudioMuted={isMuted}
+                      avatarUrl={userProfile?.avatar}
+                      avatarColor={userProfile?.avatarColor}
                     />
                   ) : (
                     <div style={{ 
@@ -4280,7 +4298,12 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                       alignItems: 'center'
                     }}>
                       <Box sx={styles.userAvatar}>
-                        {userName[0].toUpperCase()}
+                        <UserAvatar 
+                          username={userName}
+                          avatarUrl={userProfile?.avatar}
+                          avatarColor={userProfile?.avatarColor}
+                          size="100px"
+                        />
                       </Box>
                       <VideoOverlay
                         peerName={userName}
@@ -4289,6 +4312,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                         isAudioEnabled={isAudioEnabled}
                         isLocal={true}
                         isAudioMuted={isMuted}
+                        avatarUrl={userProfile?.avatar}
+                        avatarColor={userProfile?.avatarColor}
                       />
                     </div>
                   )}
@@ -4311,6 +4336,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                         showVolumeSlider={showVolumeSliders.get(peer.id) || false}
                         onVolumeSliderChange={(newVolume) => handleVolumeSliderChange(peer.id, newVolume)}
                         onToggleVolumeSlider={() => toggleVolumeSlider(peer.id)}
+                        avatarUrl={peer.avatarUrl}
+                        avatarColor={peer.avatarColor}
                       />
                     ) : (
                       <div style={{ 
@@ -4323,7 +4350,12 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                         alignItems: 'center'
                       }}>
                         <Box sx={styles.userAvatar}>
-                          {peer.name[0].toUpperCase()}
+                          <UserAvatar 
+                            username={peer.name}
+                            avatarUrl={peer.avatarUrl}
+                            avatarColor={peer.avatarColor}
+                            size="100px"
+                          />
                         </Box>
                         <VideoOverlay
                           peerName={peer.name}
@@ -4337,6 +4369,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                           showVolumeSlider={showVolumeSliders.get(peer.id) || false}
                           onVolumeSliderChange={(newVolume) => handleVolumeSliderChange(peer.id, newVolume)}
                           onToggleVolumeSlider={() => toggleVolumeSlider(peer.id)}
+                          avatarUrl={peer.avatarUrl}
+                          avatarColor={peer.avatarColor}
                         />
                       </div>
                     )}
