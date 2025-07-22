@@ -108,6 +108,11 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                     return timeB - timeA;
                 });
 
+                // Логируем данные аватаров для отладки
+                sortedChats.forEach(chat => {
+                    console.log(`Chat ${chat.chat_id}: username=${chat.username}, avatarUrl=${chat.avatarUrl}, avatarColor=${chat.avatarColor}`);
+                });
+
                 setChats(sortedChats);
                 console.log('Updated chats state:', sortedChats);
             } else {

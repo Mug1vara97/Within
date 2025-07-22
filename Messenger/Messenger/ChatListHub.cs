@@ -55,6 +55,11 @@ namespace Messenger.Hubs
                             .Select(m => m.User.UserProfile.AvatarColor)
                             .FirstOrDefault(),
                         isGroupChat = false,
+                        lastMessage = _context.Messages
+                            .Where(m => m.ChatId == c.ChatId)
+                            .OrderByDescending(m => m.CreatedAt)
+                            .Select(m => m.Content)
+                            .FirstOrDefault(),
                         lastMessageTime = _context.Messages
                             .Where(m => m.ChatId == c.ChatId)
                             .OrderByDescending(m => m.CreatedAt)
@@ -75,6 +80,11 @@ namespace Messenger.Hubs
                         avatarUrl = (string)null, // Групповые чаты не имеют аватаров
                         avatarColor = (string)null, // Групповые чаты не имеют аватаров
                         isGroupChat = true,
+                        lastMessage = _context.Messages
+                            .Where(m => m.ChatId == c.ChatId)
+                            .OrderByDescending(m => m.CreatedAt)
+                            .Select(m => m.Content)
+                            .FirstOrDefault(),
                         lastMessageTime = _context.Messages
                             .Where(m => m.ChatId == c.ChatId)
                             .OrderByDescending(m => m.CreatedAt)
@@ -360,10 +370,7 @@ namespace Messenger.Hubs
                         chat_id = c.ChatId,
                         username = _context.Members
                             .Where(m => m.ChatId == c.ChatId && m.UserId != userId)
-                            .Join(_context.Users,
-                                m => m.UserId,
-                                u => u.UserId,
-                                (m, u) => u.Username)
+                            .Select(m => m.User.Username)
                             .FirstOrDefault() ?? "Unknown",
                         user_id = _context.Members
                             .Where(m => m.ChatId == c.ChatId && m.UserId != userId)
