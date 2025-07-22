@@ -430,9 +430,15 @@ namespace Messenger.Hubs
                     .ToList();
 
                 Console.WriteLine($"Found {allChats.Count} chats for user {userId}");
+                
+                // Логируем данные аватаров для отладки
+                foreach (var chat in allChats)
+                {
+                    Console.WriteLine($"OnNewMessage - Chat {chat.chat_id}: username={chat.username}, avatarUrl={chat.avatarUrl}, avatarColor={chat.avatarColor}");
+                }
 
                 // Отправляем обновленный список чатов через IHubContext
-                await _hubContext.Clients.User(userId.ToString()).SendAsync("ReceiveChats", allChats);
+                await _hubContext.Clients.All.SendAsync("ReceiveChats", allChats);
             }
             catch (Exception ex)
             {

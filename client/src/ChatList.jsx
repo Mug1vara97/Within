@@ -113,8 +113,15 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                     console.log(`Chat ${chat.chat_id}: username=${chat.username}, avatarUrl=${chat.avatarUrl}, avatarColor=${chat.avatarColor}`);
                 });
 
-                setChats(sortedChats);
-                console.log('Updated chats state:', sortedChats);
+                // Проверяем, что данные аватаров корректны
+                const validatedChats = sortedChats.map(chat => ({
+                    ...chat,
+                    avatarUrl: chat.avatarUrl || null,
+                    avatarColor: chat.avatarColor || null
+                }));
+
+                setChats(validatedChats);
+                console.log('Updated chats state:', validatedChats);
             } else {
                 console.error('Received invalid chat data:', receivedChats);
             }
