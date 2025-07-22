@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import ServersList from './ServersList';
+import ThemeManager from '../components/ThemeManager';
 import './DiscoverLists.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -52,6 +53,7 @@ const DiscoverLists = ({ onBack, userId }) => {
 
             <div className="servers-section">
                 {activeSection === 'servers' && <ServersList userId={userId} />}
+                {activeSection === 'themes' && <ThemeManager />}
             </div>
         </div>
     );

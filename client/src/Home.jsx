@@ -6,7 +6,6 @@ import DiscoverLists from './Discover/DiscoverLists';
 import { Routes, Route, useParams, useLocation, useNavigate } from 'react-router-dom';
 import VoiceChat from './VoiceChat';
 import GroupChat from './Chats/GroupChat';
-import ThemeSwitcher from './components/ThemeSwitcher';
 
 const Home = ({ user }) => {
     const [isDiscoverMode, setIsDiscoverMode] = useState(false);
@@ -190,14 +189,6 @@ const Home = ({ user }) => {
             />
             
             <div className="main-content" style={{ width: '100%', display: 'flex' }}>
-                <div className="theme-switcher-container" style={{
-                    position: 'fixed',
-                    top: '20px',
-                    right: '20px',
-                    zIndex: 1000
-                }}>
-                    <ThemeSwitcher />
-                </div>
                 {isDiscoverMode ? (
                     <Routes>
                         <Route path="/discover" element={<DiscoverLists userId={user?.userId} onBack={() => handleDiscoverModeChange(false)} />} />

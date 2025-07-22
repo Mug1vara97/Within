@@ -1,0 +1,228 @@
+.theme-manager {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 800px;
+    margin: 0 auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.theme-manager-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.theme-manager-header h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.close-theme-manager {
+    background: none;
+    border: none;
+    color: var(--textMuted);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.close-theme-manager:hover {
+    background: var(--hover);
+    color: var(--text);
+}
+
+.theme-manager-content {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.current-theme {
+    background: var(--background);
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid var(--border);
+}
+
+.current-theme h3 {
+    margin: 0 0 16px 0;
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.current-theme-display {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.theme-preview-large {
+    display: flex;
+    gap: 8px;
+}
+
+.theme-color-preview-large {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+}
+
+.current-theme-info h4 {
+    margin: 0 0 8px 0;
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.current-theme-info p {
+    margin: 4px 0;
+    color: var(--textSecondary);
+    font-size: 14px;
+}
+
+.available-themes h3 {
+    margin: 0 0 16px 0;
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.themes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.theme-card {
+    background: var(--background);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.theme-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.theme-card.active {
+    border-color: var(--primary);
+    background: var(--surface);
+}
+
+.theme-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.theme-card-header h4 {
+    margin: 0;
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.active-indicator {
+    color: var(--primary);
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.theme-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+.theme-color-sample {
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.theme-color-sample:hover {
+    transform: scale(1.1);
+}
+
+.theme-card-footer {
+    display: flex;
+    justify-content: center;
+}
+
+.select-theme-btn {
+    background: var(--primary);
+    color: var(--text);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.select-theme-btn:hover {
+    background: var(--secondary);
+}
+
+.select-theme-btn.selected {
+    background: var(--success);
+}
+
+.theme-info {
+    background: var(--background);
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid var(--border);
+}
+
+.theme-info h3 {
+    margin: 0 0 12px 0;
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.theme-info p {
+    margin: 0 0 16px 0;
+    color: var(--textSecondary);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.theme-features {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.feature {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--textSecondary);
+    font-size: 14px;
+}
+
+.feature-icon {
+    font-size: 16px;
+} 
