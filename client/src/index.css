@@ -143,7 +143,6 @@ a:hover {
   position: relative;
   width: 240px;
   background-color: var(--surface);
-  padding: 10px;
   color: var(--text);
   display: flex;
   flex-direction: column;

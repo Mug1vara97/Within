@@ -20,7 +20,10 @@ export const themes = {
             successHover: '#3ca374',
             danger: '#f04747',
             dangerHover: '#d84040',
-            warning: '#faa61a'
+            warning: '#faa61a',
+            // RGB переменные для прозрачности
+            primaryRgb: '88, 101, 242',
+            dangerRgb: '240, 71, 71'
         }
     },
     redWhiteBlack: {
@@ -40,7 +43,10 @@ export const themes = {
             successHover: '#15803d',
             danger: '#dc2626',
             dangerHover: '#b91c1c',
-            warning: '#ca8a04'
+            warning: '#ca8a04',
+            // RGB переменные для прозрачности
+            primaryRgb: '220, 38, 38',
+            dangerRgb: '220, 38, 38'
         }
     }
 };

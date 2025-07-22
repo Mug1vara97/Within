@@ -1,6 +1,8 @@
+/* GroupChat стили с поддержкой тем */
+
 .replied-message {
-    background-color: rgba(88, 101, 242, 0.1);
-    border-left: 4px solid #5865F2;
+    background-color: rgba(var(--primary-rgb), 0.1);
+    border-left: 4px solid var(--primary);
     padding: 5px;
     margin-bottom: 4px;
     border-radius: 0 4px 4px 0;
@@ -9,18 +11,18 @@
 }
 
 .replied-message:hover {
-    background-color: rgba(88, 101, 242, 0.15);
+    background-color: rgba(var(--primary-rgb), 0.15);
 }
 
 .replied-message-header {
     font-size: 0.9em;
     margin-bottom: 4px;
-    color: #5865F2;
+    color: var(--primary);
 }
 
 .replied-message-content {
     font-size: 0.9em;
-    color: var(--text-muted);
+    color: var(--textSecondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -30,8 +32,8 @@
 .input-container {
     position: relative;
     padding: 16px;
-    background-color: #2B2D31;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    background-color: var(--surface);
+    border-top: 1px solid var(--border);
 }
 
 .input-container.replying {
@@ -47,7 +49,7 @@
     top: 0;
     left: 0;
     right: 0;
-    background-color: #2B2D31;
+    background-color: var(--surface);
     padding: 8px 16px;
     display: flex;
     align-items: center;
@@ -56,7 +58,7 @@
 
 .reply-preview::before {
     content: '↩';
-    color: #5865F2;
+    color: var(--primary);
     font-size: 20px;
     transform: scaleX(-1);
 }
@@ -75,18 +77,18 @@
 }
 
 .reply-header strong {
-    color: #5865F2;
+    color: var(--primary);
     font-size: 0.85em;
     font-weight: 500;
 }
 
 .reply-header span {
-    color: #949BA4;
+    color: var(--textMuted);
     font-size: 0.85em;
 }
 
 .reply-content {
-    color: #949BA4;
+    color: var(--textMuted);
     font-size: 0.9em;
     white-space: nowrap;
     overflow: hidden;
@@ -96,7 +98,7 @@
 .cancel-reply-button {
     background: none;
     border: none;
-    color: #949BA4;
+    color: var(--textMuted);
     cursor: pointer;
     padding: 4px;
     border-radius: 4px;
@@ -107,8 +109,8 @@
 }
 
 .cancel-reply-button:hover {
-    color: #DBDEE1;
-    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text);
+    background-color: var(--hover);
 }
 
 .message-input {
@@ -116,19 +118,19 @@
     padding: 12px;
     border-radius: 8px;
     border: none;
-    background-color: #383A40;
-    color: #DBDEE1;
+    background-color: var(--background);
+    color: var(--text);
     font-size: 1em;
     transition: background-color 0.2s ease;
 }
 
 .message-input:focus {
     outline: none;
-    background-color: #404249;
+    background-color: var(--hover);
 }
 
 .message-input::placeholder {
-    color: #949BA4;
+    color: var(--textMuted);
 }
 
 .context-menu-button {
@@ -138,14 +140,14 @@
     text-align: left;
     background: none;
     border: none;
-    color: var(--text-normal);
+    color: var(--text);
     cursor: pointer;
     font-size: 14px;
     transition: background-color 0.2s ease;
 }
 
 .context-menu-button:hover {
-    background-color: rgba(88, 101, 242, 0.1);
+    background-color: rgba(var(--primary-rgb), 0.1);
 }
 
 .message-content {
@@ -156,10 +158,10 @@
 
 @keyframes highlightMessage {
     0% {
-        background-color: rgba(88, 101, 242, 0.3);
+        background-color: rgba(var(--primary-rgb), 0.3);
     }
     50% {
-        background-color: rgba(88, 101, 242, 0.2);
+        background-color: rgba(var(--primary-rgb), 0.2);
     }
     100% {
         background-color: transparent;
@@ -175,7 +177,7 @@
 }
 
 .message.highlight-permanent {
-    background-color: rgba(88, 101, 242, 0.1);
+    background-color: rgba(var(--primary-rgb), 0.1);
 }
 
 .record-button {
@@ -191,7 +193,7 @@
     top: 0;
     left: 0;
     right: 0;
-    background-color: #2B2D31;
+    background-color: var(--surface);
     padding: 8px 16px;
     display: flex;
     align-items: center;
@@ -204,7 +206,7 @@
 }
 
 .editing-text {
-    color: #5865F2;
+    color: var(--primary);
     font-size: 0.85em;
     font-weight: 500;
 }
@@ -212,7 +214,7 @@
 .cancel-edit-button {
     background: none;
     border: none;
-    color: #949BA4;
+    color: var(--textMuted);
     cursor: pointer;
     padding: 4px;
     border-radius: 4px;
@@ -224,30 +226,24 @@
 }
 
 .cancel-edit-button:hover {
-    color: #DBDEE1;
-    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text);
+    background-color: var(--hover);
 }
 
 .message-text {
-    color: #ffffff;
-    background-color: #36393f;
+    color: var(--text);
+    background-color: var(--surface);
     font-size: 0.95em;
     line-height: 1.4;
     word-break: break-word;
-}
-
-@media (prefers-color-scheme: dark) {
-    .message-text {
-        color: #dcddde;
-    }
 }
 
 .messages {
     flex: 1;
     overflow-y: auto;
     padding: 16px 0;
-    color: #ffffff;
-    background-color: #36393f;
+    color: var(--text);
+    background-color: var(--background);
 }
 
 .user-avatar {
@@ -257,11 +253,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--text);
     font-size: 14px;
     font-weight: bold;
     flex-shrink: 0;
-    background-color: #5865F2;
+    background-color: var(--primary);
     transition: opacity 0.2s ease;
 }
 
@@ -277,8 +273,8 @@
 }
 
 .forwarded-message {
-    background-color: rgba(88, 101, 242, 0.05);
-    border-left: 4px solid #5865F2;
+    background-color: rgba(var(--primary-rgb), 0.05);
+    border-left: 4px solid var(--primary);
     border-radius: 0 8px 8px 0;
     padding: 10px 12px;
     margin: 4px 0;
@@ -286,7 +282,7 @@
 }
 
 .forwarded-message:hover {
-    background-color: rgba(88, 101, 242, 0.08);
+    background-color: rgba(var(--primary-rgb), 0.08);
     transform: translateX(2px);
 }
 
@@ -297,7 +293,7 @@
     top: 0;
     bottom: 0;
     width: 4px;
-    background: linear-gradient(45deg, #5865F2, #7289DA);
+    background: linear-gradient(45deg, var(--primary), var(--secondary));
     border-radius: 2px;
     transition: opacity 0.2s ease;
 }
@@ -311,7 +307,7 @@
     align-items: center;
     gap: 6px;
     font-size: 0.85em;
-    color: #72767d;
+    color: var(--textMuted);
     margin-bottom: 8px;
     padding-left: 24px;
     position: relative;
@@ -321,7 +317,7 @@
     content: '↱';
     position: absolute;
     left: 0;
-    color: #5865F2;
+    color: var(--primary);
     font-size: 1.4em;
     font-weight: bold;
     transform: scaleX(-1) translateY(-2px);
@@ -329,7 +325,7 @@
 
 .forwarded-message-content {
     padding-left: 24px;
-    color: #2e3338;
+    color: var(--text);
     font-size: 0.95em;
     line-height: 1.4;
 }
@@ -337,28 +333,9 @@
 .forwarded-message-additional {
     margin-top: 8px;
     padding-top: 8px;
-    border-top: 1px solid rgba(88, 101, 242, 0.2);
-    color: #72767d;
+    border-top: 1px solid rgba(var(--primary-rgb), 0.2);
+    color: var(--textMuted);
     font-size: 0.9em;
-}
-
-@media (prefers-color-scheme: dark) {
-    .forwarded-message {
-        background-color: rgba(88, 101, 242, 0.08);
-    }
-
-    .forwarded-message:hover {
-        background-color: rgba(88, 101, 242, 0.12);
-    }
-
-    .forwarded-message-content,
-    .forwarded-message-additional {
-        color: #dcddde;
-    }
-
-    .forwarded-message-header span {
-        color: #a3a6aa;
-    }
 }
 
 .modal-overlay {
@@ -375,43 +352,43 @@
 }
 
 .forward-modal {
-    background-color: #36393f;
+    background-color: var(--surface);
     border-radius: 8px;
     padding: 20px;
     width: 90%;
     max-width: 500px;
     max-height: 80vh;
     overflow-y: auto;
-    color: #dcddde;
+    color: var(--text);
 }
 
 .forward-modal h3 {
     margin: 0 0 16px 0;
-    color: #fff;
+    color: var(--text);
     font-size: 1.2em;
 }
 
 .forward-modal h4 {
     margin: 16px 0 8px 0;
-    color: #b9bbbe;
+    color: var(--textSecondary);
     font-size: 0.9em;
 }
 
 .forwarded-message-preview {
-    background-color: #2f3136;
+    background-color: var(--background);
     border-radius: 4px;
     padding: 12px;
     margin-bottom: 16px;
 }
 
 .forwarded-message-preview strong {
-    color: #5865F2;
+    color: var(--primary);
     display: block;
     margin-bottom: 4px;
 }
 
 .forwarded-message-preview p {
-    color: #dcddde;
+    color: var(--text);
     margin: 0;
     font-size: 0.95em;
 }
@@ -424,21 +401,21 @@
     width: 100%;
     min-height: 80px;
     padding: 12px;
-    background-color: #40444b;
+    background-color: var(--background);
     border: none;
     border-radius: 4px;
-    color: #dcddde;
+    color: var(--text);
     font-size: 0.95em;
     resize: vertical;
 }
 
 .forward-textarea:focus {
     outline: none;
-    box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
+    box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.3);
 }
 
 .forward-textarea::placeholder {
-    color: #72767d;
+    color: var(--textMuted);
 }
 
 .chat-list {
@@ -451,11 +428,11 @@
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.2s ease;
-    color: #dcddde;
+    color: var(--text);
 }
 
 .chat-item:hover {
-    background-color: #32353b;
+    background-color: var(--hover);
 }
 
 .forward-modal-buttons {
@@ -469,25 +446,26 @@
     padding: 8px 16px;
     border: none;
     border-radius: 4px;
-    background-color: #4f545c;
-    color: #fff;
+    background-color: var(--textMuted);
+    color: var(--text);
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
 
 .cancel-button:hover {
-    background-color: #5d6269;
+    background-color: var(--hover);
 }
 
 .context-menu {
     position: fixed;
     z-index: 1000;
-    background-color: white;
+    background-color: var(--surface);
     box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     border-radius: 4px;
     padding: 8px 0;
     min-width: 150px;
     transition: all 0.2s ease-in-out;
+    border: 1px solid var(--border);
 }
 
 .context-menu-button {
@@ -499,31 +477,31 @@
     text-align: left;
     cursor: pointer;
     font-size: 14px;
-    color: #2f3136;
+    color: var(--text);
     transition: background-color 0.2s ease;
 }
 
 .context-menu-button:hover {
-    background-color: #f2f3f5;
+    background-color: var(--hover);
 }
 
 .forward-input {
     width: 100%;
     padding: 12px;
-    background-color: #40444b;
+    background-color: var(--background);
     border: none;
     border-radius: 4px;
-    color: #dcddde;
+    color: var(--text);
     font-size: 0.95em;
 }
 
 .forward-input:focus {
     outline: none;
-    box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
+    box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.3);
 }
 
 .forward-input::placeholder {
-    color: #72767d;
+    color: var(--textMuted);
 }
 
 .search-container {
@@ -532,28 +510,27 @@
     min-width: 250px;
 }
 
-
 .search-input {
     background: transparent;
     border: none;
-    color: #dcddde;
+    color: var(--text);
     padding: 0;
     outline: none;
     padding: 8px;
     border-radius: 4px;
     border: none;
-    background-color: #202225;
-    color: white;
+    background-color: var(--background);
+    color: var(--text);
 }
 
 .search-input::placeholder {
-    color: #72767d;
+    color: var(--textMuted);
 }
 
 .search-results-header {
     padding: 16px;
-    border-bottom: 1px solid #40444b;
-    color: #dcddde;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
     font-weight: 500;
     font-size: 14px;
     display: flex;
@@ -568,7 +545,7 @@
 .clear-search {
     background: none;
     border: none;
-    color: #72767d;
+    color: var(--textMuted);
     cursor: pointer;
     font-size: 20px;
     width: 24px;
@@ -583,8 +560,8 @@
 }
 
 .clear-search:hover {
-    color: #dcddde;
-    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text);
+    background-color: var(--hover);
 }
 
 .search-results {
@@ -593,7 +570,7 @@
     right: 0;
     width: 400px;
     max-height: 500px;
-    background-color: #2f3136;
+    background-color: var(--surface);
     border-radius: 8px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
     z-index: 1000;
@@ -610,7 +587,7 @@
     padding: 12px 16px;
     cursor: pointer;
     transition: background-color 0.2s;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid var(--border);
     display: flex;
     gap: 12px;
 }
@@ -620,7 +597,7 @@
 }
 
 .search-result-item:hover {
-    background-color: #36393f;
+    background-color: var(--hover);
 }
 
 .search-result-user {
@@ -639,7 +616,7 @@
 }
 
 .search-result-user strong {
-    color: #dcddde;
+    color: var(--text);
     font-size: 12px;
     font-weight: 500;
 }
@@ -657,12 +634,12 @@
 }
 
 .search-result-date {
-    color: #72767d;
+    color: var(--textMuted);
     font-size: 12px;
 }
 
 .search-result-content {
-    color: #dcddde;
+    color: var(--text);
     font-size: 14px;
     line-height: 1.4;
     word-break: break-word;
@@ -674,17 +651,17 @@
 }
 
 .search-results-list::-webkit-scrollbar-track {
-    background: #2f3136;
+    background: var(--surface);
     border-radius: 4px;
 }
 
 .search-results-list::-webkit-scrollbar-thumb {
-    background: #202225;
+    background: var(--background);
     border-radius: 4px;
 }
 
 .search-results-list::-webkit-scrollbar-thumb:hover {
-    background: #18191c;
+    background: var(--hover);
 }
 
 /* Анимация появления результатов поиска */
@@ -705,16 +682,16 @@
 
 /* Стили для выделения найденного сообщения */
 .message.highlighted {
-    background-color: rgba(88, 101, 242, 0.1);
+    background-color: rgba(var(--primary-rgb), 0.1);
     animation: highlight 2s ease-out;
 }
 
 @keyframes highlight {
     0% {
-        background-color: rgba(88, 101, 242, 0.3);
+        background-color: rgba(var(--primary-rgb), 0.3);
     }
     100% {
-        background-color: rgba(88, 101, 242, 0);
+        background-color: rgba(var(--primary-rgb), 0);
     }
 }
 
@@ -730,8 +707,8 @@
     height: 44px;
     border-radius: 50%;
     border: none;
-    background: linear-gradient(135deg, #5865F2, #4752C4);
-    color: white;
+    background: linear-gradient(135deg, var(--primary), var(--primaryHover));
+    color: var(--text);
     font-size: 18px;
     cursor: pointer;
     display: flex;
@@ -745,29 +722,29 @@
 }
 
 .voice-record-button:hover {
-    background: linear-gradient(135deg, #4752C4, #3C4299);
+    background: linear-gradient(135deg, var(--primaryHover), var(--secondary));
     transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(88, 101, 242, 0.4);
+    box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.4);
 }
 
 .voice-record-button:active,
 .voice-record-button.recording {
-    background: linear-gradient(135deg, #F04747, #C93333);
+    background: linear-gradient(135deg, var(--danger), var(--dangerHover));
     transform: scale(0.95);
-    box-shadow: 0 2px 8px rgba(240, 71, 71, 0.4);
+    box-shadow: 0 2px 8px rgba(var(--danger-rgb), 0.4);
 }
 
 .voice-record-button.recording {
-    background: linear-gradient(135deg, #F04747, #C93333);
+    background: linear-gradient(135deg, var(--danger), var(--dangerHover));
     animation: recording-pulse 1.5s infinite;
 }
 
 @keyframes recording-pulse {
     0%, 100% {
-        box-shadow: 0 0 0 0 rgba(240, 71, 71, 0.7);
+        box-shadow: 0 0 0 0 rgba(var(--danger-rgb), 0.7);
     }
     50% {
-        box-shadow: 0 0 0 8px rgba(240, 71, 71, 0);
+        box-shadow: 0 0 0 8px rgba(var(--danger-rgb), 0);
     }
 }
 
@@ -775,10 +752,10 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(240, 71, 71, 0.1);
+    background: rgba(var(--danger-rgb), 0.1);
     padding: 8px 12px;
     border-radius: 20px;
-    border: 1px solid rgba(240, 71, 71, 0.3);
+    border: 1px solid rgba(var(--danger-rgb), 0.3);
     white-space: nowrap;
     animation: slide-in 0.3s ease;
     z-index: 10;
@@ -796,7 +773,7 @@
 }
 
 .recording-dot {
-    color: #F04747;
+    color: var(--danger);
     font-size: 12px;
     animation: recording-blink 1s infinite;
 }
@@ -807,7 +784,7 @@
 }
 
 .recording-time {
-    color: #DBDEE1;
+    color: var(--text);
     font-size: 14px;
     font-weight: 500;
     font-family: 'Courier New', monospace;
@@ -815,7 +792,7 @@
 }
 
 .recording-hint {
-    color: #949BA4;
+    color: var(--textMuted);
     font-size: 12px;
     margin-left: 8px;
 }
@@ -823,7 +800,7 @@
 .cancel-recording-button {
     background: none;
     border: none;
-    color: #949BA4;
+    color: var(--textMuted);
     cursor: pointer;
     font-size: 18px;
     width: 20px;
@@ -837,18 +814,18 @@
 }
 
 .cancel-recording-button:hover {
-    color: #F04747;
-    background: rgba(240, 71, 71, 0.1);
+    color: var(--danger);
+    background: rgba(var(--danger-rgb), 0.1);
 }
 
 .recording-indicator-input {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(240, 71, 71, 0.1);
+    background: rgba(var(--danger-rgb), 0.1);
     padding: 12px;
     border-radius: 8px;
-    border: 1px solid rgba(240, 71, 71, 0.3);
+    border: 1px solid rgba(var(--danger-rgb), 0.3);
     white-space: nowrap;
     animation: slide-in 0.3s ease;
     flex: 1;
@@ -856,9 +833,9 @@
 }
 
 .cancel-recording-button-left {
-    background: rgba(240, 71, 71, 0.1);
-    border: 1px solid rgba(240, 71, 71, 0.3);
-    color: #F04747;
+    background: rgba(var(--danger-rgb), 0.1);
+    border: 1px solid rgba(var(--danger-rgb), 0.3);
+    color: var(--danger);
     cursor: pointer;
     font-size: 14px;
     padding: 8px 12px;
@@ -869,8 +846,8 @@
 }
 
 .cancel-recording-button-left:hover {
-    background: rgba(240, 71, 71, 0.2);
-    border-color: rgba(240, 71, 71, 0.5);
+    background: rgba(var(--danger-rgb), 0.2);
+    border-color: rgba(var(--danger-rgb), 0.5);
     transform: scale(1.05);
 }
 
@@ -926,15 +903,48 @@
 
 /* Стили для отключенного состояния */
 .voice-record-button:disabled {
-    background: #4F545C;
+    background: var(--textMuted);
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
 }
 
 .voice-record-button:disabled:hover {
-    background: #4F545C;
+    background: var(--textMuted);
     transform: none;
     box-shadow: none;
+}
+
+/* Стили для кнопки отправки */
+.send-button {
+    background-color: var(--primary);
+    color: var(--text);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+}
+
+.send-button:hover {
+    background-color: var(--primaryHover);
+}
+
+/* Стили для медиа кнопки */
+.media-button {
+    background: none;
+    border: none;
+    color: var(--textMuted);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 16px;
+    transition: all 0.2s ease;
+}
+
+.media-button:hover {
+    color: var(--text);
+    background-color: var(--hover);
 }
 

@@ -1,10 +1,10 @@
-/* Стили для ссылок в сообщениях */
+/* Стили для ссылок в сообщениях с поддержкой тем */
 .message-text a,
 .replied-message-content a,
 .forwarded-message-content a,
 .reply-content a,
 .search-result-content a {
-  color: #00b0f4 !important;
+  color: var(--primary) !important;
   text-decoration: underline;
   word-break: break-all;
   transition: color 0.2s ease;
@@ -15,32 +15,32 @@
 .forwarded-message-content a:hover,
 .reply-content a:hover,
 .search-result-content a:hover {
-  color: #0099cc !important;
+  color: var(--primaryHover) !important;
   text-decoration: underline;
 }
 
 /* Стили для ссылок в пересланных сообщениях */
 .forwarded-message-preview a {
-  color: #00b0f4 !important;
+  color: var(--primary) !important;
   text-decoration: underline;
   word-break: break-all;
   transition: color 0.2s ease;
 }
 
 .forwarded-message-preview a:hover {
-  color: #0099cc !important;
+  color: var(--primaryHover) !important;
   text-decoration: underline;
 }
 
 /* Стили для ссылок в поиске */
 .search-result-content a {
-  color: #00b0f4 !important;
+  color: var(--primary) !important;
   text-decoration: underline;
   word-break: break-all;
   transition: color 0.2s ease;
 }
 
 .search-result-content a:hover {
-  color: #0099cc !important;
+  color: var(--primaryHover) !important;
   text-decoration: underline;
 } 

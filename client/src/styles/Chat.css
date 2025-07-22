@@ -67,12 +67,6 @@
     border: 2px dashed var(--border);
 }
 
-.category {
-    margin-bottom: 16px;
-    background-color: transparent;
-    border-radius: 8px;
-    overflow: hidden;
-}
 
 .category.dragging {
     opacity: 0.8;
