@@ -136,7 +136,6 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            width: '100%'
         }}>
              <div 
                 className="user-avatar" 
