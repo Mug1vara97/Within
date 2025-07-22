@@ -21,7 +21,7 @@
 
 .server-header {
   padding: 10px 16px;
-  margin: -10px -10px;
+  margin: 0;
   background-color: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex;
@@ -31,11 +31,11 @@
 }
 
 .edge-browser .server-header {
-  margin: -11.5px -10px;
+  margin: 0;
 }
 
 .opera-browser .server-header {
-  margin: -11.5px -10px;
+  margin: 0;
 }
 
 .server-header h2 {
@@ -231,11 +231,12 @@
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   z-index: 10;
+  margin: 0;
 }
 
 .seacrh-header {
   padding: 10px 16px;
-  margin: -10px -10px;
+  margin: 0;
   background-color: var(--surface);
   border-bottom: 1px solid var(--border);
 }
@@ -261,7 +262,7 @@
 .search-divider {
   height: 1px;
   background-color: var(--border);
-  margin: 8px -10px;
+  margin: 8px 0;
   border: none;
 }
 
