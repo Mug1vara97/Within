@@ -152,7 +152,7 @@ io.on('connection', async (socket) => {
         }
     });
 
-    socket.on('join', async ({ roomId, name, initialMuted = false, initialAudioEnabled = true }, callback) => {
+    socket.on('join', async ({ roomId, name, initialMuted = false, initialAudioEnabled = true, avatarUrl = null, avatarColor = null }, callback) => {
         try {
             // Create room if it doesn't exist
             let room = rooms.get(roomId);
@@ -166,6 +166,8 @@ io.on('connection', async (socket) => {
             const peer = new Peer(socket, roomId, name);
             peer.setMuted(initialMuted); // Use initial mute state
             peer.setAudioEnabled(initialAudioEnabled); // Use initial audio state
+            peer.avatarUrl = avatarUrl; // Store avatar URL
+            peer.avatarColor = avatarColor; // Store avatar color
             peers.set(socket.id, peer);
             room.addPeer(peer);
 
@@ -181,7 +183,9 @@ io.on('connection', async (socket) => {
                         id: existingPeer.id,
                         name: existingPeer.name,
                         isMuted: existingPeer.isMuted(),
-                        isAudioEnabled: existingPeer.isAudioEnabled()
+                        isAudioEnabled: existingPeer.isAudioEnabled(),
+                        avatarUrl: existingPeer.avatarUrl,
+                        avatarColor: existingPeer.avatarColor
                     });
                 }
             });
@@ -203,7 +207,9 @@ io.on('connection', async (socket) => {
                 peerId: peer.id,
                 name: peer.name,
                 isMuted: peer.isMuted(),
-                isAudioEnabled: Boolean(peer.isAudioEnabled())
+                isAudioEnabled: Boolean(peer.isAudioEnabled()),
+                avatarUrl: peer.avatarUrl,
+                avatarColor: peer.avatarColor
             });
 
             console.log(`Peer ${name} (${socket.id}) joined room ${roomId}`);
@@ -1142,7 +1148,9 @@ io.on('connection', async (socket) => {
                             userId: peer.id,
                             name: peer.name,
                             isMuted: peer.isMuted(),
-                            isSpeaking: peer.isSpeaking()
+                            isSpeaking: peer.isSpeaking(),
+                            avatarUrl: peer.avatarUrl,
+                            avatarColor: peer.avatarColor
                         });
                     });
                     
@@ -1169,14 +1177,16 @@ io.on('connection', async (socket) => {
     });
 
     // Обработчик для уведомления о присоединении пользователя к голосовому каналу
-    socket.on('userJoinedVoiceChannel', ({ channelId, userId, userName, isMuted }) => {
+    socket.on('userJoinedVoiceChannel', ({ channelId, userId, userName, isMuted, avatarUrl, avatarColor }) => {
         try {
             // Отправляем уведомление всем клиентам
             io.emit('userJoinedVoiceChannel', {
                 channelId,
                 userId,
                 userName,
-                isMuted
+                isMuted,
+                avatarUrl,
+                avatarColor
             });
         } catch (error) {
             console.error('Error in userJoinedVoiceChannel:', error);

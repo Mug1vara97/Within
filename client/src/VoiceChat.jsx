@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, useContext, forwardRef, useImperativeHandle } from 'react';
 import { useVoiceChannel } from './contexts/VoiceChannelContext';
+import { useUserProfile } from './hooks/useUserProfile';
 import { createPortal } from 'react-dom';
 import {
   Container,
@@ -1164,6 +1165,7 @@ const VideoView = React.memo(({
 });
 
 const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true }, ref) => {
+    const { userProfile } = useUserProfile(userId);
   const { addVoiceChannelParticipant, removeVoiceChannelParticipant, updateVoiceChannelParticipant } = useVoiceChannel();
   const [isJoined, setIsJoined] = useState(false);
 
@@ -1757,8 +1759,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       });
 
       // Add handlers for peer events
-      socket.on('peerJoined', ({ peerId, name, isMuted, isAudioEnabled }) => {
-        console.log('New peer joined:', { peerId, name, isMuted, isAudioEnabled });
+      socket.on('peerJoined', ({ peerId, name, isMuted, isAudioEnabled, avatarUrl, avatarColor }) => {
+        console.log('New peer joined:', { peerId, name, isMuted, isAudioEnabled, avatarUrl, avatarColor });
         
         // Add participant to voice channel context
         console.log('Adding voice channel participant:', {
@@ -1770,7 +1772,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         addVoiceChannelParticipant(roomId, peerId, {
           name: name,
           isMuted: Boolean(isMuted),
-          isSpeaking: false
+          isSpeaking: false,
+          avatarUrl,
+          avatarColor
         });
 
         // Уведомляем сервер о присоединении пользователя к голосовому каналу
@@ -1778,7 +1782,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           channelId: roomId,
           userId: peerId,
           userName: name,
-          isMuted: Boolean(isMuted)
+          isMuted: Boolean(isMuted),
+          avatarUrl,
+          avatarColor
         });
         
         // Update peers state
@@ -1789,7 +1795,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             newPeers.set(peerId, { 
               id: peerId, 
               name, 
-              isMuted: Boolean(isMuted) 
+              isMuted: Boolean(isMuted),
+              avatarUrl,
+              avatarColor
             });
             console.log('Added new peer to peers map:', { peerId, name });
           }
@@ -1858,7 +1866,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       socket.emit('createRoom', { roomId }, async ({ error: createError }) => {
         console.log('Create room response:', createError ? `Error: ${createError}` : 'Success');
         
-        socket.emit('join', { roomId, name: userName, initialMuted, initialAudioEnabled }, async ({ error: joinError, routerRtpCapabilities, existingPeers, existingProducers }) => {
+                    socket.emit('join', { 
+                roomId, 
+                name: userName, 
+                initialMuted, 
+                initialAudioEnabled,
+                avatarUrl: userProfile?.avatar,
+                avatarColor: userProfile?.avatarColor
+            }, async ({ error: joinError, routerRtpCapabilities, existingPeers, existingProducers }) => {
           if (joinError) {
             console.error('Join error:', joinError);
             setError(joinError);
@@ -1898,13 +1913,17 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                 addVoiceChannelParticipant(roomId, peer.id, {
                   name: peer.name,
                   isMuted: peer.isMuted || false,
-                  isSpeaking: false
+                  isSpeaking: false,
+                  avatarUrl: peer.avatarUrl,
+                  avatarColor: peer.avatarColor
                 });
                 
                 peersMap.set(peer.id, { 
                   id: peer.id, 
                   name: peer.name, 
-                  isMuted: peer.isMuted || false 
+                  isMuted: peer.isMuted || false,
+                  avatarUrl: peer.avatarUrl,
+                  avatarColor: peer.avatarColor
                 });
                 audioStatesMap.set(peer.id, peer.isAudioEnabled);
                 
