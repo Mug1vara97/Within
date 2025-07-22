@@ -362,6 +362,8 @@ namespace Messenger.Hubs
                 Console.WriteLine($"Updating chat list for user {userId} after new message in chat {chatId}");
 
                 var oneOnOneChats = await _context.Members
+                    .Include(m => m.User)
+                    .ThenInclude(u => u.UserProfile)
                     .Where(m => m.UserId == userId)
                     .Select(m => m.Chat)
                     .Where(c => c.TypeId == 1)
@@ -369,6 +371,7 @@ namespace Messenger.Hubs
                     {
                         chat_id = c.ChatId,
                         username = _context.Members
+                            .Include(m => m.User)
                             .Where(m => m.ChatId == c.ChatId && m.UserId != userId)
                             .Select(m => m.User.Username)
                             .FirstOrDefault() ?? "Unknown",
@@ -377,10 +380,14 @@ namespace Messenger.Hubs
                             .Select(m => m.UserId)
                             .FirstOrDefault(),
                         avatarUrl = _context.Members
+                            .Include(m => m.User)
+                            .ThenInclude(u => u.UserProfile)
                             .Where(m => m.ChatId == c.ChatId && m.UserId != userId)
                             .Select(m => m.User.UserProfile.Avatar)
                             .FirstOrDefault(),
                         avatarColor = _context.Members
+                            .Include(m => m.User)
+                            .ThenInclude(u => u.UserProfile)
                             .Where(m => m.ChatId == c.ChatId && m.UserId != userId)
                             .Select(m => m.User.UserProfile.AvatarColor)
                             .FirstOrDefault(),
@@ -438,7 +445,7 @@ namespace Messenger.Hubs
                 }
 
                 // Отправляем обновленный список чатов через IHubContext
-                await _hubContext.Clients.All.SendAsync("ReceiveChats", allChats);
+                await _hubContext.Clients.User(userId.ToString()).SendAsync("ReceiveChats", allChats);
             }
             catch (Exception ex)
             {

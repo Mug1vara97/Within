@@ -113,12 +113,15 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                     console.log(`Chat ${chat.chat_id}: username=${chat.username}, avatarUrl=${chat.avatarUrl}, avatarColor=${chat.avatarColor}`);
                 });
 
-                // Проверяем, что данные аватаров корректны
-                const validatedChats = sortedChats.map(chat => ({
-                    ...chat,
-                    avatarUrl: chat.avatarUrl || null,
-                    avatarColor: chat.avatarColor || null
-                }));
+                // Сохраняем существующие данные аватаров при обновлении
+                const validatedChats = sortedChats.map(chat => {
+                    const existingChat = chats.find(existing => existing.chat_id === chat.chat_id);
+                    return {
+                        ...chat,
+                        avatarUrl: chat.avatarUrl || existingChat?.avatarUrl || null,
+                        avatarColor: chat.avatarColor || existingChat?.avatarColor || null
+                    };
+                });
 
                 setChats(validatedChats);
                 console.log('Updated chats state:', validatedChats);
