@@ -1165,7 +1165,7 @@ const VideoView = React.memo(({
 });
 
 const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true }, ref) => {
-  const { addVoiceChannelParticipant, removeVoiceChannelParticipant, updateVoiceChannelParticipant } = useVoiceChannel();
+  const { addVoiceChannelParticipant, removeVoiceChannelParticipant, updateVoiceChannelParticipant, getVoiceChannelParticipants } = useVoiceChannel();
   const [isJoined, setIsJoined] = useState(false);
 
   const [isMuted, setIsMuted] = useState(initialMuted);
@@ -1218,6 +1218,34 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       fetchUserProfile(userId);
     }
   }, [userId]);
+
+  // Получаем профили всех существующих участников
+  useEffect(() => {
+    if (roomId) {
+      const participants = getVoiceChannelParticipants(roomId);
+      participants.forEach(participant => {
+        if (participant.id !== userId) { // Не получаем профиль для себя
+          fetchUserProfile(participant.id);
+        }
+      });
+    }
+  }, [roomId, userId, getVoiceChannelParticipants]);
+
+  // Периодически обновляем профили всех участников
+  useEffect(() => {
+    if (roomId) {
+      const interval = setInterval(() => {
+        const participants = getVoiceChannelParticipants(roomId);
+        participants.forEach(participant => {
+          if (participant.id !== userId && !userProfiles.has(participant.id)) {
+            fetchUserProfile(participant.id);
+          }
+        });
+      }, 10000); // Проверяем каждые 10 секунд
+
+      return () => clearInterval(interval);
+    }
+  }, [roomId, userId, getVoiceChannelParticipants, userProfiles]);
 
 
 
@@ -1885,6 +1913,38 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           newProfiles.delete(peerId);
           return newProfiles;
         });
+      });
+
+      // Обработчик обновлений участников из контекста
+      socket.on('voiceChannelParticipantsUpdate', ({ channelId, participants }) => {
+        if (channelId === roomId && participants) {
+          console.log('VoiceChat: Received participants update:', { channelId, participants });
+          participants.forEach(participant => {
+            if (participant.userId !== userId) { // Не получаем профиль для себя
+              fetchUserProfile(participant.userId);
+            }
+          });
+        }
+      });
+
+      // Обработчик присоединения пользователя из контекста
+      socket.on('userJoinedVoiceChannel', ({ channelId, userId: joinedUserId, userName, isMuted }) => {
+        if (channelId === roomId && joinedUserId !== userId) {
+          console.log('VoiceChat: User joined from context:', { channelId, joinedUserId, userName });
+          fetchUserProfile(joinedUserId);
+        }
+      });
+
+      // Обработчик выхода пользователя из контекста
+      socket.on('userLeftVoiceChannel', ({ channelId, userId: leftUserId }) => {
+        if (channelId === roomId && leftUserId !== userId) {
+          console.log('VoiceChat: User left from context:', { channelId, leftUserId });
+          setUserProfiles(prev => {
+            const newProfiles = new Map(prev);
+            newProfiles.delete(leftUserId);
+            return newProfiles;
+          });
+        }
       });
 
       socket.on('newProducer', async ({ producerId, producerSocketId, kind }) => {
