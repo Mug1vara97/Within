@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, useContext, forwardRef, useImperativeHandle } from 'react';
 import { useVoiceChannel } from './contexts/VoiceChannelContext';
 import { createPortal } from 'react-dom';
+import { BASE_URL } from './config/apiConfig';
 import {
   Container,
   Paper,
@@ -1174,6 +1175,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const [isVideoEnabled, setIsVideoEnabled] = useState(false);
   const [peers, setPeers] = useState(new Map());
   const [error, setError] = useState('');
+  const [userProfiles, setUserProfiles] = useState(new Map());
       const [volumes, setVolumes] = useState(new Map());
     const [speakingStates, setSpeakingStates] = useState(new Map());
     const [audioStates, setAudioStates] = useState(new Map());
@@ -1187,6 +1189,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       socketRef.current.emit('setUserInfo', { userId, serverId });
     }
   }, [userId, serverId]);
+
+  // Получаем профиль локального пользователя
+  useEffect(() => {
+    if (userId) {
+      fetchUserProfile(userId);
+    }
+  }, [userId, fetchUserProfile]);
 
 
 
@@ -1251,6 +1260,28 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const mutedPeersRef = useRef(new Map());
 
   const [fullscreenShare, setFullscreenShare] = useState(null);
+
+  // Функция для получения профиля пользователя
+  const fetchUserProfile = useCallback(async (userId) => {
+    try {
+      const response = await fetch(`${BASE_URL}/api/profile/${userId}/profile`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.avatar && !data.avatar.startsWith('http')) {
+          data.avatar = `${BASE_URL}${data.avatar}`;
+        }
+        setUserProfiles(prev => {
+          const newProfiles = new Map(prev);
+          newProfiles.set(userId, data);
+          return newProfiles;
+        });
+        return data;
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+    return null;
+  }, []);
 
   // Обработчик для уведомления о выходе при закрытии вкладки
   useEffect(() => {
@@ -1515,6 +1546,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     setAudioStates(new Map());
     setRemoteVideos(new Map());
     setRemoteScreens(new Map());
+    setUserProfiles(new Map());
 
     setIsJoined(false);
     setError('');
@@ -1819,6 +1851,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
         // Initialize individual mute state - NOT muted by default (isMuted is for microphone, not for hearing this peer)
         individualMutedPeersRef.current.set(peerId, false);
+
+        // Получаем профиль пользователя
+        fetchUserProfile(peerId);
       });
 
       socket.on('peerLeft', ({ peerId }) => {
@@ -1842,6 +1877,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           const newStates = new Map(prev);
           newStates.delete(peerId);
           return newStates;
+        });
+        
+        // Удаляем профиль пользователя
+        setUserProfiles(prev => {
+          const newProfiles = new Map(prev);
+          newProfiles.delete(peerId);
+          return newProfiles;
         });
       });
 
@@ -4260,8 +4302,24 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                       justifyContent: 'center',
                       alignItems: 'center'
                     }}>
-                      <Box sx={styles.userAvatar}>
-                        {userName[0].toUpperCase()}
+                      <Box sx={{
+                        ...styles.userAvatar,
+                        backgroundColor: userProfiles.get(userId)?.avatarColor || '#5865F2'
+                      }}>
+                        {userProfiles.get(userId)?.avatar ? (
+                          <img 
+                            src={userProfiles.get(userId).avatar} 
+                            alt="User avatar" 
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              borderRadius: '50%',
+                              objectFit: 'cover'
+                            }}
+                          />
+                        ) : (
+                          userName[0].toUpperCase()
+                        )}
                       </Box>
                       <VideoOverlay
                         peerName={userName}
@@ -4303,8 +4361,24 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                         justifyContent: 'center',
                         alignItems: 'center'
                       }}>
-                        <Box sx={styles.userAvatar}>
-                          {peer.name[0].toUpperCase()}
+                        <Box sx={{
+                          ...styles.userAvatar,
+                          backgroundColor: userProfiles.get(peer.id)?.avatarColor || '#5865F2'
+                        }}>
+                          {userProfiles.get(peer.id)?.avatar ? (
+                            <img 
+                              src={userProfiles.get(peer.id).avatar} 
+                              alt="User avatar" 
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                borderRadius: '50%',
+                                objectFit: 'cover'
+                              }}
+                            />
+                          ) : (
+                            peer.name[0].toUpperCase()
+                          )}
                         </Box>
                         <VideoOverlay
                           peerName={peer.name}
