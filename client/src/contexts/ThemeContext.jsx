@@ -7,6 +7,7 @@ export const themes = {
         name: 'По умолчанию',
         colors: {
             primary: '#5865f2',
+            primaryHover: '#4752c4',
             secondary: '#4752c4',
             background: '#36393f',
             surface: '#2f3136',
@@ -16,7 +17,9 @@ export const themes = {
             border: '#40444b',
             hover: '#40444b',
             success: '#43b581',
+            successHover: '#3ca374',
             danger: '#f04747',
+            dangerHover: '#d84040',
             warning: '#faa61a'
         }
     },
@@ -24,6 +27,7 @@ export const themes = {
         name: 'Красная тема',
         colors: {
             primary: '#dc2626',
+            primaryHover: '#b91c1c',
             secondary: '#b91c1c',
             background: '#1f1f1f',
             surface: '#2d2d2d',
@@ -33,7 +37,9 @@ export const themes = {
             border: '#404040',
             hover: '#404040',
             success: '#16a34a',
+            successHover: '#15803d',
             danger: '#dc2626',
+            dangerHover: '#b91c1c',
             warning: '#ca8a04'
         }
     }

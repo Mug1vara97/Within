@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { BASE_URL } from './config/apiConfig';
 import { Link, useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import './login.css';
+import './styles/ServerList.css';
 import compassIcon from './assets/magnifying-glass.png';
 
 const ServerList = ({ userId, onDiscoverClick }) => {

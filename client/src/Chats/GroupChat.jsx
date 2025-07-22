@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { HubConnectionBuilder } from '@microsoft/signalr';
-import '../login.css';
+import '../styles/Chat.css';
 import './group-chat.css';
 import '../styles/links.css';
 import { BASE_URL } from '../config/apiConfig';

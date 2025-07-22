@@ -1,81 +1,286 @@
-.banner-upload-section {
-    margin-bottom: 20px;
+/* Стили для серверов */
+.server-page {
+  display: flex;
+  flex: 1;
+  background-color: var(--background);
+  color: var(--text);
 }
 
-.file-upload-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 15px;
-    background-color: #4f545c;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    margin-bottom: 10px;
+.server-sidebar {
+  width: 240px;
+  background-color: var(--surface);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
 }
 
-.file-upload-label:hover {
-    background-color: #5d6269;
+.tree {
+  flex: 1;
+  overflow-y: auto;
 }
 
-.banner-url-input {
-    margin-top: 10px;
+.server-header {
+  padding: 10px 16px;
+  margin: -10px -10px;
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
 }
 
-.banner-url-input input {
-    width: 100%;
-    padding: 8px;
-    border-radius: 4px;
-    border: 1px solid #202225;
-    background-color: #40444b;
-    color: #dcddde;
+.edge-browser .server-header {
+  margin: -11.5px -10px;
 }
 
-.banner-color-section {
-    margin: 15px 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+.opera-browser .server-header {
+  margin: -11.5px -10px;
 }
 
-.banner-color-section label {
-    color: #dcddde;
+.server-header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
 }
 
-.banner-color-section input[type="color"] {
-    width: 50px;
-    height: 30px;
-    padding: 0;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
+.server-header button {
+  padding: 8px;
+  border-radius: 4px;
+  border: none;
+  background-color: var(--surface);
+  color: var(--text);
 }
 
-.modal-buttons {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    margin-top: 20px;
+.dropdown-container {
+  position: relative;
+  display: inline-block;
 }
 
-.modal-buttons button {
-    padding: 8px 16px;
-    border-radius: 4px;
-    border: none;
-    cursor: pointer;
-    font-weight: 500;
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: var(--surface);
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  min-width: 150px;
+  border: 1px solid var(--border);
 }
 
-.modal-buttons button:first-child {
-    background-color: #5865f2;
-    color: white;
+.dropdown-item {
+  width: 100%;
+  padding: 8px 16px;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text);
+  transition: background-color 0.2s;
 }
 
-.modal-buttons button:last-child {
-    background-color: #4f545c;
-    color: white;
+.dropdown-item:hover {
+  background-color: var(--hover);
 }
 
-.modal-buttons button:hover {
-    opacity: 0.9;
+.category-header {
+  display: flex;
+  align-items: center;
+  padding: 5px 10px;
+  color: var(--textSecondary);
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.category-name {
+  flex-grow: 1;
+}
+
+/* Каналы */
+.channel-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.channel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 10px;
+  margin: 2px 0;
+  border-radius: 4px;
+  color: var(--textSecondary);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.channel:hover {
+  background-color: var(--hover);
+  color: var(--text);
+}
+
+.channel.active {
+  background-color: var(--primary);
+  color: var(--text);
+}
+
+.channel-icon {
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+.channel-name {
+  font-size: 14px;
+}
+
+/* Кнопки */
+.chats-button {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  background-color: var(--primary);
+  border: none;
+  color: var(--text);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.chats-button:hover {
+  background-color: var(--primaryHover);
+}
+
+.create-server {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.create-server input {
+  padding: 5px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background-color: var(--background);
+  color: var(--text);
+}
+
+.create-server button {
+  background-color: var(--primary);
+  border: none;
+  color: var(--text);
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.create-server button:hover {
+  background-color: var(--primaryHover);
+}
+
+.create-group-button {
+  background-color: var(--surface);
+  border: none;
+  color: var(--text);
+  font-size: 18px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  margin-left: auto;
+  transition: background-color 0.2s;
+}
+
+.create-group-button:hover {
+  background-color: var(--hover);
+}
+
+/* Поиск */
+.search-bar {
+  display: flex;
+  flex-direction: column;
+}
+
+.search-bar-input {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background-color: var(--background);
+  color: var(--text);
+  transition: border-color 0.2s;
+}
+
+.search-bar-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* Заголовки */
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  z-index: 10;
+}
+
+.seacrh-header {
+  padding: 10px 16px;
+  margin: -10px -10px;
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.username {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.chat-header-text {
+  font-size: 16px;
+  color: var(--text);
+}
+
+.search-divider {
+  height: 1px;
+  background-color: var(--border);
+  margin: 8px -10px;
+  border: none;
+}
+
+.create-group-chat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.no-chat-selected {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: var(--textSecondary);
 } 

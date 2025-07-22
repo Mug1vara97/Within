@@ -1,0 +1,259 @@
+/* Стили для поиска сообщений */
+.message-search-container {
+  position: relative;
+}
+
+.message-search-input {
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background-color: var(--background);
+  color: var(--text);
+  width: 220px;
+  font-size: 14px;
+  transition: width 0.2s ease, border-color 0.2s ease;
+}
+
+.message-search-input:focus {
+  outline: none;
+  background-color: var(--surface);
+  width: 240px;
+  border-color: var(--primary);
+}
+
+.message-search-results {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 400px;
+  background-color: var(--surface);
+  border-radius: 4px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
+  z-index: 1000;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.message-search-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.message-search-header h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.message-search-close {
+  background: none;
+  border: none;
+  color: var(--textSecondary);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  transition: all 0.2s ease;
+}
+
+.message-search-close:hover {
+  color: var(--text);
+  background-color: var(--hover);
+}
+
+.message-search-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.message-search-item {
+  padding: 16px;
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  transition: background-color 0.2s ease;
+}
+
+.message-search-item:hover {
+  background-color: var(--hover);
+}
+
+.message-search-content-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.message-search-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.message-search-user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.message-search-user-info strong {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.message-search-date {
+  color: var(--textSecondary);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.message-search-content {
+  color: var(--textSecondary);
+  font-size: 14px;
+  line-height: 1.4;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.message-search-item .user-avatar {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.message-search-item .user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Стили для скроллбара результатов поиска сообщений */
+.message-search-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.message-search-list::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+.message-search-list::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 4px;
+}
+
+.message-search-list::-webkit-scrollbar-thumb:hover {
+  background-color: var(--textSecondary);
+}
+
+/* Анимация подсветки найденного сообщения */
+.message-highlight {
+  background-color: rgba(var(--primary), 0.15);
+  animation: message-highlight-fade 2s ease-out;
+}
+
+@keyframes message-highlight-fade {
+  0% {
+    background-color: rgba(var(--primary), 0.15);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+/* Стили для результатов поиска */
+.search-results {
+  position: absolute;
+  top: 70px;
+  background-color: var(--surface);
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  width: 219px;
+  border: 1px solid var(--border);
+}
+
+.search-results h3 {
+  margin-top: 0;
+  color: var(--text);
+}
+
+.search-results ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.search-results li {
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.search-results li:hover {
+  background-color: var(--hover);
+}
+
+.search-results-container {
+  padding: 10px;
+  background-color: var(--surface);
+  margin: 10px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+}
+
+.search-results-container h3 {
+  color: var(--text);
+  margin-bottom: 10px;
+  font-size: 16px;
+  padding-left: 5px;
+}
+
+.search-results-container ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.search-results-container .search-result-item {
+  padding: 8px 12px;
+  margin: 4px 0;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: var(--background);
+  color: var(--text);
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.search-results-container .search-result-item:hover {
+  background-color: var(--hover);
+}
+
+.search-results-container p {
+  color: var(--textSecondary);
+  text-align: center;
+  padding: 10px;
+} 
