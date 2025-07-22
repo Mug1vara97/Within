@@ -72,6 +72,8 @@ namespace Messenger.Hubs
                         chat_id = c.ChatId,
                         username = c.Name,
                         user_id = userId,
+                        avatarUrl = (string)null, // Групповые чаты не имеют аватаров
+                        avatarColor = (string)null, // Групповые чаты не имеют аватаров
                         isGroupChat = true,
                         lastMessageTime = _context.Messages
                             .Where(m => m.ChatId == c.ChatId)
@@ -93,6 +95,7 @@ namespace Messenger.Hubs
             catch (Exception ex)
             {
                 await Clients.Caller.SendAsync("Error", "Произошла ошибка при получении списка чатов: " + ex.Message);
+                Console.Error.WriteLine($"Error in GetUserChats: {ex}");
             }
         }
 
@@ -397,6 +400,8 @@ namespace Messenger.Hubs
                         chat_id = c.ChatId,
                         username = c.Name ?? "Unnamed Group",
                         user_id = userId,
+                        avatarUrl = (string)null, // Групповые чаты не имеют аватаров
+                        avatarColor = (string)null, // Групповые чаты не имеют аватаров
                         isGroupChat = true,
                         lastMessage = _context.Messages
                             .Where(m => m.ChatId == c.ChatId)
@@ -411,7 +416,9 @@ namespace Messenger.Hubs
                     })
                     .ToListAsync();
 
-                var allChats = oneOnOneChats.Concat(groupChats)
+                var allChats = oneOnOneChats
+                    .Cast<dynamic>()
+                    .Concat(groupChats.Cast<dynamic>())
                     .OrderByDescending(c => c.lastMessageTime)
                     .ToList();
 
