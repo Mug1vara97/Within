@@ -2,11 +2,13 @@ import React, { useEffect, useState, useRef } from 'react';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import '../login.css';
 import './group-chat.css';
+import '../styles/links.css';
 import { BASE_URL } from '../config/apiConfig';
 import MediaMessage from './MediaMessage';
 import { useMediaHandlers } from '../hooks/useMediaHandlers';
 import useScrollToBottom from '../hooks/useScrollToBottom';
 import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/GroupSettings';
+import { processLinks } from '../utils/linkUtils';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
   return (
@@ -200,10 +202,10 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         <div className="modal-content forward-modal">
           <h3>Переслать сообщение</h3>
           
-          <div className="forwarded-message-preview">
-            <strong>{messageToForward?.senderUsername}</strong>
-            <p>{messageToForward?.content}</p>
-          </div>
+                              <div className="forwarded-message-preview">
+                      <strong>{messageToForward?.senderUsername}</strong>
+                      <p>{processLinks(messageToForward?.content)}</p>
+                    </div>
 
           <div className="forward-message-input">
             <input
@@ -545,7 +547,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
                           </span>
                         </div>
                         <div className="search-result-content">
-                          {msg.content}
+                          {processLinks(msg.content)}
                         </div>
                       </div>
                     </div>
@@ -598,7 +600,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
                     <div className="replied-message-header">
                       <strong>{msg.repliedMessage.senderUsername}</strong>
                     </div>
-                    <div className="replied-message-content">{msg.repliedMessage.content}</div>
+                    <div className="replied-message-content">{processLinks(msg.repliedMessage.content)}</div>
                   </div>
                 )}
                 {msg.forwardedMessage && (
@@ -693,7 +695,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
                 <strong>{replyingToMessage.senderUsername}</strong>
                 <span>Ответ на сообщение</span>
               </div>
-              <div className="reply-content">{replyingToMessage.content}</div>
+              <div className="reply-content">{processLinks(replyingToMessage.content)}</div>
             </div>
             <button onClick={() => setReplyingToMessage(null)} className="cancel-reply-button">
               ×

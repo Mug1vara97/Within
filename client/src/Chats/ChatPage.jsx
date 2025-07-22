@@ -4,6 +4,7 @@ import { BASE_URL } from '../config/apiConfig';
 import MediaMessage from './MediaMessage';
 import { useMediaHandlers } from '../hooks/useMediaHandlers';
 import useScrollToBottom from '../hooks/useScrollToBottom';
+import '../styles/links.css';
 
 
 const ChatPage = ({ userId, username, chatId, chatPartnerUsername, PartnerId }) => {

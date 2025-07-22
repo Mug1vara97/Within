@@ -2,6 +2,7 @@ import React from 'react';
 import AudioMessage from './AudioMessage';
 import VideoPlayer from './VideoPlayer';
 import { BASE_URL } from '../config/apiConfig';
+import { processLinks } from '../utils/linkUtils';
 
 const MediaMessage = ({ content }) => {
   // Проверяем, является ли контент пересланным сообщением
@@ -26,8 +27,8 @@ const MediaMessage = ({ content }) => {
           return <a href={src} target="_blank" rel="noopener noreferrer">Download file</a>;
       }
     }
-    // Если это пересланное сообщение без медиафайла, возвращаем его контент
-    return forwardedContent;
+    // Если это пересланное сообщение без медиафайла, обрабатываем ссылки и возвращаем его контент
+    return processLinks(forwardedContent);
   }
 
   // Проверяем, является ли контент медиафайлом
@@ -37,8 +38,8 @@ const MediaMessage = ({ content }) => {
   );
 
   if (!isMediaPath) {
-    // Если это не медиафайл, возвращаем контент как есть
-    return content;
+    // Если это не медиафайл, обрабатываем ссылки и возвращаем контент
+    return processLinks(content);
   }
 
   const src = `${BASE_URL}${content}`;
