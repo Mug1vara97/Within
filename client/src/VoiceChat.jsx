@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, useContext, forwardRef, useImperativeHandle } from 'react';
 import { useVoiceChannel } from './contexts/VoiceChannelContext';
-import { useUserProfile } from './hooks/useUserProfile';
-import UserAvatar from './UserAvatar';
 import { createPortal } from 'react-dom';
 import {
   Container,
@@ -243,8 +241,8 @@ const styles = {
     }
   },
   userAvatar: {
-    width: '100px',
-    height: '100px',
+    width: '80px',
+    height: '80px',
     borderRadius: '50%',
     backgroundColor: '#404249',
     display: 'flex',
@@ -255,7 +253,6 @@ const styles = {
     fontWeight: 500,
     marginBottom: '12px',
     transition: 'transform 0.2s ease',
-    overflow: 'hidden',
     '&:hover': {
       transform: 'scale(1.05)'
     }
@@ -910,8 +907,6 @@ const VideoOverlay = React.memo(({
   showVolumeSlider,
   onVolumeSliderChange,
   onToggleVolumeSlider,
-  avatarUrl,
-  avatarColor,
   children
 }) => {
   const [isVolumeOff, setIsVolumeOff] = useState(isAudioMuted || volume === 0);
@@ -985,12 +980,6 @@ const VideoOverlay = React.memo(({
         {!isAudioEnabled && (
           <HeadsetOff sx={{ fontSize: 16, color: '#ed4245' }} />
         )}
-        <UserAvatar 
-          username={peerName}
-          avatarUrl={avatarUrl}
-          avatarColor={avatarColor}
-          size="20px"
-        />
         {peerName}
       </Box>
       
@@ -1113,8 +1102,6 @@ const VideoOverlay = React.memo(({
     prevProps.volume === nextProps.volume &&
     prevProps.isAudioMuted === nextProps.isAudioMuted &&
     prevProps.showVolumeSlider === nextProps.showVolumeSlider &&
-    prevProps.avatarUrl === nextProps.avatarUrl &&
-    prevProps.avatarColor === nextProps.avatarColor &&
     prevProps.children === nextProps.children
   );
 });
@@ -1133,8 +1120,6 @@ const VideoView = React.memo(({
   showVolumeSlider,
   onVolumeSliderChange,
   onToggleVolumeSlider,
-  avatarUrl,
-  avatarColor,
   children 
 }) => {
   return (
@@ -1174,14 +1159,11 @@ const VideoView = React.memo(({
     prevProps.volume === nextProps.volume &&
     prevProps.isAudioMuted === nextProps.isAudioMuted &&
     prevProps.showVolumeSlider === nextProps.showVolumeSlider &&
-    prevProps.avatarUrl === nextProps.avatarUrl &&
-    prevProps.avatarColor === nextProps.avatarColor &&
     prevProps.children === nextProps.children
   );
 });
 
 const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true }, ref) => {
-    const { userProfile } = useUserProfile(userId);
   const { addVoiceChannelParticipant, removeVoiceChannelParticipant, updateVoiceChannelParticipant } = useVoiceChannel();
   const [isJoined, setIsJoined] = useState(false);
 
@@ -1775,8 +1757,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       });
 
       // Add handlers for peer events
-      socket.on('peerJoined', ({ peerId, name, isMuted, isAudioEnabled, avatarUrl, avatarColor }) => {
-        console.log('New peer joined:', { peerId, name, isMuted, isAudioEnabled, avatarUrl, avatarColor });
+      socket.on('peerJoined', ({ peerId, name, isMuted, isAudioEnabled }) => {
+        console.log('New peer joined:', { peerId, name, isMuted, isAudioEnabled });
         
         // Add participant to voice channel context
         console.log('Adding voice channel participant:', {
@@ -1788,9 +1770,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         addVoiceChannelParticipant(roomId, peerId, {
           name: name,
           isMuted: Boolean(isMuted),
-          isSpeaking: false,
-          avatarUrl,
-          avatarColor
+          isSpeaking: false
         });
 
         // Уведомляем сервер о присоединении пользователя к голосовому каналу
@@ -1798,9 +1778,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           channelId: roomId,
           userId: peerId,
           userName: name,
-          isMuted: Boolean(isMuted),
-          avatarUrl,
-          avatarColor
+          isMuted: Boolean(isMuted)
         });
         
         // Update peers state
@@ -1811,9 +1789,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             newPeers.set(peerId, { 
               id: peerId, 
               name, 
-              isMuted: Boolean(isMuted),
-              avatarUrl,
-              avatarColor
+              isMuted: Boolean(isMuted) 
             });
             console.log('Added new peer to peers map:', { peerId, name });
           }
@@ -1882,14 +1858,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       socket.emit('createRoom', { roomId }, async ({ error: createError }) => {
         console.log('Create room response:', createError ? `Error: ${createError}` : 'Success');
         
-                    socket.emit('join', { 
-                roomId, 
-                name: userName, 
-                initialMuted, 
-                initialAudioEnabled,
-                avatarUrl: userProfile?.avatar,
-                avatarColor: userProfile?.avatarColor
-            }, async ({ error: joinError, routerRtpCapabilities, existingPeers, existingProducers }) => {
+        socket.emit('join', { roomId, name: userName, initialMuted, initialAudioEnabled }, async ({ error: joinError, routerRtpCapabilities, existingPeers, existingProducers }) => {
           if (joinError) {
             console.error('Join error:', joinError);
             setError(joinError);
@@ -1929,17 +1898,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                 addVoiceChannelParticipant(roomId, peer.id, {
                   name: peer.name,
                   isMuted: peer.isMuted || false,
-                  isSpeaking: false,
-                  avatarUrl: peer.avatarUrl,
-                  avatarColor: peer.avatarColor
+                  isSpeaking: false
                 });
                 
                 peersMap.set(peer.id, { 
                   id: peer.id, 
                   name: peer.name, 
-                  isMuted: peer.isMuted || false,
-                  avatarUrl: peer.avatarUrl,
-                  avatarColor: peer.avatarColor
+                  isMuted: peer.isMuted || false 
                 });
                 audioStatesMap.set(peer.id, peer.isAudioEnabled);
                 
@@ -4284,8 +4249,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                       isAudioEnabled={isAudioEnabled}
                       isLocal={true}
                       isAudioMuted={isMuted}
-                      avatarUrl={userProfile?.avatar}
-                      avatarColor={userProfile?.avatarColor}
                     />
                   ) : (
                     <div style={{ 
@@ -4298,12 +4261,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                       alignItems: 'center'
                     }}>
                       <Box sx={styles.userAvatar}>
-                        <UserAvatar 
-                          username={userName}
-                          avatarUrl={userProfile?.avatar}
-                          avatarColor={userProfile?.avatarColor}
-                          size="100px"
-                        />
+                        {userName[0].toUpperCase()}
                       </Box>
                       <VideoOverlay
                         peerName={userName}
@@ -4312,8 +4270,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                         isAudioEnabled={isAudioEnabled}
                         isLocal={true}
                         isAudioMuted={isMuted}
-                        avatarUrl={userProfile?.avatar}
-                        avatarColor={userProfile?.avatarColor}
                       />
                     </div>
                   )}
@@ -4336,8 +4292,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                         showVolumeSlider={showVolumeSliders.get(peer.id) || false}
                         onVolumeSliderChange={(newVolume) => handleVolumeSliderChange(peer.id, newVolume)}
                         onToggleVolumeSlider={() => toggleVolumeSlider(peer.id)}
-                        avatarUrl={peer.avatarUrl}
-                        avatarColor={peer.avatarColor}
                       />
                     ) : (
                       <div style={{ 
@@ -4350,12 +4304,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                         alignItems: 'center'
                       }}>
                         <Box sx={styles.userAvatar}>
-                          <UserAvatar 
-                            username={peer.name}
-                            avatarUrl={peer.avatarUrl}
-                            avatarColor={peer.avatarColor}
-                            size="100px"
-                          />
+                          {peer.name[0].toUpperCase()}
                         </Box>
                         <VideoOverlay
                           peerName={peer.name}
@@ -4369,8 +4318,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                           showVolumeSlider={showVolumeSliders.get(peer.id) || false}
                           onVolumeSliderChange={(newVolume) => handleVolumeSliderChange(peer.id, newVolume)}
                           onToggleVolumeSlider={() => toggleVolumeSlider(peer.id)}
-                          avatarUrl={peer.avatarUrl}
-                          avatarColor={peer.avatarColor}
                         />
                       </div>
                     )}

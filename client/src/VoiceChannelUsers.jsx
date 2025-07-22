@@ -1,6 +1,5 @@
 import React from 'react';
 import { FaMicrophone, FaMicrophoneSlash, FaHeadphones, FaHeadphonesAlt } from 'react-icons/fa';
-import UserAvatar from './UserAvatar';
 import './styles/VoiceChannelUsers.css';
 
 const VoiceChannelUsers = ({ users = [], currentUserId }) => {
@@ -13,12 +12,7 @@ const VoiceChannelUsers = ({ users = [], currentUserId }) => {
             {users.map((user) => (
                 <div key={user.id} className={`voice-user ${user.id === currentUserId ? 'current-user' : ''}`}>
                     <div className="voice-user-avatar">
-                        <UserAvatar 
-                            username={user.name} 
-                            avatarUrl={user.avatarUrl} 
-                            avatarColor={user.avatarColor}
-                            size="24px"
-                        />
+                        {user.name ? user.name[0].toUpperCase() : 'U'}
                     </div>
                     <div className="voice-user-info">
                         <span className="voice-user-name">{user.name || 'Unknown'}</span>

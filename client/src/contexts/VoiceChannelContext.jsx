@@ -34,9 +34,7 @@ export const VoiceChannelProvider = ({ children }) => {
               id: participant.userId,
               name: participant.name,
               isMuted: participant.isMuted || false,
-              isSpeaking: participant.isSpeaking || false,
-              avatarUrl: participant.avatarUrl,
-              avatarColor: participant.avatarColor
+              isSpeaking: participant.isSpeaking || false
             });
           });
           newChannels.set(channelId, { participants: participantsMap });
@@ -54,8 +52,8 @@ export const VoiceChannelProvider = ({ children }) => {
     });
 
     // Слушаем когда пользователь присоединяется к голосовому каналу
-    newSocket.on('userJoinedVoiceChannel', ({ channelId, userId, userName, isMuted, avatarUrl, avatarColor }) => {
-      console.log('VoiceChannelContext: User joined voice channel:', { channelId, userId, userName, isMuted, avatarUrl, avatarColor });
+    newSocket.on('userJoinedVoiceChannel', ({ channelId, userId, userName, isMuted }) => {
+      console.log('VoiceChannelContext: User joined voice channel:', { channelId, userId, userName, isMuted });
       setVoiceChannels(prev => {
         const newChannels = new Map(prev);
         if (!newChannels.has(channelId)) {
@@ -69,9 +67,7 @@ export const VoiceChannelProvider = ({ children }) => {
             id: userId,
             name: userName,
             isMuted: Boolean(isMuted),
-            isSpeaking: false,
-            avatarUrl: avatarUrl,
-            avatarColor: avatarColor
+            isSpeaking: false
           });
           console.log('VoiceChannelContext: Added new participant:', userId);
         } else {

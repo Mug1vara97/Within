@@ -1,20 +1,19 @@
-const UserAvatar = ({ username, avatarUrl, avatarColor, size = '32px' }) => {
+const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
     return (
         <div 
             className="user-avatar"
             style={{ 
                 backgroundColor: avatarColor || '#5865F2',
-                width: size,
-                height: size,
+                width: '32px',
+                height: '32px',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'white',
-                fontSize: size === '24px' ? '11px' : '14px',
+                fontSize: '14px',
                 fontWeight: 'bold',
-                flexShrink: 0,
-                overflow: 'hidden'
+                flexShrink: 0
             }}
         >
             {avatarUrl ? (
@@ -34,5 +33,3 @@ const UserAvatar = ({ username, avatarUrl, avatarColor, size = '32px' }) => {
         </div>
     );
 };
-
-export default UserAvatar;
