@@ -5,14 +5,14 @@
 
 .chat-sidebar {
     width: 240px;
-    background-color: #2f3136;
+    background-color: var(--surface);
     display: flex;
     flex-direction: column;
 }
 
 .chat-area {
     flex: 1;
-    background-color: #36393f;
+    background-color: var(--background);
 }
 
 .chat-item {
@@ -20,18 +20,18 @@
     justify-content: space-between;
     align-items: center;
     padding: 10px;
-    border-bottom: 1px solid #2f3136;
+    border-bottom: 1px solid var(--border);
     cursor: pointer;
     transition: background-color 0.2s ease;
     position: relative;
 }
 
 .chat-item:hover {
-    background-color: #2f3136;
+    background-color: var(--hover);
 }
 
 .chat-item.active {
-    background-color: #2f3136;
+    background-color: var(--hover);
 }
 
 .chat-item-content {
@@ -56,11 +56,12 @@
 .chat-item-content .username {
     font-weight: 500;
     margin-bottom: 4px;
+    color: var(--text);
 }
 
 .last-message {
     font-size: 0.9em;
-    color: #b9bbbe;
+    color: var(--textSecondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -70,13 +71,13 @@
 /* Анимация обновления */
 @keyframes highlight {
     0% {
-        background-color: #2f3136;
+        background-color: var(--hover);
     }
     50% {
-        background-color: #36393f;
+        background-color: var(--background);
     }
     100% {
-        background-color: #2f3136;
+        background-color: var(--hover);
     }
 }
 
@@ -86,7 +87,7 @@
 
 /* Стили для группового чата */
 .chat-item .group-indicator {
-    color: #b9bbbe;
+    color: var(--textSecondary);
     font-size: 0.9em;
     margin-left: 4px;
 }
@@ -95,7 +96,7 @@
 .delete-chat-button {
     background: none;
     border: none;
-    color: #b9bbbe;
+    color: var(--textSecondary);
     cursor: pointer;
     padding: 4px 8px;
     border-radius: 4px;
@@ -108,20 +109,20 @@
 }
 
 .delete-chat-button:hover {
-    background-color: #ed4245;
-    color: white;
+    background-color: var(--danger);
+    color: var(--text);
 }
 
 /* Стили для результатов поиска */
 .search-results-container {
     padding: 10px;
-    background-color: #202225;
+    background-color: var(--surface);
     margin: 10px;
     border-radius: 5px;
 }
 
 .search-results-container h3 {
-    color: #ffffff;
+    color: var(--text);
     margin-bottom: 10px;
     font-size: 16px;
     padding-left: 5px;
@@ -138,8 +139,8 @@
     margin: 4px 0;
     border-radius: 4px;
     cursor: pointer;
-    background-color: #36393f;
-    color: #ffffff;
+    background-color: var(--background);
+    color: var(--text);
     transition: background-color 0.2s;
     display: flex;
     align-items: center;
@@ -147,11 +148,11 @@
 }
 
 .search-results-container .search-result-item:hover {
-    background-color: #40444b;
+    background-color: var(--hover);
 }
 
 .search-results-container p {
-    color: #b9bbbe;
+    color: var(--textSecondary);
     text-align: center;
     padding: 10px;
 }

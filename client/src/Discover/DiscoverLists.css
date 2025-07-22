@@ -1,17 +1,17 @@
 .discover-container {
     display: flex;
     flex: 1;
-    background-color: #313338;
+    background-color: var(--background);
     overflow: hidden;
 }
 
 .discover-lists {
-    background-color: #2b2d31;
+    background-color: var(--surface);
     width: 240px;
     height: 100%;
     padding: 0 0 16px;
-    color: #f2f3f5;
-    border-right: 1px solid rgba(0, 0, 0, 0.2);
+    color: var(--text);
+    border-right: 1px solid var(--border);
     flex-shrink: 0;
 }
 
@@ -20,7 +20,7 @@
     font-weight: 700;
     margin: 0 0 20px 0;
     padding: 0 10px;
-    color: #f2f3f5;
+    color: var(--text);
 }
 
 .discover-categories {
@@ -35,19 +35,19 @@
     margin: 0 8px;
     cursor: pointer;
     transition: background-color 0.2s;
-    color: #949ba4;
+    color: var(--textMuted);
     border-radius: 4px;
     height: 42px;
 }
 
 .discover-category:hover {
-    background-color: #393c41;
-    color: #f2f3f5;
+    background-color: var(--hover);
+    color: var(--text);
 }
 
 .discover-category.active {
-    background-color: #404249;
-    color: #f2f3f5;
+    background-color: var(--primary);
+    color: var(--text);
 }
 
 .category-icon {
@@ -57,19 +57,20 @@
     height: 24px;
     display: flex;
     align-items: center;
-    color: #dbdee1;
+    color: var(--textSecondary);
 }
 
 .category-info h3 {
     margin: 0;
     font-size: 16px;
     font-weight: 500;
+    color: var(--text);
 }
 
 .category-info p {
     margin: 2px 0 0;
     font-size: 12px;
-    color: #b5bac1;
+    color: var(--textSecondary);
 }
 
 .servers-section {
@@ -77,7 +78,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background-color: #313338;
+    background-color: var(--background);
 }
 
 /* .servers-header {
@@ -161,8 +162,8 @@
 .discover-header {
     padding: 0 16px;
     min-height: 52px;
-    background-color: #2f3136;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: var(--surface);
+    border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
     margin-bottom: 15px;
@@ -177,7 +178,7 @@
 }
 
 .discover-name {
-    color: #fff;
+    color: var(--text);
     font-size: 16px;
     font-weight: 600;
     margin: 0;
