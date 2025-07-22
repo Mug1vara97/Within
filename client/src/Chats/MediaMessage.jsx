@@ -2,7 +2,7 @@ import React from 'react';
 import AudioMessage from './AudioMessage';
 import VideoPlayer from './VideoPlayer';
 import { BASE_URL } from '../config/apiConfig';
-import { processLinks } from '../utils/linkUtils';
+import { processLinks } from '../utils/linkUtils.jsx';
 
 const MediaMessage = ({ content }) => {
   // Проверяем, является ли контент пересланным сообщением

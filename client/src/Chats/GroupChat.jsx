@@ -8,7 +8,7 @@ import MediaMessage from './MediaMessage';
 import { useMediaHandlers } from '../hooks/useMediaHandlers';
 import useScrollToBottom from '../hooks/useScrollToBottom';
 import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/GroupSettings';
-import { processLinks } from '../utils/linkUtils';
+import { processLinks } from '../utils/linkUtils.jsx';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
   return (

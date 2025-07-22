@@ -1,3 +1,5 @@
+import React from 'react';
+
 // Функция для обработки ссылок в тексте
 export const processLinks = (text) => {
   if (!text || typeof text !== 'string') {
