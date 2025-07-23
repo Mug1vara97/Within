@@ -35,9 +35,9 @@ export const themes = {
             primary: '#dc2626',
             primaryHover: '#b91c1c',
             secondary: '#b91c1c',
-            background: '#1f1f1f',
-            surface: '#2d2d2d',
-            serverListBackground: '#202225',
+            background: '#e6e6e6',
+            surface: '#8d8d8d',
+            serverListBackground: '#1a1a1a',
             text: '#ffffff',
             textSecondary: '#e5e5e5',
             textMuted: '#a3a3a3',
@@ -48,6 +48,8 @@ export const themes = {
             danger: '#dc2626',
             dangerHover: '#b91c1c',
             warning: '#ca8a04',
+            bottom: '#e6e6e6',
+            borderBottom: '#ea1822',
             // RGB переменные для прозрачности
             primaryRgb: '220, 38, 38',
             dangerRgb: '220, 38, 38'
