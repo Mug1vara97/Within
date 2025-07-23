@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useState, useEffect, useRef, useCallback } from 'react';
 import { notificationService } from '../services/notificationService';
 import * as signalR from '@microsoft/signalr';
 
@@ -17,7 +17,7 @@ export const NotificationProvider = ({ children }) => {
     const userIdRef = useRef(null);
 
     // Инициализация SignalR соединения
-    const initializeConnection = (userId) => {
+    const initializeConnection = useCallback((userId) => {
         if (connectionRef.current) {
             connectionRef.current.stop();
         }
@@ -25,7 +25,7 @@ export const NotificationProvider = ({ children }) => {
         userIdRef.current = userId;
         
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl(`https://whithin.ru/notificationhub?userId=${userId}`)
+            .withUrl(`/notificationhub?userId=${userId}`)
             .withAutomaticReconnect()
             .build();
 
@@ -57,10 +57,10 @@ export const NotificationProvider = ({ children }) => {
             });
 
         connectionRef.current = connection;
-    };
+    }, []);
 
     // Загрузка уведомлений
-    const loadNotifications = async (userId, page = 1, append = false) => {
+    const loadNotifications = useCallback(async (userId, page = 1, append = false) => {
         if (!userId) return;
         
         setIsLoading(true);
@@ -80,10 +80,10 @@ export const NotificationProvider = ({ children }) => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
 
     // Загрузка счетчика непрочитанных
-    const loadUnreadCount = async (userId) => {
+    const loadUnreadCount = useCallback(async (userId) => {
         if (!userId) return;
         
         try {
@@ -92,10 +92,10 @@ export const NotificationProvider = ({ children }) => {
         } catch (error) {
             console.error("Error loading unread count:", error);
         }
-    };
+    }, []);
 
     // Отметить уведомление как прочитанное
-    const markAsRead = async (notificationId) => {
+    const markAsRead = useCallback(async (notificationId) => {
         if (!userIdRef.current) return;
         
         try {
@@ -110,10 +110,10 @@ export const NotificationProvider = ({ children }) => {
         } catch (error) {
             console.error("Error marking notification as read:", error);
         }
-    };
+    }, []);
 
     // Отметить все уведомления чата как прочитанные
-    const markChatAsRead = async (chatId) => {
+    const markChatAsRead = useCallback(async (chatId) => {
         if (!userIdRef.current) return;
         
         try {
@@ -128,10 +128,10 @@ export const NotificationProvider = ({ children }) => {
         } catch (error) {
             console.error("Error marking chat notifications as read:", error);
         }
-    };
+    }, []);
 
     // Удалить уведомление
-    const deleteNotification = async (notificationId) => {
+    const deleteNotification = useCallback(async (notificationId) => {
         if (!userIdRef.current) return;
         
         try {
@@ -140,32 +140,38 @@ export const NotificationProvider = ({ children }) => {
         } catch (error) {
             console.error("Error deleting notification:", error);
         }
-    };
+    }, []);
 
     // Инициализация для пользователя
-    const initializeForUser = async (userId) => {
+    const initializeForUser = useCallback(async (userId) => {
         if (!userId) return;
+        
+        // Проверяем, не инициализировали ли мы уже для этого пользователя
+        if (userIdRef.current === userId && connectionRef.current) {
+            console.log('Notifications already initialized for user:', userId);
+            return;
+        }
         
         console.log('Initializing notifications for user:', userId);
         initializeConnection(userId);
         await loadNotifications(userId, 1, false);
         await loadUnreadCount(userId);
-    };
+    }, [initializeConnection, loadNotifications, loadUnreadCount]);
 
     // Загрузка следующей страницы
-    const loadMore = async () => {
+    const loadMore = useCallback(async () => {
         if (!userIdRef.current || isLoading || !hasMore) return;
         
         await loadNotifications(userIdRef.current, currentPage + 1, true);
-    };
+    }, [isLoading, hasMore, currentPage]);
 
     // Запрос разрешения на desktop уведомления
-    const requestNotificationPermission = async () => {
+    const requestNotificationPermission = useCallback(async () => {
         if (Notification.permission === "default") {
             const permission = await Notification.requestPermission();
             console.log("Notification permission:", permission);
         }
-    };
+    }, []);
 
     useEffect(() => {
         requestNotificationPermission();
