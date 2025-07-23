@@ -4,6 +4,7 @@ import { BASE_URL } from '../config/apiConfig';
 import MediaMessage from './MediaMessage';
 import { useMediaHandlers } from '../hooks/useMediaHandlers';
 import useScrollToBottom from '../hooks/useScrollToBottom';
+import { useNotifications } from '../hooks/useNotifications';
 import '../styles/links.css';
 
 
@@ -14,6 +15,7 @@ const ChatPage = ({ userId, username, chatId, chatPartnerUsername, PartnerId }) 
     const [editingMessageId, setEditingMessageId] = useState(null);
     const { isRecording, fileInputRef, handleSendMedia, handleAudioRecording } = useMediaHandlers(connection, username, chatId);
     const { messagesEndRef, scrollToBottom } = useScrollToBottom();
+    const { markChatAsRead } = useNotifications();
     const connectionRef = useRef(null);
 
     const [contextMenu, setContextMenu] = useState({
@@ -70,6 +72,11 @@ const ChatPage = ({ userId, username, chatId, chatPartnerUsername, PartnerId }) 
                 userId: msg.userId,
                 createdAt: msg.createdAt
             })));
+            
+            // Помечаем уведомления чата как прочитанные
+            if (markChatAsRead) {
+                markChatAsRead(chatId);
+            }
             
             // Обработчики событий
             newConnection.on('ReceiveMessage', (user, content, messageId) => {

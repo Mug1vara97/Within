@@ -44,13 +44,19 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                 onChatSelected(chat);
             }
             
+            // Помечаем уведомления чата как прочитанные
+            if (getUnreadCountForChat(chat.chat_id) > 0) {
+                // Обновляем состояние для принудительного перерендера
+                setForceUpdate(prev => prev + 1);
+            }
+            
             if (chat.isGroupChat) {
                 navigate(`/channels/@me/${chat.chat_id}`);
             } else {
                 navigate(`/channels/@me/${chat.chat_id}`);
             }
         }
-    }, [navigate, onChatSelected]);
+    }, [navigate, onChatSelected, getUnreadCountForChat]);
 
     // Эффект для отслеживания изменений в списке чатов и автоматического выбора чата из URL
     useEffect(() => {
@@ -103,6 +109,40 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
             if (connectionRef.current) {
                 connectionRef.current.stop();
             }
+        };
+    }, [userId]);
+
+    // Подключение к NotificationHub для получения уведомлений в реальном времени
+    useEffect(() => {
+        if (!userId) return;
+
+        const notificationConnection = new signalR.HubConnectionBuilder()
+            .withUrl(`${BASE_URL}/notificationhub?userId=${userId}`)
+            .withAutomaticReconnect()
+            .build();
+
+        notificationConnection.on("ReceiveNotification", (notification) => {
+            console.log("Received new notification in ChatList:", notification);
+            // Обновляем состояние для принудительного перерендера
+            setForceUpdate(prev => prev + 1);
+        });
+
+        notificationConnection.on("UnreadCountChanged", (count) => {
+            console.log("Unread count changed in ChatList:", count);
+            // Обновляем состояние для принудительного перерендера
+            setForceUpdate(prev => prev + 1);
+        });
+
+        notificationConnection.start()
+            .then(() => {
+                console.log("Connected to NotificationHub in ChatList");
+            })
+            .catch(err => {
+                console.error("Error connecting to NotificationHub in ChatList:", err);
+            });
+
+        return () => {
+            notificationConnection.stop();
         };
     }, [userId]);
 
@@ -191,6 +231,12 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
             setShowModal(false);
         };
 
+        const handleOnNewMessage = (chatId, userId) => {
+            console.log('OnNewMessage received:', chatId, userId);
+            // Обновляем состояние для принудительного перерендера
+            setForceUpdate(prev => prev + 1);
+        };
+
         // Подписываемся на события
         connection.on("ReceiveChats", handleReceiveChats);
         connection.on("ChatCreated", handleChatCreated);
@@ -198,6 +244,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
         connection.on("Error", handleError);
         connection.on("ReceiveSearchResults", handleSearchResults);
         connection.on("GroupChatCreated", handleGroupChatCreated);
+        connection.on("OnNewMessage", handleOnNewMessage);
 
         // Загружаем начальный список чатов
         console.log('Requesting initial chat list for user:', userId);
@@ -213,6 +260,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                 connection.off("Error", handleError);
                 connection.off("ReceiveSearchResults", handleSearchResults);
                 connection.off("GroupChatCreated", handleGroupChatCreated);
+                connection.off("OnNewMessage", handleOnNewMessage);
             }
         };
     }, [connection, userId, selectedChat, navigate]);

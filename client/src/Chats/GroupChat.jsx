@@ -9,6 +9,7 @@ import { useMediaHandlers } from '../hooks/useMediaHandlers';
 import useScrollToBottom from '../hooks/useScrollToBottom';
 import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/GroupSettings';
 import { processLinks } from '../utils/linkUtils.jsx';
+import { useNotifications } from '../hooks/useNotifications';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
   return (
@@ -64,6 +65,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     cancelRecording
   } = useMediaHandlers(connection, username, chatId);
   const { messagesEndRef, scrollToBottom } = useScrollToBottom();
+  const { markChatAsRead } = useNotifications();
   const {
     isSettingsOpen,
     setIsSettingsOpen,
@@ -309,6 +311,11 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
             forwardedMessage: msg.forwardedMessage,
             createdAt: msg.createdAt
           })));
+          
+          // Помечаем уведомления чата как прочитанные
+          if (markChatAsRead) {
+            markChatAsRead(chatId);
+          }
         }
       } catch (error) {
         console.error('Connection failed: ', error);

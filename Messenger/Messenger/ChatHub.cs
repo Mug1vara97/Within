@@ -42,6 +42,17 @@ public class ChatHub : Hub
             await _context.SaveChangesAsync();
 
             await Clients.Group(chatId).SendAsync("ReceiveMessage", username, message, newMessage.MessageId);
+            
+            // Обновляем список чатов для всех участников
+            var chatMembers = await _context.Members
+                .Where(m => m.ChatId == parsedChatId)
+                .Select(m => m.UserId)
+                .ToListAsync();
+
+            foreach (var memberId in chatMembers)
+            {
+                await Clients.User(memberId.ToString()).SendAsync("OnNewMessage", parsedChatId, memberId);
+            }
         }
         catch (Exception ex)
         {

@@ -193,7 +193,11 @@ export const NotificationProvider = ({ children }) => {
         markAsRead,
         markChatAsRead,
         deleteNotification,
-        requestNotificationPermission
+        requestNotificationPermission,
+        addNotification: (notification) => {
+            setNotifications(prev => [notification, ...prev]);
+            setUnreadCount(prev => prev + 1);
+        }
     };
 
     return (

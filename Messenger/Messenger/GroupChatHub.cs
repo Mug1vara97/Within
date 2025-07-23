@@ -260,9 +260,11 @@ namespace Messenger
                     await CreateNotificationForMember(memberId, chatId, newMessage.MessageId, notificationType, notificationContent);
                 }
 
-                // Отправляем сообщение в группу
+                // Отправляем сообщение в группу и обновляем список чатов
                 foreach (var memberId in chatMembers)
                 {
+                    // Вызываем OnNewMessage для обновления списка чатов
+                    await _chatListHubContext.Clients.User(memberId.ToString()).SendAsync("OnNewMessage", chatId, memberId);
                     var oneOnOneChats = await _context.Members
                         .Where(m => m.UserId == memberId)
                         .Select(m => m.Chat)
