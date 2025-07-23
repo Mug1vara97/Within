@@ -25,7 +25,7 @@ export const NotificationProvider = ({ children }) => {
         userIdRef.current = userId;
         
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl(`/notificationhub?userId=${userId}`)
+            .withUrl(`https://whithin.ru/notificationhub?userId=${userId}`)
             .withAutomaticReconnect()
             .build();
 
