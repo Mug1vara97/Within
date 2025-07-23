@@ -1,6 +1,6 @@
-import { apiConfig } from '../config/apiConfig';
+import { BASE_URL } from '../config/apiConfig';
 
-const API_BASE_URL = apiConfig.baseURL;
+const API_BASE_URL = BASE_URL;
 
 export const notificationService = {
     // Получить уведомления пользователя
