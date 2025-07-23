@@ -2,8 +2,11 @@
 using Microsoft.EntityFrameworkCore;
 using Messenger.Models;
 using System;
+using Messenger;
 
-public class ChatHub : Hub
+namespace Messenger
+{
+    public class ChatHub : Hub
 {
     private readonly MessengerContext _context;
     private readonly IHubContext<NotificationHub> _notificationHub;
@@ -245,4 +248,5 @@ public class ChatHub : Hub
             throw;
         }
     }
+}
 }
