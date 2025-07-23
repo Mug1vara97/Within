@@ -2,7 +2,6 @@ import React from 'react';
 import UserStatus from './UserStatus';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor, size = '32px', status, showStatus = true }) => {
-    console.log(`UserAvatar render: username=${username}, avatarUrl=${avatarUrl}, avatarColor=${avatarColor}, size=${size}`);
     const getStatusSize = () => {
         if (size === '24px') return 'small';
         if (size === '40px' || size === '48px') return 'large';

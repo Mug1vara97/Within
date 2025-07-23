@@ -247,10 +247,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
             setShowModal(false);
         };
 
-        const handleOnNewMessage = (chatId, userId) => {
-            console.log('OnNewMessage received:', chatId, userId);
-            // Не принудительно обновляем компонент, так как чаты обновляются через ReceiveChats
-        };
+        // Убираем обработчик OnNewMessage, так как список чатов больше не обновляется при каждом сообщении
 
         // Подписываемся на события
         connection.on("ReceiveChats", handleReceiveChats);
@@ -259,7 +256,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
         connection.on("Error", handleError);
         connection.on("ReceiveSearchResults", handleSearchResults);
         connection.on("GroupChatCreated", handleGroupChatCreated);
-        connection.on("OnNewMessage", handleOnNewMessage);
+
 
         // Загружаем начальный список чатов
         console.log('Requesting initial chat list for user:', userId);
@@ -275,7 +272,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                 connection.off("Error", handleError);
                 connection.off("ReceiveSearchResults", handleSearchResults);
                 connection.off("GroupChatCreated", handleGroupChatCreated);
-                connection.off("OnNewMessage", handleOnNewMessage);
+        
             }
         };
     }, [connection, userId, selectedChat, navigate]);

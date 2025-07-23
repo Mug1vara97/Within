@@ -86,11 +86,8 @@ namespace Messenger
 
             await _context.SaveChangesAsync();
 
-            // Обновляем список чатов для всех участников
-            foreach (var memberId in chatMembers)
-            {
-                await Clients.User(memberId.ToString()).SendAsync("OnNewMessage", parsedChatId, memberId);
-            }
+            // Не обновляем список чатов при каждом сообщении, чтобы не сбрасывать аватарки
+            // Уведомления обновляются через NotificationHub
         }
         catch (Exception ex)
         {
