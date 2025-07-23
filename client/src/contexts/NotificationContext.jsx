@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useRef } from 'react';
 import { notificationService } from '../services/notificationService';
+import * as signalR from '@microsoft/signalr';
 
 const NotificationContext = createContext();
 
@@ -23,7 +24,7 @@ export const NotificationProvider = ({ children }) => {
 
         userIdRef.current = userId;
         
-        const connection = new window.signalR.HubConnectionBuilder()
+        const connection = new signalR.HubConnectionBuilder()
             .withUrl(`/notificationhub?userId=${userId}`)
             .withAutomaticReconnect()
             .build();

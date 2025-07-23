@@ -368,13 +368,13 @@ namespace Messenger.Migrations
                     b.Property<int>("NotificationId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasColumnName("notificationid");
+                        .HasColumnName("notification_id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("NotificationId"));
 
                     b.Property<int>("ChatId")
                         .HasColumnType("integer")
-                        .HasColumnName("chatid");
+                        .HasColumnName("chat_id");
 
                     b.Property<string>("Content")
                         .IsRequired()
@@ -382,31 +382,35 @@ namespace Messenger.Migrations
                         .HasColumnName("content");
 
                     b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("createdat");
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<bool>("IsRead")
                         .HasColumnType("boolean")
-                        .HasColumnName("isread");
+                        .HasColumnName("is_read");
 
                     b.Property<long?>("MessageId")
                         .HasColumnType("bigint")
-                        .HasColumnName("messageid");
+                        .HasColumnName("message_id");
 
                     b.Property<DateTime?>("ReadAt")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("readat");
+                        .HasColumnName("read_at");
 
                     b.Property<string>("Type")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("type");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer")
-                        .HasColumnName("userid");
+                        .HasColumnName("user_id");
 
-                    b.HasKey("NotificationId");
+                    b.HasKey("NotificationId")
+                        .HasName("notifications_pkey");
 
                     b.HasIndex("ChatId");
 
@@ -414,7 +418,7 @@ namespace Messenger.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("notifications");
+                    b.ToTable("notifications", (string)null);
                 });
 
             modelBuilder.Entity("Messenger.Models.Server", b =>
@@ -908,17 +912,21 @@ namespace Messenger.Migrations
                         .WithMany()
                         .HasForeignKey("ChatId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("notifications_chat_id_fkey");
 
                     b.HasOne("Messenger.Models.Message", "Message")
                         .WithMany()
-                        .HasForeignKey("MessageId");
+                        .HasForeignKey("MessageId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("notifications_message_id_fkey");
 
                     b.HasOne("Messenger.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("notifications_user_id_fkey");
 
                     b.Navigation("Chat");
 

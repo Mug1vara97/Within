@@ -35,7 +35,9 @@ namespace Messenger.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     username = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
                     created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "now()"),
-                    password = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false)
+                    password = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    status = table.Column<string>(type: "text", nullable: false),
+                    lastseen = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -434,6 +436,44 @@ namespace Messenger.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "notifications",
+                columns: table => new
+                {
+                    notification_id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    user_id = table.Column<int>(type: "integer", nullable: false),
+                    chat_id = table.Column<int>(type: "integer", nullable: false),
+                    message_id = table.Column<long>(type: "bigint", nullable: true),
+                    type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    content = table.Column<string>(type: "text", nullable: false),
+                    is_read = table.Column<bool>(type: "boolean", nullable: false),
+                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
+                    read_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("notifications_pkey", x => x.notification_id);
+                    table.ForeignKey(
+                        name: "notifications_chat_id_fkey",
+                        column: x => x.chat_id,
+                        principalTable: "chats",
+                        principalColumn: "chat_id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "notifications_message_id_fkey",
+                        column: x => x.message_id,
+                        principalTable: "messages",
+                        principalColumn: "message_id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "notifications_user_id_fkey",
+                        column: x => x.user_id,
+                        principalTable: "users",
+                        principalColumn: "user_id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.InsertData(
                 table: "chat_types",
                 columns: new[] { "type_id", "type_name" },
@@ -534,6 +574,21 @@ namespace Messenger.Migrations
                 column: "user_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_notifications_chat_id",
+                table: "notifications",
+                column: "chat_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_notifications_message_id",
+                table: "notifications",
+                column: "message_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_notifications_user_id",
+                table: "notifications",
+                column: "user_id");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_server_audit_logs_server_id",
                 table: "server_audit_logs",
                 column: "server_id");
@@ -610,6 +665,9 @@ namespace Messenger.Migrations
 
             migrationBuilder.DropTable(
                 name: "message_reads");
+
+            migrationBuilder.DropTable(
+                name: "notifications");
 
             migrationBuilder.DropTable(
                 name: "server_audit_logs");
