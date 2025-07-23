@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import './styles/ServerList.css';
 import compassIcon from './assets/magnifying-glass.png';
+import NotificationButton from './components/NotificationButton';
 
 const ServerList = ({ userId, onDiscoverClick }) => {
     const [servers, setServers] = useState([]);
@@ -222,6 +223,9 @@ const ServerList = ({ userId, onDiscoverClick }) => {
                                 >
                                     +
                                 </button>
+                            </li>
+                            <li className="server-item">
+                                <NotificationButton />
                             </li>
                         </ul>
                     )}

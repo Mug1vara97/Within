@@ -5,7 +5,7 @@ import SearchBar from './SearchBar';
 import { BASE_URL } from './config/apiConfig';
 import UserPanel from './UserPanel';
 import UserAvatar from './UserAvatar';
-import NotificationButton from './components/NotificationButton';
+
 import { useParams, useNavigate } from 'react-router-dom';
 import * as signalR from '@microsoft/signalr';
 import { useStatus } from './contexts/StatusContext';
@@ -571,7 +571,6 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                     />
                 )}
                 <div className="bottom-panel">
-                    <NotificationButton />
                     <UserPanel 
                         userId={userId} 
                         username={username} 
