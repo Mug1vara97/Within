@@ -97,6 +97,7 @@ export const StatusProvider = ({ children, userId }) => {
                 statusesMap[user.userId] = user.status;
             });
             setUserStatuses(prev => ({ ...prev, ...statusesMap }));
+            console.log(`Loaded statuses for chat ${chatId}:`, statusesMap);
         } catch (error) {
             console.error('Error loading chat user statuses:', error);
         }

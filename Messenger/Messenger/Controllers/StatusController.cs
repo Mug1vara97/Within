@@ -105,6 +105,8 @@ public class StatusController : ControllerBase
     {
         try
         {
+            Console.WriteLine($"Getting user statuses for chat {chatId}");
+            
             var chat = await _context.Chats
                 .Include(c => c.Members)
                 .ThenInclude(m => m.User)
@@ -112,6 +114,7 @@ public class StatusController : ControllerBase
 
             if (chat == null)
             {
+                Console.WriteLine($"Chat {chatId} not found");
                 return NotFound("Чат не найден");
             }
 
@@ -119,14 +122,17 @@ public class StatusController : ControllerBase
             {
                 UserId = m.User.UserId,
                 Username = m.User.Username,
-                Status = m.User.Status,
+                Status = m.User.Status ?? "offline",
                 LastSeen = m.User.LastSeen
             }).ToList();
 
+            Console.WriteLine($"Found {userStatuses.Count} users in chat {chatId}: {string.Join(", ", userStatuses.Select(u => $"{u.Username}({u.Status})"))}");
+            
             return Ok(userStatuses);
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"Error getting chat user statuses: {ex.Message}");
             return StatusCode(500, new { error = ex.Message });
         }
     }

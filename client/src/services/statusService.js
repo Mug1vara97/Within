@@ -55,7 +55,9 @@ class StatusService {
         try {
             const response = await fetch(`${BASE_URL}/api/status/chat/${chatId}`);
             if (response.ok) {
-                return await response.json();
+                const data = await response.json();
+                console.log(`Status service: received statuses for chat ${chatId}:`, data);
+                return data;
             }
             throw new Error('Ошибка при получении статусов чата');
         } catch (error) {

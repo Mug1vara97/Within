@@ -22,7 +22,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
     const [connection, setConnection] = useState(null);
     const connectionRef = useRef(null);
     const [forceUpdate, setForceUpdate] = useState(0);
-    const { getUserStatus } = useStatus();
+    const { getUserStatus, loadChatUserStatuses } = useStatus();
 
     // Обработчик выбора чата
     const handleChatSelection = useCallback((chat) => {
@@ -127,6 +127,14 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
 
                 setChats(validatedChats);
                 console.log('Updated chats state:', validatedChats);
+
+                // Загружаем статусы пользователей для личных чатов
+                const personalChats = validatedChats.filter(chat => !chat.isGroupChat);
+                personalChats.forEach(chat => {
+                    if (chat.user_id) {
+                        loadChatUserStatuses(chat.chat_id);
+                    }
+                });
             } else {
                 console.error('Received invalid chat data:', receivedChats);
             }
