@@ -893,7 +893,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 9px;
-    background-color: var(--surface);
+    background-color: var(--background);
     border-bottom: 1px solid var(--border);
     color: var(--text);
     

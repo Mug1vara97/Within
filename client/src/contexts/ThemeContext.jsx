@@ -15,7 +15,7 @@ export const themes = {
             text: '#ffffff',
             textSecondary: '#dcddde',
             textMuted: '#72767d',
-            border: '#40444b',
+            border: '#202225',
             hover: '#40444b',
             success: '#43b581',
             successHover: '#3ca374',
