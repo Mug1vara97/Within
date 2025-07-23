@@ -238,6 +238,8 @@ namespace Messenger
                                 .Where(m => m.ChatId == c.ChatId && m.UserId != memberId)
                                 .Select(m => m.User.LastSeen)
                                 .FirstOrDefault(),
+                            avatarUrl = (string)null, // Для совместимости с ChatListHub
+                            avatarColor = (string)null, // Для совместимости с ChatListHub
                             isGroupChat = false,
                             lastMessage = _context.Messages
                                 .Where(m => m.ChatId == c.ChatId)
@@ -261,6 +263,10 @@ namespace Messenger
                             chat_id = c.ChatId,
                             username = c.Name ?? "Unnamed Group",
                             user_id = memberId,
+                            user_status = (string)null, // Групповые чаты не имеют статуса пользователя
+                            last_seen = (DateTime?)null, // Групповые чаты не имеют времени последней активности
+                            avatarUrl = (string)null, // Групповые чаты не имеют аватаров
+                            avatarColor = (string)null, // Групповые чаты не имеют аватаров
                             isGroupChat = true,
                             lastMessage = _context.Messages
                                 .Where(m => m.ChatId == c.ChatId)
@@ -275,7 +281,9 @@ namespace Messenger
                         })
                         .ToListAsync();
 
-                    var allChats = oneOnOneChats.Concat(groupChats)
+                    var allChats = oneOnOneChats
+                        .Cast<dynamic>()
+                        .Concat(groupChats.Cast<dynamic>())
                         .OrderByDescending(c => c.lastMessageTime)
                         .ToList();
 
