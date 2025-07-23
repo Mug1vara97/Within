@@ -108,6 +108,12 @@ namespace Messenger.Hubs
                     .OrderByDescending(c => c.lastMessageTime)
                     .ToList();
 
+                // Логируем данные аватаров для отладки
+                foreach (var chat in allChats)
+                {
+                    Console.WriteLine($"ChatListHub: Chat {chat.chat_id} - username={chat.username}, avatarUrl={chat.avatarUrl}, avatarColor={chat.avatarColor}");
+                }
+
                 await Clients.Caller.SendAsync("ReceiveChats", allChats);
             }
             catch (Exception ex)

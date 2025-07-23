@@ -49,8 +49,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
             
             // Помечаем уведомления чата как прочитанные
             if (getUnreadCountForChat(chat.chat_id) > 0) {
-                // Обновляем состояние для принудительного перерендера
-                setForceUpdate(prev => prev + 1);
+                // Уведомления обновляются автоматически через NotificationContext
             }
             
             if (chat.isGroupChat) {
@@ -78,10 +77,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
     // Эффект для отслеживания изменений в уведомлениях
     useEffect(() => {
         console.log('Notifications updated in ChatList:', notifications);
-        // Принудительно обновляем компонент при изменении уведомлений
-        setTimeout(() => {
-            setForceUpdate(prev => prev + 1);
-        }, 50);
+        // Не принудительно обновляем компонент, так как уведомления обновляются автоматически
     }, [notifications]);
 
     // Инициализация SignalR соединения
@@ -140,18 +136,12 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
 
         notificationConnection.on("ReceiveNotification", (notification) => {
             console.log("Received new notification in ChatList:", notification);
-            // Принудительно обновляем компонент при получении нового уведомления
-            setTimeout(() => {
-                setForceUpdate(prev => prev + 1);
-            }, 100);
+            // Не принудительно обновляем компонент, так как уведомления обновляются через NotificationContext
         });
 
         notificationConnection.on("UnreadCountChanged", (count) => {
             console.log("Unread count changed in ChatList:", count);
-            // Принудительно обновляем компонент при изменении счетчика
-            setTimeout(() => {
-                setForceUpdate(prev => prev + 1);
-            }, 100);
+            // Не принудительно обновляем компонент, так как уведомления обновляются через NotificationContext
         });
 
         notificationConnection.start()
@@ -189,10 +179,15 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                 // Сохраняем существующие данные аватаров при обновлении
                 const validatedChats = sortedChats.map(chat => {
                     const existingChat = chats.find(existing => existing.chat_id === chat.chat_id);
+                    const avatarUrl = chat.avatarUrl || existingChat?.avatarUrl || null;
+                    const avatarColor = chat.avatarColor || existingChat?.avatarColor || null;
+                    
+                    console.log(`Validating chat ${chat.chat_id}: existing avatarUrl=${existingChat?.avatarUrl}, new avatarUrl=${chat.avatarUrl}, final avatarUrl=${avatarUrl}`);
+                    
                     return {
                         ...chat,
-                        avatarUrl: chat.avatarUrl || existingChat?.avatarUrl || null,
-                        avatarColor: chat.avatarColor || existingChat?.avatarColor || null
+                        avatarUrl: avatarUrl,
+                        avatarColor: avatarColor
                     };
                 });
 
@@ -254,8 +249,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
 
         const handleOnNewMessage = (chatId, userId) => {
             console.log('OnNewMessage received:', chatId, userId);
-            // Обновляем состояние для принудительного перерендера
-            setForceUpdate(prev => prev + 1);
+            // Не принудительно обновляем компонент, так как чаты обновляются через ReceiveChats
         };
 
         // Подписываемся на события
