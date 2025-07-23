@@ -54,6 +54,32 @@ export const themes = {
             primaryRgb: '220, 38, 38',
             dangerRgb: '220, 38, 38'
         }
+    },
+    zero: {
+        name: 'ZERO',
+        colors: {
+            primary: '#dc2626',
+            primaryHover: '#b91c1c',
+            secondary: '#b91c1c',
+            background: '#f5f5f5',
+            surface: '#e8e8e8',
+            serverListBackground: '#d4d4d4',
+            text: '#1a1a1a',
+            textSecondary: '#404040',
+            textMuted: '#6b7280',
+            border: '#d1d5db',
+            hover: '#e5e7eb',
+            success: '#16a34a',
+            successHover: '#15803d',
+            danger: '#dc2626',
+            dangerHover: '#b91c1c',
+            warning: '#ca8a04',
+            bottom: '#f5f5f5',
+            borderBottom: '#dc2626',
+            // RGB переменные для прозрачности
+            primaryRgb: '220, 38, 38',
+            dangerRgb: '220, 38, 38'
+        }
     }
 };
 

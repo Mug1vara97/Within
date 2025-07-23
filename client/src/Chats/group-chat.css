@@ -987,7 +987,7 @@
 /* Стили для поля ввода */
 .input-container {
     position: relative;
-    padding: 11.67px;
+    padding: 0.6045rem;
     background-color: var(--bottom);
     border-top: 1px solid var(--border);
     display: flex;
