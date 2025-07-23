@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { BASE_URL } from './config/apiConfig';
 import { Mic, MicOff, Headset, HeadsetOff } from '@mui/icons-material';
+import UserStatusManager from './UserStatusManager';
+import statusService from './services/statusService';
 
 const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
     const [userProfile, setUserProfile] = useState(null);
@@ -11,6 +13,25 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
     const [showAvatarEditor, setShowAvatarEditor] = useState(false);
     const [avatarInput, setAvatarInput] = useState('');
     const avatarFileInputRef = useRef(null);
+    const [userStatus, setUserStatus] = useState('online');
+
+    const fetchUserStatus = async () => {
+        try {
+            const statusData = await statusService.getUserStatus(userId);
+            setUserStatus(statusData.status);
+        } catch (error) {
+            console.error('Error fetching user status:', error);
+        }
+    };
+
+    const handleStatusChange = async (newStatus) => {
+        try {
+            await statusService.updateUserStatus(userId, newStatus);
+            setUserStatus(newStatus);
+        } catch (error) {
+            console.error('Error updating user status:', error);
+        }
+    };
 
     const fetchUserProfile = async () => {
         try {
@@ -125,6 +146,7 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
     useEffect(() => {
         if (isOpen) {
           fetchUserProfile();
+          fetchUserStatus();
         }
       }, [isOpen, userId]);
     
@@ -153,10 +175,22 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
                 )}
             </div>
             
-            <span className="username" style={{
+            <div style={{
                 flex: 1,
-                color: '#dcddde'
-            }}>{username}</span>
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '2px'
+            }}>
+                <span className="username" style={{
+                    color: '#dcddde',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                }}>{username}</span>
+                <UserStatusManager 
+                    currentStatus={userStatus}
+                    onStatusChange={handleStatusChange}
+                />
+            </div>
             
             {/* Кнопки управления звуком - справа, но выровнены по центру */}
             <div className="voice-controls" style={{

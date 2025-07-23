@@ -1,0 +1,117 @@
+.user-status-manager {
+    position: relative;
+    display: inline-block;
+}
+
+.status-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    font-size: 14px;
+}
+
+.status-selector:hover {
+    background-color: var(--hover);
+}
+
+.status-label {
+    font-weight: 500;
+}
+
+.status-arrow {
+    font-size: 10px;
+    transition: transform 0.2s ease;
+}
+
+.status-selector:hover .status-arrow {
+    transform: rotate(180deg);
+}
+
+.status-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    min-width: 200px;
+    margin-top: 4px;
+}
+
+.status-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 16px;
+    background: none;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    text-align: left;
+    font-size: 14px;
+}
+
+.status-option:hover {
+    background-color: var(--hover);
+}
+
+.status-option.active {
+    background-color: var(--primary);
+    color: var(--text);
+}
+
+.status-option-label {
+    flex: 1;
+    font-weight: 500;
+}
+
+.status-check {
+    color: var(--text);
+    font-weight: bold;
+    font-size: 16px;
+}
+
+/* Анимация появления */
+.status-dropdown {
+    animation: statusDropdownFadeIn 0.2s ease-out;
+}
+
+@keyframes statusDropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .status-selector {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+    
+    .status-dropdown {
+        min-width: 180px;
+    }
+    
+    .status-option {
+        padding: 10px 12px;
+        font-size: 12px;
+    }
+} 

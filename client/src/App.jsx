@@ -7,6 +7,7 @@ import "./UserProfile.css"
 import { AudioProvider } from './contexts/AudioContext';
 import { VoiceChannelProvider } from './contexts/VoiceChannelContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { StatusProvider } from './contexts/StatusContext';
 
 
 const App = () => {
@@ -28,17 +29,19 @@ const App = () => {
 
     return (
         <ThemeProvider>
-            <AudioProvider>
-                <VoiceChannelProvider>
-                    <Router>
-                        <Routes>
-                            <Route path="/*" element={user.username ? <Home user={user} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />} />
-                            <Route path="/login" element={<Login onLogin={handleLogin} />} />
-                            <Route path="/register" element={<Register />} />
-                        </Routes>
-                    </Router>
-                </VoiceChannelProvider>
-            </AudioProvider>
+            <StatusProvider>
+                <AudioProvider>
+                    <VoiceChannelProvider>
+                        <Router>
+                            <Routes>
+                                <Route path="/*" element={user.username ? <Home user={user} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />} />
+                                <Route path="/login" element={<Login onLogin={handleLogin} />} />
+                                <Route path="/register" element={<Register />} />
+                            </Routes>
+                        </Router>
+                    </VoiceChannelProvider>
+                </AudioProvider>
+            </StatusProvider>
         </ThemeProvider>
     );
 };

@@ -115,6 +115,7 @@ app.UseAuthorization();
 app.MapHub<ServerHub>("/serverhub");
 app.MapHub<ChatListHub>("/chatlisthub");
 app.MapHub<GroupChatHub>("/groupchathub");
+app.MapHub<StatusHub>("/statushub");
 app.MapControllers();
 
 app.Run();

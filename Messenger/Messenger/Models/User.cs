@@ -13,6 +13,10 @@ public partial class User
 
     public string Password { get; set; } = null!;
 
+    public string Status { get; set; } = "online";
+
+    public DateTime? LastSeen { get; set; }
+
     public virtual ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
 
     public virtual ICollection<Member> Members { get; set; } = new List<Member>();
