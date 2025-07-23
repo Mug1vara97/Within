@@ -29,7 +29,7 @@ const App = () => {
 
     return (
         <ThemeProvider>
-            <StatusProvider>
+            <StatusProvider userId={user.userId}>
                 <AudioProvider>
                     <VoiceChannelProvider>
                         <Router>

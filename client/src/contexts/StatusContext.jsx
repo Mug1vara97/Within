@@ -5,15 +5,17 @@ import statusService from '../services/statusService';
 
 const StatusContext = createContext();
 
-export const StatusProvider = ({ children }) => {
+export const StatusProvider = ({ children, userId }) => {
     const [userStatuses, setUserStatuses] = useState({});
     const [connection, setConnection] = useState(null);
 
     // Инициализация SignalR соединения
     useEffect(() => {
+        if (!userId) return;
+
         const createConnection = async () => {
             const newConnection = new signalR.HubConnectionBuilder()
-                .withUrl(`${BASE_URL}/statushub`)
+                .withUrl(`${BASE_URL}/statushub?userId=${userId}`)
                 .withAutomaticReconnect()
                 .build();
 

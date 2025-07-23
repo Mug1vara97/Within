@@ -11,7 +11,8 @@ public class StatusHub : Hub
 
     public override async Task OnConnectedAsync()
     {
-        var userId = Context.UserIdentifier;
+        // Получаем userId из query параметра
+        var userId = Context.GetHttpContext()?.Request.Query["userId"].ToString();
         if (!string.IsNullOrEmpty(userId) && int.TryParse(userId, out int userIdInt))
         {
             _userConnections[userId] = Context.ConnectionId;
@@ -22,7 +23,8 @@ public class StatusHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        var userId = Context.UserIdentifier;
+        // Получаем userId из query параметра
+        var userId = Context.GetHttpContext()?.Request.Query["userId"].ToString();
         if (!string.IsNullOrEmpty(userId) && int.TryParse(userId, out int userIdInt))
         {
             _userConnections.Remove(userId);
