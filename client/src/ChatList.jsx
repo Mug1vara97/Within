@@ -144,6 +144,12 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
             // Не принудительно обновляем компонент, так как уведомления обновляются через NotificationContext
         });
 
+        // Подписываемся на ChatUpdated от ChatHub и GroupChatHub
+        notificationConnection.on("ChatUpdated", (chatId, lastMessage, lastMessageTime) => {
+            console.log("ChatUpdated received from notification connection:", { chatId, lastMessage, lastMessageTime });
+            handleChatUpdated(chatId, lastMessage, lastMessageTime);
+        });
+
         notificationConnection.start()
             .then(() => {
                 console.log("Connected to NotificationHub in ChatList");
@@ -153,9 +159,40 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
             });
 
         return () => {
+            notificationConnection.off("ChatUpdated");
             notificationConnection.stop();
         };
     }, [userId, initializeForUser]);
+
+    // Функция для обновления чата
+    const handleChatUpdated = (chatId, lastMessage, lastMessageTime) => {
+        console.log('Chat updated:', { chatId, lastMessage, lastMessageTime });
+        console.log('Current chats before update:', chats);
+        
+        setChats(prevChats => {
+            const updatedChats = prevChats.map(chat => {
+                if (chat.chat_id === chatId) {
+                    console.log(`Updating chat ${chatId}: old lastMessage=${chat.lastMessage}, new lastMessage=${lastMessage}`);
+                    return {
+                        ...chat,
+                        lastMessage: lastMessage,
+                        lastMessageTime: lastMessageTime
+                    };
+                }
+                return chat;
+            });
+            
+            // Сортируем чаты по времени последнего сообщения
+            const sortedChats = updatedChats.sort((a, b) => {
+                const timeA = new Date(a.lastMessageTime).getTime();
+                const timeB = new Date(b.lastMessageTime).getTime();
+                return timeB - timeA;
+            });
+            
+            console.log('Chats after sorting:', sortedChats.map(c => ({ id: c.chat_id, lastMessage: c.lastMessage, lastMessageTime: c.lastMessageTime })));
+            return sortedChats;
+        });
+    };
 
     // Подписка на события SignalR и загрузка начальных данных
     useEffect(() => {
@@ -247,34 +284,10 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
             setShowModal(false);
         };
 
-        const handleChatUpdated = (chatId, lastMessage, lastMessageTime) => {
-            console.log('Chat updated:', { chatId, lastMessage, lastMessageTime });
-            setChats(prevChats => {
-                const updatedChats = prevChats.map(chat => {
-                    if (chat.chat_id === chatId) {
-                        return {
-                            ...chat,
-                            lastMessage: lastMessage,
-                            lastMessageTime: lastMessageTime
-                        };
-                    }
-                    return chat;
-                });
-                
-                // Сортируем чаты по времени последнего сообщения
-                return updatedChats.sort((a, b) => {
-                    const timeA = new Date(a.lastMessageTime).getTime();
-                    const timeB = new Date(b.lastMessageTime).getTime();
-                    return timeB - timeA;
-                });
-            });
-        };
-
         // Подписываемся на события
         connection.on("ReceiveChats", handleReceiveChats);
         connection.on("ChatCreated", handleChatCreated);
         connection.on("ChatDeleted", handleChatDeleted);
-        connection.on("ChatUpdated", handleChatUpdated);
         connection.on("Error", handleError);
         connection.on("ReceiveSearchResults", handleSearchResults);
         connection.on("GroupChatCreated", handleGroupChatCreated);
@@ -294,7 +307,6 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                 connection.off("Error", handleError);
                 connection.off("ReceiveSearchResults", handleSearchResults);
                 connection.off("GroupChatCreated", handleGroupChatCreated);
-                connection.off("ChatUpdated", handleChatUpdated);
         
             }
         };

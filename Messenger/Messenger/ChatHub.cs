@@ -86,10 +86,11 @@ namespace Messenger
 
             await _context.SaveChangesAsync();
 
-            // Отправляем обновление времени последнего сообщения для сортировки чатов
+            // Отправляем обновление времени последнего сообщения для сортировки чатов через NotificationHub
             foreach (var memberId in chatMembers)
             {
-                await Clients.User(memberId.ToString()).SendAsync("ChatUpdated", parsedChatId, message, DateTime.UtcNow);
+                Console.WriteLine($"Sending ChatUpdated to user {memberId}: chatId={parsedChatId}, message={message}, time={DateTime.UtcNow}");
+                await _notificationHub.Clients.User(memberId.ToString()).SendAsync("ChatUpdated", parsedChatId, message, DateTime.UtcNow);
             }
         }
         catch (Exception ex)
