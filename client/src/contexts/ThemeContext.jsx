@@ -15,7 +15,7 @@ export const themes = {
             text: '#ffffff',
             textSecondary: '#dcddde',
             textMuted: '#72767d',
-            border: '#202225',
+            border: '#40444b',
             hover: '#40444b',
             success: '#43b581',
             successHover: '#3ca374',
@@ -23,6 +23,7 @@ export const themes = {
             dangerHover: '#d84040',
             warning: '#faa61a',
             bottom: '#292b2f',
+            borderBottom: '#202225',
             // RGB переменные для прозрачности
             primaryRgb: '88, 101, 242',
             dangerRgb: '240, 71, 71'

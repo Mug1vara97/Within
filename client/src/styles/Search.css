@@ -2,7 +2,7 @@
 .search-header {
   padding: 9px;
   background-color: var(--surface);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--borderBottom);
 }
 
 .search-bar {

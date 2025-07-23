@@ -894,7 +894,7 @@
     justify-content: space-between;
     padding: 9px;
     background-color: var(--background);
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--borderBottom);
     color: var(--text);
     
 }
@@ -987,7 +987,7 @@
 /* Стили для поля ввода */
 .input-container {
     position: relative;
-    padding: 10px;
+    padding: 11.67px;
     background-color: var(--bottom);
     border-top: 1px solid var(--border);
     display: flex;
