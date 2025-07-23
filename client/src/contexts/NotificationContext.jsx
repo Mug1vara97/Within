@@ -3,6 +3,8 @@ import { notificationService } from '../services/notificationService';
 
 const NotificationContext = createContext();
 
+export { NotificationContext };
+
 export const NotificationProvider = ({ children }) => {
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
