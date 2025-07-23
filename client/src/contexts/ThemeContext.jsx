@@ -22,6 +22,7 @@ export const themes = {
             danger: '#f04747',
             dangerHover: '#d84040',
             warning: '#faa61a',
+            bottom: '#292b2f',
             // RGB переменные для прозрачности
             primaryRgb: '88, 101, 242',
             dangerRgb: '240, 71, 71'
