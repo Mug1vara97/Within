@@ -135,7 +135,7 @@ const ServerSidebar = ({
                 className="server-header"
                 style={{
                     backgroundColor: serverBanner?.bannerColor || '#2f3136',
-                    minHeight: (serverBanner?.bannerColor || serverBanner?.banner) ? '132px' : '58px'
+                    minHeight: (serverBanner?.bannerColor || serverBanner?.banner) ? '132px' : '53px'
                 }}
             >
                 {serverBanner?.banner && (

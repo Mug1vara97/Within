@@ -1,6 +1,6 @@
 /* Стили для SearchBar компонента */
 .search-header {
-  padding: 0.75rem;
+  padding: 9px;
   background-color: var(--surface);
   border-bottom: 1px solid var(--border);
 }
