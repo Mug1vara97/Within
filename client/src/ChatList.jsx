@@ -384,15 +384,17 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                                     />
                                 </div>
                                 <div className="chat-info">
-                                    <div className="username">
-                                        {chat.username}
-                                    </div>
-                                    {chat.isGroupChat && <span className="group-indicator">(Group)</span>}
-                                    {getUnreadCountForChat(chat.chat_id) > 0 && (
-                                        <div className="unread-notifications-badge">
+                                    <div className="chat-header">
+                                        <div className="username">
+                                            {chat.username}
+                                        </div>
+                                                                            {getUnreadCountForChat(chat.chat_id) > 0 && (
+                                        <div className={`unread-notifications-badge ${getUnreadCountForChat(chat.chat_id) === 1 ? 'new' : ''}`}>
                                             {getUnreadCountForChat(chat.chat_id)}
                                         </div>
                                     )}
+                                    </div>
+                                    {chat.isGroupChat && <span className="group-indicator">(Group)</span>}
                                 </div>
                             </div>
                             {!chat.isGroupChat && (

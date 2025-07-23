@@ -53,10 +53,22 @@
     flex-direction: column;
 }
 
+.chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
 .chat-item-content .username {
     font-weight: 500;
     margin-bottom: 4px;
     color: var(--text);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .last-message {
@@ -89,7 +101,8 @@
 .chat-item .group-indicator {
     color: var(--textSecondary);
     font-size: 0.9em;
-    margin-left: 4px;
+    margin-top: 2px;
+    font-style: italic;
 }
 
 /* Стили для кнопки удаления */
@@ -101,7 +114,10 @@
     padding: 4px 8px;
     border-radius: 4px;
     opacity: 0;
-    transition: opacity 0.2s ease;
+    transition: all 0.2s ease;
+    margin-left: 8px;
+    font-size: 16px;
+    font-weight: bold;
 }
 
 .chat-item:hover .delete-chat-button {
@@ -109,8 +125,9 @@
 }
 
 .delete-chat-button:hover {
-    background-color: var(--danger);
-    color: var(--text);
+    background-color: #ed4245;
+    color: white;
+    transform: scale(1.1);
 }
 
 /* Стили для результатов поиска */
@@ -311,21 +328,65 @@
 
 /* Стили для бейджа непрочитанных уведомлений */
 .unread-notifications-badge {
-    background-color: var(--primary);
+    background-color: #ed4245;
     color: white;
-    border-radius: 50%;
-    min-width: 18px;
-    height: 18px;
+    border-radius: 10px;
+    min-width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.75rem;
     font-weight: 600;
-    margin-left: 8px;
+    margin-left: auto;
+    margin-right: 8px;
     padding: 0 6px;
-    animation: pulse 1s infinite;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 1;
+    transition: all 0.2s ease;
 }
 
 .unread-notifications-badge:hover {
-    background-color: var(--primaryHover);
+    background-color: #f04747;
+    transform: scale(1.05);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Анимация для новых уведомлений */
+@keyframes notification-pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+}
+
+.unread-notifications-badge.new {
+    animation: notification-pulse 2s ease-in-out infinite;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .unread-notifications-badge {
+        min-width: 18px;
+        height: 18px;
+        font-size: 0.7rem;
+        margin-right: 4px;
+    }
+    
+    .chat-header {
+        gap: 8px;
+    }
+    
+    .chat-item-content .username {
+        font-size: 0.9rem;
+    }
 }
