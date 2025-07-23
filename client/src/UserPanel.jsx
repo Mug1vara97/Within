@@ -167,9 +167,6 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
                     style={{ 
                         backgroundColor: userProfile?.avatarColor || '#5865F2', 
                         cursor: 'pointer',
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -199,9 +196,9 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
                 <div style={{
                     position: 'absolute',
                     bottom: '-2px',
-                    right: '-2px',
-                    width: '12px',
-                    height: '12px',
+                    right: '5px',
+                    width: '19px',
+                    height: '19px',
                     borderRadius: '50%',
                     border: '2px solid #2f3136',
                     cursor: 'pointer',
