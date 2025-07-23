@@ -364,7 +364,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
     return (
         <div className="chat-list-container">
             <div className="chat-sidebar">
-                <SearchBar onSearchChange={handleSearchChange} />
+                <SearchBar onSearchChange={handleSearchChange} isLoading={isSearching} />
                 {isSearching ? (
                     <div className="search-results-container">
                         <h3>Search Results</h3>

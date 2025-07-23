@@ -1,3 +1,164 @@
+/* Стили для SearchBar компонента */
+.search-header {
+  padding: 16px;
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.search-bar {
+  position: relative;
+  width: 100%;
+}
+
+.search-bar-input {
+  width: 100%;
+  padding: 12px 16px 12px 40px;
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.search-bar-input::placeholder {
+  color: var(--textSecondary);
+  font-weight: 400;
+}
+
+.search-bar-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background-color: var(--surface);
+  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.2);
+}
+
+.search-bar-input:hover {
+  border-color: var(--textSecondary);
+}
+
+/* Иконка поиска */
+.search-bar::before {
+  content: "🔍";
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  color: var(--textSecondary);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Анимация при фокусе */
+.search-bar:focus-within::before {
+  color: var(--primary);
+  transition: color 0.2s ease;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+  .search-header {
+    padding: 12px;
+  }
+  
+  .search-bar-input {
+    padding: 10px 14px 10px 36px;
+    font-size: 16px; /* Предотвращает зум на iOS */
+  }
+  
+  .search-bar::before {
+    font-size: 14px;
+    left: 10px;
+  }
+}
+
+/* Темная тема - дополнительные стили */
+@media (prefers-color-scheme: dark) {
+  .search-bar-input {
+    background-color: var(--background);
+    border-color: var(--border);
+  }
+  
+  .search-bar-input:focus {
+    background-color: var(--surface);
+  }
+}
+
+/* Анимация появления */
+@keyframes searchBarFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.search-header {
+  animation: searchBarFadeIn 0.3s ease-out;
+}
+
+/* Состояние загрузки */
+.search-bar.loading::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top: 2px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: translateY(-50%) rotate(0deg); }
+  100% { transform: translateY(-50%) rotate(360deg); }
+}
+
+/* Состояние с результатами поиска */
+.search-bar.has-results .search-bar-input {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* Стили для подсказки при пустом поиске */
+.search-bar-input:placeholder-shown {
+  color: var(--textSecondary);
+}
+
+/* Улучшенные стили для фокуса */
+.search-bar-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background-color: var(--surface);
+  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.2);
+  transform: translateY(-1px);
+}
+
+/* Эффект при наведении */
+.search-bar-input:hover:not(:focus) {
+  border-color: var(--textSecondary);
+  background-color: var(--surface);
+}
+
+/* Стили для автозаполнения */
+.search-bar-input:-webkit-autofill,
+.search-bar-input:-webkit-autofill:hover,
+.search-bar-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px var(--surface) inset;
+  -webkit-text-fill-color: var(--text);
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 /* Стили для поиска сообщений */
 .message-search-container {
   position: relative;

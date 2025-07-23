@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './styles/Search.css';
 
-const SearchBar = ({ onSearchChange }) => {
+const SearchBar = ({ onSearchChange, isLoading = false }) => {
     const [searchTerm, setSearchTerm] = useState('');
 
     const handleInputChange = (event) => {
@@ -11,14 +11,16 @@ const SearchBar = ({ onSearchChange }) => {
     };
 
     return (
-        <div className="seacrh-header">
-        <div className="search-bar">
+        <div className="search-header">
+        <div className={`search-bar ${isLoading ? 'loading' : ''}`}>
             <input
                 type="text"
                 placeholder="Найти или начать беседу"
                 value={searchTerm}
                 onChange={handleInputChange}
                 className="search-bar-input"
+                aria-label="Поиск чатов и пользователей"
+                disabled={isLoading}
             />
         </div>
         </div>

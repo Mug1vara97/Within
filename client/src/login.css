@@ -369,7 +369,7 @@ border-radius: 5px;
 background-color: #40444b;
 }
 
-.search-results {
+/* .search-results {
 position: absolute;
 top: 70px;
 background-color: #202225;
@@ -378,7 +378,7 @@ border-radius: 4px;
 margin-bottom: 10px;
 width: 219px;
 
-}
+} */
 
 .search-results h3 {
 margin-top: 0;
