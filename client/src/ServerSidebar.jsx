@@ -5,6 +5,7 @@ import CategoriesList from './CategoriesList';
 import UserPanel from './UserPanel';
 import { useNavigate } from 'react-router-dom';
 import { BASE_URL } from './config/apiConfig';
+import { useTheme } from './contexts/ThemeContext';
 import './styles/ServerSidebar.css';
 
 const ServerSidebar = ({ 
@@ -28,6 +29,7 @@ const ServerSidebar = ({
     const [showDropdown, setShowDropdown] = useState(false);
     const [serverBanner, setServerBanner] = useState(null);
     const navigate = useNavigate();
+    const { colors } = useTheme();
 
     useEffect(() => {
         const fetchServerBanner = async () => {
@@ -134,7 +136,7 @@ const ServerSidebar = ({
             <div 
                 className="server-header"
                 style={{
-                    backgroundColor: serverBanner?.bannerColor || '#2f3136',
+                    backgroundColor: serverBanner?.bannerColor || colors.surface,
                     minHeight: (serverBanner?.bannerColor || serverBanner?.banner) ? '132px' : '52px'
                 }}
             >

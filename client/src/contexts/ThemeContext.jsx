@@ -49,7 +49,7 @@ export const themes = {
             dangerHover: '#b91c1c',
             warning: '#ca8a04',
             bottom: '#1f1f1f',
-            borderBottom: '#dc2626',
+            borderBottom: '#625c5c',
             // RGB переменные для прозрачности
             primaryRgb: '220, 38, 38',
             dangerRgb: '220, 38, 38'
