@@ -7,6 +7,7 @@ import UserPanel from './UserPanel';
 import UserAvatar from './UserAvatar';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as signalR from '@microsoft/signalr';
+import { useStatus } from './contexts/StatusContext';
 import './styles/ChatList.css';
 
 const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
@@ -21,6 +22,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
     const [connection, setConnection] = useState(null);
     const connectionRef = useRef(null);
     const [forceUpdate, setForceUpdate] = useState(0);
+    const { getUserStatus } = useStatus();
 
     // Обработчик выбора чата
     const handleChatSelection = useCallback((chat) => {
@@ -337,10 +339,22 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                                         avatarUrl={chat.avatarUrl ? `${BASE_URL}${chat.avatarUrl}` : null}
                                         avatarColor={chat.avatarColor}
                                         size="40px"
+                                        status={!chat.isGroupChat ? getUserStatus(chat.user_id) : null}
+                                        showStatus={!chat.isGroupChat}
                                     />
                                 </div>
                                 <div className="chat-info">
-                                    <div className="username">{chat.username}</div>
+                                    <div className="username">
+                                        {chat.username}
+                                        {!chat.isGroupChat && (
+                                            <span className={`user-status ${getUserStatus(chat.user_id)}`}>
+                                                {getUserStatus(chat.user_id) === 'online' && '●'}
+                                                {getUserStatus(chat.user_id) === 'idle' && '○'}
+                                                {getUserStatus(chat.user_id) === 'dnd' && '●'}
+                                                {getUserStatus(chat.user_id) === 'offline' && '○'}
+                                            </span>
+                                        )}
+                                    </div>
                                     {chat.isGroupChat && <span className="group-indicator">(Group)</span>}
                                 </div>
                             </div>
@@ -383,10 +397,20 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                                                     avatarUrl={user.avatarUrl ? `${BASE_URL}${user.avatarUrl}` : null}
                                                     avatarColor={user.avatarColor}
                                                     size="32px"
+                                                    status={getUserStatus(user.user_id)}
+                                                    showStatus={true}
                                                 />
                                             </div>
                                             <div className="search-result-info">
-                                                <div className="search-result-username">{user.username}</div>
+                                                <div className="search-result-username">
+                                                    {user.username}
+                                                    <span className={`user-status ${getUserStatus(user.user_id)}`}>
+                                                        {getUserStatus(user.user_id) === 'online' && '●'}
+                                                        {getUserStatus(user.user_id) === 'idle' && '○'}
+                                                        {getUserStatus(user.user_id) === 'dnd' && '●'}
+                                                        {getUserStatus(user.user_id) === 'offline' && '○'}
+                                                    </span>
+                                                </div>
                                                 {user.has_existing_chat && (
                                                     <span className="existing-chat-indicator">Уже есть чат</span>
                                                 )}

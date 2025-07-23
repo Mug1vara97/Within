@@ -54,6 +54,14 @@ namespace Messenger.Hubs
                             .Where(m => m.ChatId == c.ChatId && m.UserId != userId)
                             .Select(m => m.User.UserProfile.AvatarColor)
                             .FirstOrDefault(),
+                        user_status = _context.Members
+                            .Where(m => m.ChatId == c.ChatId && m.UserId != userId)
+                            .Select(m => m.User.Status)
+                            .FirstOrDefault() ?? "offline",
+                        last_seen = _context.Members
+                            .Where(m => m.ChatId == c.ChatId && m.UserId != userId)
+                            .Select(m => m.User.LastSeen)
+                            .FirstOrDefault(),
                         isGroupChat = false,
                         lastMessage = _context.Messages
                             .Where(m => m.ChatId == c.ChatId)
@@ -315,6 +323,8 @@ namespace Messenger.Hubs
                     username = u.Username,
                     avatarUrl = u.UserProfile.Avatar,
                     avatarColor = u.UserProfile.AvatarColor,
+                    user_status = u.Status ?? "offline",
+                    last_seen = u.LastSeen,
                     has_existing_chat = existingChatUserIds.Contains(u.UserId)
                 })
                 .OrderByDescending(u => u.has_existing_chat)
@@ -390,6 +400,14 @@ namespace Messenger.Hubs
                             .ThenInclude(u => u.UserProfile)
                             .Where(m => m.ChatId == c.ChatId && m.UserId != userId)
                             .Select(m => m.User.UserProfile.AvatarColor)
+                            .FirstOrDefault(),
+                        user_status = _context.Members
+                            .Where(m => m.ChatId == c.ChatId && m.UserId != userId)
+                            .Select(m => m.User.Status)
+                            .FirstOrDefault() ?? "offline",
+                        last_seen = _context.Members
+                            .Where(m => m.ChatId == c.ChatId && m.UserId != userId)
+                            .Select(m => m.User.LastSeen)
                             .FirstOrDefault(),
                         isGroupChat = false,
                         lastMessage = _context.Messages

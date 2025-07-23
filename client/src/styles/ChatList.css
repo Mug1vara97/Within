@@ -258,3 +258,44 @@
     color: var(--text);
     margin: 0;
 }
+
+/* Стили для статусов пользователей */
+.user-status {
+    margin-left: 8px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.user-status.online {
+    color: #43b581;
+}
+
+.user-status.idle {
+    color: #faa61a;
+}
+
+.user-status.dnd {
+    color: #f04747;
+}
+
+.user-status.offline {
+    color: #747f8d;
+}
+
+/* Анимация для активных статусов */
+.user-status.online,
+.user-status.idle {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+    100% {
+        opacity: 1;
+    }
+}

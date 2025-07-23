@@ -230,6 +230,14 @@ namespace Messenger
                                 .Where(m => m.ChatId == c.ChatId && m.UserId != memberId)
                                 .Select(m => m.UserId)
                                 .FirstOrDefault(),
+                            user_status = _context.Members
+                                .Where(m => m.ChatId == c.ChatId && m.UserId != memberId)
+                                .Select(m => m.User.Status)
+                                .FirstOrDefault() ?? "offline",
+                            last_seen = _context.Members
+                                .Where(m => m.ChatId == c.ChatId && m.UserId != memberId)
+                                .Select(m => m.User.LastSeen)
+                                .FirstOrDefault(),
                             isGroupChat = false,
                             lastMessage = _context.Messages
                                 .Where(m => m.ChatId == c.ChatId)
