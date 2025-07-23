@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Messenger.Models;
+using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Threading.Tasks;
 
@@ -11,10 +12,12 @@ namespace Messenger.Controllers;
 public class StatusController : ControllerBase
 {
     private readonly MessengerContext _context;
+    private readonly IHubContext<StatusHub> _statusHub;
 
-    public StatusController(MessengerContext context)
+    public StatusController(MessengerContext context, IHubContext<StatusHub> statusHub)
     {
         _context = context;
+        _statusHub = statusHub;
     }
 
     // Получить статус пользователя
@@ -64,6 +67,10 @@ public class StatusController : ControllerBase
             user.LastSeen = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
+
+            // Уведомляем всех клиентов об изменении статуса
+            await _statusHub.Clients.All.SendAsync("UserStatusChanged", userId, user.Status);
+            Console.WriteLine($"StatusController: Notified all clients about user {userId} status change to {user.Status}");
 
             return Ok(new { Status = user.Status, LastSeen = user.LastSeen });
         }
@@ -151,6 +158,10 @@ public class StatusController : ControllerBase
 
             user.LastSeen = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+
+            // Уведомляем всех клиентов об активности пользователя
+            await _statusHub.Clients.All.SendAsync("UserActivity", userId, user.LastSeen);
+            Console.WriteLine($"StatusController: Notified all clients about user {userId} activity at {user.LastSeen}");
 
             return Ok(new { LastSeen = user.LastSeen });
         }

@@ -1,6 +1,7 @@
 ﻿using Messenger.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using System.Linq;
 
 namespace Messenger.Controllers
@@ -10,10 +11,12 @@ namespace Messenger.Controllers
     public class AuthController : ControllerBase
     {
         private readonly MessengerContext _context;
+        private readonly IHubContext<StatusHub> _statusHub;
 
-        public AuthController(MessengerContext context)
+        public AuthController(MessengerContext context, IHubContext<StatusHub> statusHub)
         {
             _context = context;
+            _statusHub = statusHub;
         }
 
         [HttpPost("login")]
@@ -26,6 +29,15 @@ namespace Messenger.Controllers
             {
                 return Unauthorized(new { message = "Invalid username or password" });
             }
+
+            // Обновляем статус пользователя на "online" при входе
+            user.Status = "online";
+            user.LastSeen = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            // Уведомляем всех клиентов об изменении статуса
+            await _statusHub.Clients.All.SendAsync("UserStatusChanged", user.UserId, user.Status);
+            Console.WriteLine($"AuthController: User {user.Username} logged in, status set to online");
 
             return Ok(new { userId = user.UserId, username = user.Username });
         }

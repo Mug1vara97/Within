@@ -22,7 +22,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
     const [connection, setConnection] = useState(null);
     const connectionRef = useRef(null);
     const [forceUpdate, setForceUpdate] = useState(0);
-    const { getUserStatus, loadChatUserStatuses } = useStatus();
+    const { getUserStatus, loadChatUserStatuses, connection: statusConnection } = useStatus();
 
     // Обработчик выбора чата
     const handleChatSelection = useCallback((chat) => {
@@ -206,6 +206,32 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
             }
         };
     }, [connection, userId, selectedChat, navigate]);
+
+    // Подписка на события StatusHub для real-time обновлений
+    useEffect(() => {
+        if (!statusConnection) return;
+
+        const handleUserStatusChanged = (userId, status) => {
+            console.log(`Status changed for user ${userId}: ${status}`);
+            // Принудительно обновляем компонент для отображения нового статуса
+            setForceUpdate(prev => prev + 1);
+        };
+
+        const handleUserActivity = (userId, lastSeen) => {
+            console.log(`User ${userId} activity: ${lastSeen}`);
+        };
+
+        // Подписываемся на события StatusHub
+        statusConnection.on('UserStatusChanged', handleUserStatusChanged);
+        statusConnection.on('UserActivity', handleUserActivity);
+
+        return () => {
+            if (statusConnection) {
+                statusConnection.off('UserStatusChanged', handleUserStatusChanged);
+                statusConnection.off('UserActivity', handleUserActivity);
+            }
+        };
+    }, [statusConnection]);
 
     const handleSearchChange = async (value) => {
         setSearchTerm(value);

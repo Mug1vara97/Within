@@ -26,6 +26,7 @@ export const StatusProvider = ({ children, userId }) => {
 
                 // Подписываемся на события изменения статуса
                 newConnection.on('UserStatusChanged', (userId, status) => {
+                    console.log(`StatusContext: User ${userId} status changed to ${status}`);
                     setUserStatuses(prev => ({
                         ...prev,
                         [userId]: status
@@ -34,7 +35,7 @@ export const StatusProvider = ({ children, userId }) => {
 
                 newConnection.on('UserActivity', (userId, lastSeen) => {
                     // Можно добавить логику для обновления времени последней активности
-                    console.log(`User ${userId} activity: ${lastSeen}`);
+                    console.log(`StatusContext: User ${userId} activity: ${lastSeen}`);
                 });
 
             } catch (err) {

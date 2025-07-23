@@ -36,6 +36,7 @@ public class StatusHub : Hub
     // Уведомить всех пользователей об изменении статуса
     public async Task NotifyStatusChange(int userId, string status)
     {
+        Console.WriteLine($"StatusHub: Notifying all clients about user {userId} status change to {status}");
         await Clients.All.SendAsync("UserStatusChanged", userId, status);
     }
 
