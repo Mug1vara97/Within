@@ -10,7 +10,7 @@ export const themes = {
             primaryHover: '#4752c4',
             secondary: '#4752c4',
             background: '#36393f',
-            surface: '#2f3136',
+            surface: '#202225',
             text: '#ffffff',
             textSecondary: '#dcddde',
             textMuted: '#72767d',
