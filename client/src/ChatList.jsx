@@ -5,6 +5,7 @@ import SearchBar from './SearchBar';
 import { BASE_URL } from './config/apiConfig';
 import UserPanel from './UserPanel';
 import UserAvatar from './UserAvatar';
+import NotificationButton from './components/NotificationButton';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as signalR from '@microsoft/signalr';
 import { useStatus } from './contexts/StatusContext';
@@ -462,16 +463,19 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                         connection={connection}
                     />
                 )}
-                <UserPanel 
-                    userId={userId} 
-                    username={username} 
-                    isOpen={true}
-                    voiceRoom={voiceRoom}
-                    isMuted={isMuted}
-                    isAudioEnabled={isAudioEnabled}
-                    onToggleMute={onToggleMute}
-                    onToggleAudio={onToggleAudio}
-                />
+                <div className="bottom-panel">
+                    <NotificationButton />
+                    <UserPanel 
+                        userId={userId} 
+                        username={username} 
+                        isOpen={true}
+                        voiceRoom={voiceRoom}
+                        isMuted={isMuted}
+                        isAudioEnabled={isAudioEnabled}
+                        onToggleMute={onToggleMute}
+                        onToggleAudio={onToggleAudio}
+                    />
+                </div>
             </div>
         </div>
     );

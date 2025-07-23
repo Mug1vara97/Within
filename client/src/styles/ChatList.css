@@ -299,3 +299,12 @@
         opacity: 1;
     }
 }
+
+.bottom-panel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-top: 1px solid var(--background-tertiary);
+    background: var(--background-primary);
+}

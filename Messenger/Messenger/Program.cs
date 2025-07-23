@@ -116,6 +116,7 @@ app.MapHub<ServerHub>("/serverhub");
 app.MapHub<ChatListHub>("/chatlisthub");
 app.MapHub<GroupChatHub>("/groupchathub");
 app.MapHub<StatusHub>("/statushub");
+app.MapHub<NotificationHub>("/notificationhub");
 app.MapControllers();
 
 app.Run();

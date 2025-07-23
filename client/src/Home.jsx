@@ -6,11 +6,14 @@ import DiscoverLists from './Discover/DiscoverLists';
 import { Routes, Route, useParams, useLocation, useNavigate } from 'react-router-dom';
 import VoiceChat from './VoiceChat';
 import GroupChat from './Chats/GroupChat';
+import NotificationButton from './components/NotificationButton';
+import { useNotifications } from './hooks/useNotifications';
 
 const Home = ({ user }) => {
     const [isDiscoverMode, setIsDiscoverMode] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
+    const { initializeForUser } = useNotifications();
     const [voiceRoom, setVoiceRoom] = useState(() => {
         // Восстанавливаем состояние голосового чата из localStorage
         const savedVoiceRoom = localStorage.getItem('voiceRoom');
@@ -171,6 +174,13 @@ const Home = ({ user }) => {
             setIsDiscoverMode(false);
         }
     }, [location.pathname, isDiscoverMode]);
+
+    // Инициализация уведомлений при входе пользователя
+    useEffect(() => {
+        if (user.userId) {
+            initializeForUser(user.userId);
+        }
+    }, [user.userId, initializeForUser]);
 
     const handleDiscoverModeChange = (mode) => {
         setIsDiscoverMode(mode);

@@ -8,6 +8,7 @@ import { AudioProvider } from './contexts/AudioContext';
 import { VoiceChannelProvider } from './contexts/VoiceChannelContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { StatusProvider } from './contexts/StatusContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 
 
 const App = () => {
@@ -30,17 +31,19 @@ const App = () => {
     return (
         <ThemeProvider>
             <StatusProvider userId={user.userId}>
-                <AudioProvider>
-                    <VoiceChannelProvider>
-                        <Router>
-                            <Routes>
-                                <Route path="/*" element={user.username ? <Home user={user} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />} />
-                                <Route path="/login" element={<Login onLogin={handleLogin} />} />
-                                <Route path="/register" element={<Register />} />
-                            </Routes>
-                        </Router>
-                    </VoiceChannelProvider>
-                </AudioProvider>
+                <NotificationProvider>
+                    <AudioProvider>
+                        <VoiceChannelProvider>
+                            <Router>
+                                <Routes>
+                                    <Route path="/*" element={user.username ? <Home user={user} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />} />
+                                    <Route path="/login" element={<Login onLogin={handleLogin} />} />
+                                    <Route path="/register" element={<Register />} />
+                                </Routes>
+                            </Router>
+                        </VoiceChannelProvider>
+                    </AudioProvider>
+                </NotificationProvider>
             </StatusProvider>
         </ThemeProvider>
     );

@@ -112,6 +112,44 @@ namespace Messenger
             string[] colors = { "#5865F2", "#EB459E", "#ED4245", "#FEE75C", "#57F287", "#FAA61A" };
             return colors[userId % colors.Length];
         }
+
+        private async Task CreateNotificationForMember(int userId, int chatId, long messageId, string type, string content)
+        {
+            try
+            {
+                var notification = new Notification
+                {
+                    UserId = userId,
+                    ChatId = chatId,
+                    MessageId = messageId,
+                    Type = type,
+                    Content = content,
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Notifications.Add(notification);
+                await _context.SaveChangesAsync();
+
+                // Уведомляем пользователя через SignalR
+                await Clients.User(userId.ToString()).SendAsync("ReceiveNotification", new
+                {
+                    notification.NotificationId,
+                    notification.ChatId,
+                    notification.MessageId,
+                    notification.Type,
+                    notification.Content,
+                    notification.IsRead,
+                    notification.CreatedAt
+                });
+
+                Console.WriteLine($"Created notification for user {userId}: {content}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error creating notification: {ex.Message}");
+            }
+        }
         public async Task SendMessage(string message, string username, int chatId, long? repliedToMessageId = null, long? forwardedFromMessageId = null)
         {
             var sender = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
@@ -208,6 +246,19 @@ namespace Messenger
                     .Where(m => m.ChatId == chatId)
                     .Select(m => m.UserId)
                     .ToListAsync();
+
+                // Создаем уведомления для всех участников чата (кроме отправителя)
+                var notificationMembers = chatMembers.Where(m => m != sender.UserId).ToList();
+                var chat = await _context.Chats.FindAsync(chatId);
+                var notificationType = chat.TypeId == 1 ? "direct_message" : "group_message";
+                var notificationContent = chat.TypeId == 1 
+                    ? $"{username}: {message}"
+                    : $"{username} в {chat.Name}: {message}";
+
+                foreach (var memberId in notificationMembers)
+                {
+                    await CreateNotificationForMember(memberId, chatId, newMessage.MessageId, notificationType, notificationContent);
+                }
 
                 // Отправляем сообщение в группу
                 foreach (var memberId in chatMembers)
