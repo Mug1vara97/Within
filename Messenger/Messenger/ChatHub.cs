@@ -86,8 +86,11 @@ namespace Messenger
 
             await _context.SaveChangesAsync();
 
-            // Не обновляем список чатов при каждом сообщении, чтобы не сбрасывать аватарки
-            // Уведомления обновляются через NotificationHub
+            // Отправляем обновление времени последнего сообщения для сортировки чатов
+            foreach (var memberId in chatMembers)
+            {
+                await Clients.User(memberId.ToString()).SendAsync("ChatUpdated", parsedChatId, message, DateTime.UtcNow);
+            }
         }
         catch (Exception ex)
         {

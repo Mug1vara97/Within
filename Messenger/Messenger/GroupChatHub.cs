@@ -262,7 +262,11 @@ namespace Messenger
                     await CreateNotificationForMember(memberId, chatId, newMessage.MessageId, notificationType, notificationContent);
                 }
 
-                // Уведомления обновляются через NotificationHub, список чатов не обновляем
+                // Отправляем обновление времени последнего сообщения для сортировки чатов
+                foreach (var memberId in chatMembers)
+                {
+                    await Clients.User(memberId.ToString()).SendAsync("ChatUpdated", chatId, message, DateTime.UtcNow);
+                }
             }
             catch (Exception ex)
             {

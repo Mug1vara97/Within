@@ -247,12 +247,34 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
             setShowModal(false);
         };
 
-        // Убираем обработчик OnNewMessage, так как список чатов больше не обновляется при каждом сообщении
+        const handleChatUpdated = (chatId, lastMessage, lastMessageTime) => {
+            console.log('Chat updated:', { chatId, lastMessage, lastMessageTime });
+            setChats(prevChats => {
+                const updatedChats = prevChats.map(chat => {
+                    if (chat.chat_id === chatId) {
+                        return {
+                            ...chat,
+                            lastMessage: lastMessage,
+                            lastMessageTime: lastMessageTime
+                        };
+                    }
+                    return chat;
+                });
+                
+                // Сортируем чаты по времени последнего сообщения
+                return updatedChats.sort((a, b) => {
+                    const timeA = new Date(a.lastMessageTime).getTime();
+                    const timeB = new Date(b.lastMessageTime).getTime();
+                    return timeB - timeA;
+                });
+            });
+        };
 
         // Подписываемся на события
         connection.on("ReceiveChats", handleReceiveChats);
         connection.on("ChatCreated", handleChatCreated);
         connection.on("ChatDeleted", handleChatDeleted);
+        connection.on("ChatUpdated", handleChatUpdated);
         connection.on("Error", handleError);
         connection.on("ReceiveSearchResults", handleSearchResults);
         connection.on("GroupChatCreated", handleGroupChatCreated);
@@ -272,6 +294,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                 connection.off("Error", handleError);
                 connection.off("ReceiveSearchResults", handleSearchResults);
                 connection.off("GroupChatCreated", handleGroupChatCreated);
+                connection.off("ChatUpdated", handleChatUpdated);
         
             }
         };
