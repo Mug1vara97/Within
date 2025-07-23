@@ -486,20 +486,7 @@ background: #4f545c;
 color: white;
 }
 
-.create-group-button {
-background-color: #2f3136;
-border: none;
-color: white;
-font-size: 18px;
-width: 30px;
-height: 30px;
-cursor: pointer;
-display: flex;
-align-items: center;
-justify-content: center;
-margin-right: 10px;
-margin-left: auto;
-}
+
 
 .chat-header-text {
 font-size: 16px;
