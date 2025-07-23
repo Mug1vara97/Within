@@ -227,18 +227,34 @@
 
 .create-group-button {
     background-color: transparent;
+    border: none;
     color: var(--textSecondary);
-    transition: color 0.2s ease;
+    font-size: 18px;
     width: 30px;
     height: 30px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-right: 10px;
     margin-left: auto;
+    transition: color 0.2s ease;
 }
 
 .create-group-button:hover {
     color: var(--text);
+}
+
+.create-group-chat {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+.chat-header-text {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+    margin: 0;
 }
