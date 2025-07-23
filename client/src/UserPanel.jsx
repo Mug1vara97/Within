@@ -222,10 +222,11 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
                         right: '0';
                         background: #2f3136;
                         border: 1px solid #202225;
-                        border-radius: 4px;
-                        padding: 4px;
+                        border-radius: 6px;
+                        padding: 8px;
                         z-index: 1000;
-                        min-width: 120px;
+                        min-width: 160px;
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
                     `;
                     
                     const statuses = [
@@ -240,19 +241,29 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
                         item.style.cssText = `
                             display: flex;
                             align-items: center;
-                            gap: 8px;
-                            padding: 4px 8px;
+                            gap: 10px;
+                            padding: 8px 12px;
                             cursor: pointer;
                             color: #dcddde;
-                            font-size: 12px;
+                            font-size: 14px;
+                            border-radius: 4px;
+                            transition: background-color 0.2s;
                         `;
                         item.innerHTML = `
-                            <span style="color: ${status.color}; font-size: 10px;">${status.icon}</span>
+                            <span style="color: ${status.color}; font-size: 12px; font-weight: bold;">${status.icon}</span>
                             <span>${status.label}</span>
                         `;
                         item.onclick = () => {
                             handleStatusChange(status.key);
                             document.body.removeChild(statusMenu);
+                        };
+                        
+                        // Добавляем hover эффект
+                        item.onmouseenter = () => {
+                            item.style.backgroundColor = '#40444b';
+                        };
+                        item.onmouseleave = () => {
+                            item.style.backgroundColor = 'transparent';
                         };
                         statusMenu.appendChild(item);
                     });
