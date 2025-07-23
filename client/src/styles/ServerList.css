@@ -1,6 +1,6 @@
 .server-list {
     width: 72px;
-    background-color: var(--surface);
+    background-color: var(--server-list-background);
     padding: 12px 0;
     display: flex;
     flex-direction: column;
