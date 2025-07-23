@@ -9,13 +9,13 @@ import NotificationButton from './components/NotificationButton';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as signalR from '@microsoft/signalr';
 import { useStatus } from './contexts/StatusContext';
+import { useNotifications } from './hooks/useNotifications';
 import './styles/ChatList.css';
 
 const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
     const [chats, setChats] = useState([]);
     const { chatId: urlChatId } = useParams();
     const navigate = useNavigate();
-    const [searchTerm, setSearchTerm] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
     const [showModal, setShowModal] = useState(false);
@@ -24,6 +24,15 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
     const connectionRef = useRef(null);
     const [forceUpdate, setForceUpdate] = useState(0);
     const { getUserStatus, loadChatUserStatuses, connection: statusConnection } = useStatus();
+    const { notifications } = useNotifications();
+
+    // Функция для подсчета непрочитанных уведомлений для чата
+    const getUnreadCountForChat = useCallback((chatId) => {
+        if (!notifications || !chatId) return 0;
+        return notifications.filter(notification => 
+            notification.chatId === chatId && !notification.isRead
+        ).length;
+    }, [notifications]);
 
     // Обработчик выбора чата
     const handleChatSelection = useCallback((chat) => {
@@ -177,7 +186,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
             setSearchResults(results);
         };
 
-        const handleGroupChatCreated = (chatInfo) => {
+        const handleGroupChatCreated = () => {
             connection.invoke("GetUserChats", parseInt(userId, 10));
             setShowModal(false);
         };
@@ -235,8 +244,6 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
     }, [statusConnection]);
 
     const handleSearchChange = async (value) => {
-        setSearchTerm(value);
-        
         if (value.trim() === '') {
             setIsSearching(false);
             setSearchResults([]);
@@ -266,7 +273,6 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
             if (existingChat) {
                 // Если чат существует, открываем его
                 handleChatSelection(existingChat);
-                setSearchTerm('');
                 setIsSearching(false);
                 setSearchResults([]);
                 return;
@@ -290,7 +296,6 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                     handleChatSelection(tempChat);
                      
                      // Закрываем поиск
-                     setSearchTerm('');
                      setIsSearching(false);
                      setSearchResults([]);
 
@@ -383,6 +388,11 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                                         {chat.username}
                                     </div>
                                     {chat.isGroupChat && <span className="group-indicator">(Group)</span>}
+                                    {getUnreadCountForChat(chat.chat_id) > 0 && (
+                                        <div className="unread-notifications-badge">
+                                            {getUnreadCountForChat(chat.chat_id)}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             {!chat.isGroupChat && (
