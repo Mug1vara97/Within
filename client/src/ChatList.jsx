@@ -24,14 +24,17 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
     const connectionRef = useRef(null);
     const [forceUpdate, setForceUpdate] = useState(0);
     const { getUserStatus, loadChatUserStatuses, connection: statusConnection } = useStatus();
-    const { notifications } = useNotifications();
+    const { notifications, initializeForUser } = useNotifications();
 
     // Функция для подсчета непрочитанных уведомлений для чата
     const getUnreadCountForChat = useCallback((chatId) => {
         if (!notifications || !chatId) return 0;
-        return notifications.filter(notification => 
+        const count = notifications.filter(notification => 
             notification.chatId === chatId && !notification.isRead
         ).length;
+        console.log(`Unread count for chat ${chatId}: ${count}, total notifications: ${notifications.length}`);
+        console.log('All notifications:', notifications);
+        return count;
     }, [notifications]);
 
     // Обработчик выбора чата
@@ -71,6 +74,15 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
             }
         }
     }, [chats, urlChatId, initialChatId, selectedChat, handleChatSelection]);
+
+    // Эффект для отслеживания изменений в уведомлениях
+    useEffect(() => {
+        console.log('Notifications updated in ChatList:', notifications);
+        // Принудительно обновляем компонент при изменении уведомлений
+        setTimeout(() => {
+            setForceUpdate(prev => prev + 1);
+        }, 50);
+    }, [notifications]);
 
     // Инициализация SignalR соединения
     useEffect(() => {
@@ -112,9 +124,14 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
         };
     }, [userId]);
 
-    // Подключение к NotificationHub для получения уведомлений в реальном времени
+    // Инициализация уведомлений и подключение к NotificationHub
     useEffect(() => {
         if (!userId) return;
+
+        console.log('Initializing notifications for ChatList, userId:', userId);
+
+        // Инициализируем уведомления для пользователя
+        initializeForUser(userId);
 
         const notificationConnection = new signalR.HubConnectionBuilder()
             .withUrl(`${BASE_URL}/notificationhub?userId=${userId}`)
@@ -123,14 +140,18 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
 
         notificationConnection.on("ReceiveNotification", (notification) => {
             console.log("Received new notification in ChatList:", notification);
-            // Обновляем состояние для принудительного перерендера
-            setForceUpdate(prev => prev + 1);
+            // Принудительно обновляем компонент при получении нового уведомления
+            setTimeout(() => {
+                setForceUpdate(prev => prev + 1);
+            }, 100);
         });
 
         notificationConnection.on("UnreadCountChanged", (count) => {
             console.log("Unread count changed in ChatList:", count);
-            // Обновляем состояние для принудительного перерендера
-            setForceUpdate(prev => prev + 1);
+            // Принудительно обновляем компонент при изменении счетчика
+            setTimeout(() => {
+                setForceUpdate(prev => prev + 1);
+            }, 100);
         });
 
         notificationConnection.start()
@@ -144,7 +165,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
         return () => {
             notificationConnection.stop();
         };
-    }, [userId]);
+    }, [userId, initializeForUser]);
 
     // Подписка на события SignalR и загрузка начальных данных
     useEffect(() => {
@@ -436,11 +457,11 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                                         <div className="username">
                                             {chat.username}
                                         </div>
-                                                                            {getUnreadCountForChat(chat.chat_id) > 0 && (
-                                        <div className={`unread-notifications-badge ${getUnreadCountForChat(chat.chat_id) === 1 ? 'new' : ''}`}>
-                                            {getUnreadCountForChat(chat.chat_id)}
-                                        </div>
-                                    )}
+                                        {getUnreadCountForChat(chat.chat_id) > 0 && (
+                                            <div className={`unread-notifications-badge ${getUnreadCountForChat(chat.chat_id) === 1 ? 'new' : ''}`}>
+                                                {getUnreadCountForChat(chat.chat_id)}
+                                            </div>
+                                        )}
                                     </div>
                                     {chat.isGroupChat && <span className="group-indicator">(Group)</span>}
                                 </div>

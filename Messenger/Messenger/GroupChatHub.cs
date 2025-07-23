@@ -14,11 +14,13 @@ namespace Messenger
     {
         private readonly MessengerContext _context;
         private readonly IHubContext<ChatListHub> _chatListHubContext;
+        private readonly IHubContext<NotificationHub> _notificationHub;
 
-        public GroupChatHub(MessengerContext context, IHubContext<ChatListHub> chatListHubContext)
+        public GroupChatHub(MessengerContext context, IHubContext<ChatListHub> chatListHubContext, IHubContext<NotificationHub> notificationHub)
         {
             _context = context;
             _chatListHubContext = chatListHubContext;
+            _notificationHub = notificationHub;
         }
 
         public async Task JoinGroup(int chatId)
@@ -132,7 +134,7 @@ namespace Messenger
                 await _context.SaveChangesAsync();
 
                 // Уведомляем пользователя через SignalR
-                await Clients.User(userId.ToString()).SendAsync("ReceiveNotification", new
+                await _notificationHub.Clients.User(userId.ToString()).SendAsync("ReceiveNotification", new
                 {
                     notification.NotificationId,
                     notification.ChatId,

@@ -6,11 +6,14 @@ export const notificationService = {
     // Получить уведомления пользователя
     async getNotifications(userId, page = 1, pageSize = 20) {
         try {
+            console.log('Fetching notifications for user:', userId, 'page:', page);
             const response = await fetch(`${API_BASE_URL}/api/notification?userId=${userId}&page=${page}&pageSize=${pageSize}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch notifications');
             }
-            return await response.json();
+            const data = await response.json();
+            console.log('Fetched notifications:', data);
+            return data;
         } catch (error) {
             console.error('Error fetching notifications:', error);
             throw error;
@@ -20,11 +23,13 @@ export const notificationService = {
     // Получить количество непрочитанных уведомлений
     async getUnreadCount(userId) {
         try {
+            console.log('Fetching unread count for user:', userId);
             const response = await fetch(`${API_BASE_URL}/api/notification/unread-count?userId=${userId}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch unread count');
             }
             const data = await response.json();
+            console.log('Fetched unread count:', data);
             return data.unreadCount;
         } catch (error) {
             console.error('Error fetching unread count:', error);

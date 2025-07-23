@@ -31,8 +31,16 @@ export const NotificationProvider = ({ children }) => {
 
         connection.on("ReceiveNotification", (notification) => {
             console.log("Received notification:", notification);
-            setNotifications(prev => [notification, ...prev]);
-            setUnreadCount(prev => prev + 1);
+            setNotifications(prev => {
+                const newNotifications = [notification, ...prev];
+                console.log("Updated notifications:", newNotifications);
+                return newNotifications;
+            });
+            setUnreadCount(prev => {
+                const newCount = prev + 1;
+                console.log("Updated unread count:", newCount);
+                return newCount;
+            });
             
             // Показываем desktop уведомление
             if (Notification.permission === "granted") {
@@ -65,7 +73,9 @@ export const NotificationProvider = ({ children }) => {
         
         setIsLoading(true);
         try {
+            console.log('Loading notifications for user:', userId, 'page:', page);
             const data = await notificationService.getNotifications(userId, page);
+            console.log('Loaded notifications:', data);
             
             if (append) {
                 setNotifications(prev => [...prev, ...data]);
@@ -156,6 +166,7 @@ export const NotificationProvider = ({ children }) => {
         initializeConnection(userId);
         await loadNotifications(userId, 1, false);
         await loadUnreadCount(userId);
+        console.log('Notifications initialization completed for user:', userId);
     }, [initializeConnection, loadNotifications, loadUnreadCount]);
 
     // Загрузка следующей страницы
