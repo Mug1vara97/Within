@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { BASE_URL } from './config/apiConfig';
 import { Mic, MicOff, Headset, HeadsetOff } from '@mui/icons-material';
-import UserStatusManager from './UserStatusManager';
 import statusService from './services/statusService';
 
 const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
@@ -159,20 +158,128 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
             alignItems: 'center',
             gap: '8px',
         }}>
-             <div 
-                className="user-avatar" 
-                style={{ 
-                    backgroundColor: userProfile?.avatarColor || '#5865F2', 
+            <div style={{
+                position: 'relative',
+                flexShrink: 0
+            }}>
+                <div 
+                    className="user-avatar" 
+                    style={{ 
+                        backgroundColor: userProfile?.avatarColor || '#5865F2', 
+                        cursor: 'pointer',
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '14px',
+                        fontWeight: 'bold'
+                    }}
+                    onClick={toggleProfile}
+                >
+                    {userProfile?.avatar ? (
+                        <img 
+                            src={userProfile.avatar} 
+                            alt="User avatar" 
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                borderRadius: '50%',
+                                objectFit: 'cover'
+                            }}
+                        />
+                    ) : (
+                        username.charAt(0).toUpperCase()
+                    )}
+                </div>
+                
+                {/* Кнопка статуса справа снизу аватарки */}
+                <div style={{
+                    position: 'absolute',
+                    bottom: '-2px',
+                    right: '-2px',
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '50%',
+                    border: '2px solid #2f3136',
                     cursor: 'pointer',
-                    flexShrink: 0
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '8px',
+                    color: 'white',
+                    backgroundColor: userStatus === 'online' ? '#43b581' : 
+                                  userStatus === 'idle' ? '#faa61a' : 
+                                  userStatus === 'dnd' ? '#f04747' : '#747f8d'
                 }}
-                onClick={toggleProfile}
-            >
-                {userProfile?.avatar ? (
-                    <img src={userProfile.avatar} alt="User avatar" className="avatar-image" />
-                ) : (
-                    username.charAt(0).toUpperCase()
-                )}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    // Показать меню статуса
+                    const statusMenu = document.createElement('div');
+                    statusMenu.className = 'status-menu';
+                    statusMenu.style.cssText = `
+                        position: absolute;
+                        bottom: '100%';
+                        right: '0';
+                        background: #2f3136;
+                        border: 1px solid #202225;
+                        border-radius: 4px;
+                        padding: 4px;
+                        z-index: 1000;
+                        min-width: 120px;
+                    `;
+                    
+                    const statuses = [
+                        { key: 'online', label: 'В сети', color: '#43b581', icon: '●' },
+                        { key: 'idle', label: 'Не активен', color: '#faa61a', icon: '○' },
+                        { key: 'dnd', label: 'Не беспокоить', color: '#f04747', icon: '●' },
+                        { key: 'offline', label: 'Невидимый', color: '#747f8d', icon: '○' }
+                    ];
+                    
+                    statuses.forEach(status => {
+                        const item = document.createElement('div');
+                        item.style.cssText = `
+                            display: flex;
+                            align-items: center;
+                            gap: 8px;
+                            padding: 4px 8px;
+                            cursor: pointer;
+                            color: #dcddde;
+                            font-size: 12px;
+                        `;
+                        item.innerHTML = `
+                            <span style="color: ${status.color}; font-size: 10px;">${status.icon}</span>
+                            <span>${status.label}</span>
+                        `;
+                        item.onclick = () => {
+                            handleStatusChange(status.key);
+                            document.body.removeChild(statusMenu);
+                        };
+                        statusMenu.appendChild(item);
+                    });
+                    
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    statusMenu.style.left = `${rect.left}px`;
+                    statusMenu.style.bottom = `${window.innerHeight - rect.top + 5}px`;
+                    
+                    document.body.appendChild(statusMenu);
+                    
+                    // Закрыть меню при клике вне его
+                    const closeMenu = (e) => {
+                        if (!statusMenu.contains(e.target)) {
+                            document.body.removeChild(statusMenu);
+                            document.removeEventListener('click', closeMenu);
+                        }
+                    };
+                    setTimeout(() => document.addEventListener('click', closeMenu), 0);
+                }}
+                >
+                    {userStatus === 'online' ? '●' : 
+                     userStatus === 'idle' ? '○' : 
+                     userStatus === 'dnd' ? '●' : '○'}
+                </div>
             </div>
             
             <div style={{
@@ -186,10 +293,6 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
                     fontSize: '14px',
                     fontWeight: '500'
                 }}>{username}</span>
-                <UserStatusManager 
-                    currentStatus={userStatus}
-                    onStatusChange={handleStatusChange}
-                />
             </div>
             
             {/* Кнопки управления звуком - справа, но выровнены по центру */}

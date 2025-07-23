@@ -380,14 +380,6 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                                 <div className="chat-info">
                                     <div className="username">
                                         {chat.username}
-                                        {!chat.isGroupChat && (
-                                            <span className={`user-status ${getUserStatus(chat.user_id)}`}>
-                                                {getUserStatus(chat.user_id) === 'online' && '●'}
-                                                {getUserStatus(chat.user_id) === 'idle' && '○'}
-                                                {getUserStatus(chat.user_id) === 'dnd' && '●'}
-                                                {getUserStatus(chat.user_id) === 'offline' && '○'}
-                                            </span>
-                                        )}
                                     </div>
                                     {chat.isGroupChat && <span className="group-indicator">(Group)</span>}
                                 </div>
