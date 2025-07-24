@@ -33,7 +33,6 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
             notification.chatId === chatId && !notification.isRead
         ).length;
         console.log(`Unread count for chat ${chatId}: ${count}, total notifications: ${notifications.length}`);
-        console.log('All notifications:', notifications);
         return count;
     }, [notifications]);
 
@@ -77,7 +76,8 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
     // Эффект для отслеживания изменений в уведомлениях
     useEffect(() => {
         console.log('Notifications updated in ChatList:', notifications);
-        // Не принудительно обновляем компонент, так как уведомления обновляются автоматически
+        // Принудительно обновляем компонент при изменении уведомлений
+        setForceUpdate(prev => prev + 1);
     }, [notifications]);
 
     // Инициализация SignalR соединения
@@ -144,11 +144,8 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
             // Не принудительно обновляем компонент, так как уведомления обновляются через NotificationContext
         });
 
-        notificationConnection.on("MessageRead", (chatId, messageId) => {
-            console.log(`Message ${messageId} read in chat ${chatId}`);
-            // Принудительно обновляем компонент для отображения изменений
-            setForceUpdate(prev => prev + 1);
-        });
+        // Обработчик MessageRead не нужен здесь, так как уведомления обновляются через NotificationContext
+        // и эффект useEffect отслеживает изменения в notifications
 
         // Подписываемся на ChatUpdated от ChatHub и GroupChatHub
         notificationConnection.on("ChatUpdated", (chatId, lastMessage, lastMessageTime) => {
@@ -166,7 +163,6 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
 
         return () => {
             notificationConnection.off("ChatUpdated");
-            notificationConnection.off("MessageRead");
             notificationConnection.stop();
         };
     }, [userId, initializeForUser]);

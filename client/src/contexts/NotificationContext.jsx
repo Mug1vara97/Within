@@ -56,6 +56,18 @@ export const NotificationProvider = ({ children }) => {
             setUnreadCount(count);
         });
 
+        connection.on("MessageRead", (chatId, messageId) => {
+            console.log(`Message ${messageId} read in chat ${chatId}`);
+            // Обновляем уведомления для этого чата
+            setNotifications(prev => 
+                prev.map(n => 
+                    n.chatId === chatId && n.messageId === messageId
+                        ? { ...n, isRead: true, readAt: new Date().toISOString() }
+                        : n
+                )
+            );
+        });
+
         connection.start()
             .then(() => {
                 console.log("Connected to NotificationHub");
@@ -189,6 +201,9 @@ export const NotificationProvider = ({ children }) => {
         
         return () => {
             if (connectionRef.current) {
+                connectionRef.current.off("ReceiveNotification");
+                connectionRef.current.off("UnreadCountChanged");
+                connectionRef.current.off("MessageRead");
                 connectionRef.current.stop();
             }
         };
