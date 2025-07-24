@@ -15,9 +15,20 @@ export const StatusProvider = ({ children, userId }) => {
         const handleBeforeUnload = async () => {
             if (userId) {
                 try {
-                    // Устанавливаем статус offline при закрытии вкладки
-                    await statusService.updateUserStatus(userId, 'offline');
-                    console.log('StatusContext: User status set to offline on page unload');
+                    // Используем sendBeacon для надежной отправки статуса offline
+                    const data = JSON.stringify({ status: 'offline' });
+                    const url = `${BASE_URL}/api/status/${userId}`;
+                    
+                    // Отправляем запрос через sendBeacon (более надежно при закрытии вкладки)
+                    if (navigator.sendBeacon) {
+                        const blob = new Blob([data], { type: 'application/json' });
+                        const success = navigator.sendBeacon(url, blob);
+                        console.log('StatusContext: User status set to offline via sendBeacon', success);
+                    } else {
+                        // Fallback для старых браузеров
+                        await statusService.updateUserStatus(userId, 'offline');
+                        console.log('StatusContext: User status set to offline via fetch');
+                    }
                 } catch (error) {
                     console.error('Error setting user status to offline:', error);
                 }
@@ -90,6 +101,17 @@ export const StatusProvider = ({ children, userId }) => {
                     // При переподключении устанавливаем статус online только если пользователь активен
                     if (isUserActive && userId) {
                         setUserOnline();
+                    }
+                });
+
+                // Обработчик потери соединения
+                newConnection.onclose(() => {
+                    console.log('StatusContext: Connection closed');
+                    // При потере соединения устанавливаем статус offline
+                    if (userId) {
+                        statusService.updateUserStatus(userId, 'offline').catch(error => {
+                            console.error('Error setting status to offline on connection close:', error);
+                        });
                     }
                 });
 

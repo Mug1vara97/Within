@@ -48,6 +48,18 @@ public class StatusController : ControllerBase
     [HttpPut("{userId}")]
     public async Task<IActionResult> UpdateUserStatus(int userId, [FromBody] UpdateStatusRequest request)
     {
+        return await UpdateUserStatusInternal(userId, request);
+    }
+
+    // POST метод для совместимости с sendBeacon
+    [HttpPost("{userId}")]
+    public async Task<IActionResult> UpdateUserStatusPost(int userId, [FromBody] UpdateStatusRequest request)
+    {
+        return await UpdateUserStatusInternal(userId, request);
+    }
+
+    private async Task<IActionResult> UpdateUserStatusInternal(int userId, UpdateStatusRequest request)
+    {
         try
         {
             var user = await _context.Users.FindAsync(userId);
@@ -63,6 +75,7 @@ public class StatusController : ControllerBase
                 return BadRequest("Неверный статус");
             }
 
+            var oldStatus = user.Status;
             user.Status = request.Status;
             user.LastSeen = DateTime.UtcNow;
 
@@ -70,12 +83,13 @@ public class StatusController : ControllerBase
 
             // Уведомляем всех клиентов об изменении статуса
             await _statusHub.Clients.All.SendAsync("UserStatusChanged", userId, user.Status);
-            Console.WriteLine($"StatusController: Notified all clients about user {userId} status change to {user.Status}");
+            Console.WriteLine($"StatusController: User {user.Username} (ID: {userId}) status changed from {oldStatus} to {user.Status}");
 
             return Ok(new { Status = user.Status, LastSeen = user.LastSeen });
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"StatusController: Error updating user {userId} status: {ex.Message}");
             return StatusCode(500, new { error = ex.Message });
         }
     }

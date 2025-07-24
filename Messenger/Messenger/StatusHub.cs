@@ -67,4 +67,11 @@ public class StatusHub : Hub
     {
         await Clients.All.SendAsync("UserActivity", userId, DateTime.UtcNow);
     }
+
+    // Метод для установки статуса offline для неактивных пользователей
+    public async Task SetInactiveUsersOffline()
+    {
+        // Этот метод может быть вызван периодически для очистки неактивных пользователей
+        Console.WriteLine("StatusHub: Checking for inactive users...");
+    }
 } 
