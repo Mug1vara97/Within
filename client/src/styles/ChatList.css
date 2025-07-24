@@ -105,30 +105,7 @@
     font-style: italic;
 }
 
-/* Стили для кнопки удаления */
-.delete-chat-button {
-    background: none;
-    border: none;
-    color: var(--textSecondary);
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
-    opacity: 0;
-    transition: all 0.2s ease;
-    margin-left: 8px;
-    font-size: 16px;
-    font-weight: bold;
-}
 
-.chat-item:hover .delete-chat-button {
-    opacity: 1;
-}
-
-.delete-chat-button:hover {
-    background-color: #ed4245;
-    color: white;
-    transform: scale(1.1);
-}
 
 /* Стили для результатов поиска */
 .search-results-container {
@@ -367,9 +344,47 @@
     animation: notification-pulse 2s ease-in-out infinite;
 }
 
+/* Стили для бейджа непрочитанных уведомлений справа */
+.unread-notifications-badge-right {
+    background-color: #ed4245;
+    color: white;
+    border-radius: 10px;
+    min-width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: auto;
+    margin-right: 8px;
+    padding: 0 6px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 1;
+    transition: all 0.2s ease;
+}
+
+.unread-notifications-badge-right:hover {
+    background-color: #f04747;
+    transform: scale(1.05);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.unread-notifications-badge-right.new {
+    animation: notification-pulse 2s ease-in-out infinite;
+}
+
 /* Адаптивность для мобильных устройств */
 @media (max-width: 768px) {
     .unread-notifications-badge {
+        min-width: 18px;
+        height: 18px;
+        font-size: 0.7rem;
+        margin-right: 4px;
+    }
+    
+    .unread-notifications-badge-right {
         min-width: 18px;
         height: 18px;
         font-size: 0.7rem;

@@ -431,15 +431,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
         }
     };
 
-    const handleDeleteChat = async (chatId, e) => {
-        e.stopPropagation();
-        
-        if (window.confirm('Вы уверены, что хотите удалить этот чат?')) {
-            if (connection) {
-                await connection.invoke("DeleteChat", chatId, userId);
-            }
-            }
-        };
+
 
     const handleCreateGroupChat = async (chatName, selectedUsers) => {
         if (!connection) return;
@@ -505,13 +497,10 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                                     {chat.isGroupChat && <span className="group-indicator">(Group)</span>}
                                 </div>
                             </div>
-                            {!chat.isGroupChat && (
-                                <button 
-                                    className="delete-chat-button"
-                                    onClick={(e) => handleDeleteChat(chat.chat_id, e)}
-                                >
-                                    ×
-                                </button>
+                            {getUnreadCountForChat(chat.chat_id) > 0 && (
+                                <div className={`unread-notifications-badge-right ${getUnreadCountForChat(chat.chat_id) === 1 ? 'new' : ''}`}>
+                                    {getUnreadCountForChat(chat.chat_id)}
+                                </div>
                             )}
                         </li>
                     ))

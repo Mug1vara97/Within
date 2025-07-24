@@ -1,5 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { HubConnectionBuilder } from '@microsoft/signalr';
+import MicIcon from '@mui/icons-material/Mic';
+import StopIcon from '@mui/icons-material/Stop';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
 import '../styles/Chat.css';
 import './group-chat.css';
 import '../styles/links.css';
@@ -768,7 +771,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
                     className={`voice-record-button ${isRecording ? 'recording' : ''}`}
                     title={isRecording ? "Нажмите для остановки и отправки" : "Нажмите для начала записи"}
                   >
-                    {isRecording ? '⏹️' : '🎤'}
+                    {isRecording ? <StopIcon /> : <MicIcon />}
                   </button>
                 </div>
             )}
@@ -787,7 +790,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
                 onClick={() => fileInputRef.current.click()}
                 className="media-button"
               >
-                📎
+                <AttachFileIcon />
               </button>
             )}
           </>
