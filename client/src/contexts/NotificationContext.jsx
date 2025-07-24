@@ -177,6 +177,15 @@ export const NotificationProvider = ({ children }) => {
             });
         });
 
+        // Обработчик обновления чата для обновления списка чатов в реальном времени
+        connection.on("ChatUpdated", (chatId, lastMessage, lastMessageTime) => {
+            console.log("ChatUpdated received in NotificationContext:", { chatId, lastMessage, lastMessageTime });
+            // Отправляем событие для обновления списка чатов
+            window.dispatchEvent(new CustomEvent('chatUpdated', {
+                detail: { chatId, lastMessage, lastMessageTime }
+            }));
+        });
+
         // Обработчики состояния соединения
         connection.onreconnecting((error) => {
             console.log("SignalR reconnecting:", error);
@@ -420,6 +429,7 @@ export const NotificationProvider = ({ children }) => {
                     connectionRef.current.off("ReceiveNotification");
                     connectionRef.current.off("UnreadCountChanged");
                     connectionRef.current.off("MessageRead");
+                    connectionRef.current.off("ChatUpdated");
                     connectionRef.current.stop();
                     console.log("Cleaned up SignalR connection");
                 } catch (error) {

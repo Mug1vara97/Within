@@ -162,6 +162,21 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
         });
     };
 
+    // Обработчик события обновления чата из NotificationContext
+    useEffect(() => {
+        const handleChatUpdatedEvent = (event) => {
+            console.log('Received chatUpdated event from NotificationContext:', event.detail);
+            const { chatId, lastMessage, lastMessageTime } = event.detail;
+            handleChatUpdated(chatId, lastMessage, lastMessageTime);
+        };
+
+        window.addEventListener('chatUpdated', handleChatUpdatedEvent);
+
+        return () => {
+            window.removeEventListener('chatUpdated', handleChatUpdatedEvent);
+        };
+    }, [chats]); // Зависимость от chats для доступа к актуальному состоянию
+
     // Подписка на события SignalR и загрузка начальных данных
     useEffect(() => {
         if (!connection || !userId) return;
@@ -259,7 +274,10 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
         connection.on("Error", handleError);
         connection.on("ReceiveSearchResults", handleSearchResults);
         connection.on("GroupChatCreated", handleGroupChatCreated);
-        connection.on("ChatUpdated", handleChatUpdated);
+        connection.on("ChatUpdated", (chatId, lastMessage, lastMessageTime) => {
+            console.log('Received ChatUpdated from main SignalR connection:', { chatId, lastMessage, lastMessageTime });
+            handleChatUpdated(chatId, lastMessage, lastMessageTime);
+        });
 
 
         // Загружаем начальный список чатов
@@ -276,7 +294,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                 connection.off("Error", handleError);
                 connection.off("ReceiveSearchResults", handleSearchResults);
                 connection.off("GroupChatCreated", handleGroupChatCreated);
-                connection.off("ChatUpdated", handleChatUpdated);
+                connection.off("ChatUpdated");
             }
         };
     }, [connection, userId, selectedChat, navigate]);
