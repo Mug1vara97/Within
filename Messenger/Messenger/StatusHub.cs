@@ -16,7 +16,9 @@ public class StatusHub : Hub
         if (!string.IsNullOrEmpty(userId) && int.TryParse(userId, out int userIdInt))
         {
             _userConnections[userId] = Context.ConnectionId;
-            await Clients.All.SendAsync("UserStatusChanged", userIdInt, "online");
+            // НЕ устанавливаем статус online автоматически при подключении
+            // Статус должен быть установлен явно через API
+            Console.WriteLine($"StatusHub: User {userIdInt} connected, but status not automatically set to online");
         }
         await base.OnConnectedAsync();
     }
@@ -28,7 +30,9 @@ public class StatusHub : Hub
         if (!string.IsNullOrEmpty(userId) && int.TryParse(userId, out int userIdInt))
         {
             _userConnections.Remove(userId);
+            // Устанавливаем статус offline при отключении
             await Clients.All.SendAsync("UserStatusChanged", userIdInt, "offline");
+            Console.WriteLine($"StatusHub: User {userIdInt} disconnected, status set to offline");
         }
         await base.OnDisconnectedAsync(exception);
     }

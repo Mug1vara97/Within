@@ -257,8 +257,9 @@ const Home = ({ user }) => {
                                 initialMuted={localMuted}
                                 initialAudioEnabled={localAudioEnabled}
                             />
-                        )}                       
+                        )}
 
+                        
                     </>
                 )}
             </div>
