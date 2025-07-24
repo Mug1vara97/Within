@@ -89,15 +89,22 @@ export const NotificationProvider = ({ children }) => {
 
     // Инициализация SignalR соединения
     const initializeConnection = useCallback((userId) => {
+        // Останавливаем существующее соединение если есть
         if (connectionRef.current) {
-            connectionRef.current.stop();
+            try {
+                connectionRef.current.stop();
+                console.log("Stopped existing connection");
+            } catch (error) {
+                console.log("Error stopping existing connection:", error);
+            }
+            connectionRef.current = null;
         }
 
         userIdRef.current = userId;
         
         const connection = new signalR.HubConnectionBuilder()
             .withUrl(`/notificationhub?userId=${userId}`)
-            .withAutomaticReconnect()
+            .withAutomaticReconnect([0, 2000, 10000, 30000]) // Более агрессивное переподключение
             .build();
 
         connection.on("ReceiveNotification", (notification) => {
@@ -156,16 +163,39 @@ export const NotificationProvider = ({ children }) => {
             });
         });
 
-        connection.start()
-            .then(() => {
-                console.log("Connected to NotificationHub");
-            })
-            .catch(err => {
-                console.error("Error connecting to NotificationHub:", err);
-            });
+        // Обработчики состояния соединения
+        connection.onreconnecting((error) => {
+            console.log("SignalR reconnecting:", error);
+        });
 
-        connectionRef.current = connection;
-    }, []);
+        connection.onreconnected((connectionId) => {
+            console.log("SignalR reconnected:", connectionId);
+        });
+
+        connection.onclose((error) => {
+            console.log("SignalR connection closed:", error);
+        });
+
+        // Запускаем соединение с задержкой и повторными попытками
+        const startConnection = async () => {
+            try {
+                await connection.start();
+                console.log("Connected to NotificationHub");
+                connectionRef.current = connection;
+            } catch (err) {
+                console.error("Error connecting to NotificationHub:", err);
+                // Повторяем попытку через 5 секунд
+                setTimeout(() => {
+                    if (userIdRef.current === userId) { // Проверяем, что пользователь не изменился
+                        console.log("Retrying connection...");
+                        startConnection();
+                    }
+                }, 5000);
+            }
+        };
+
+        startConnection();
+    }, [playNotificationSound, unreadCount, notifications.length]);
 
     // Загрузка уведомлений
     const loadNotifications = useCallback(async (userId, page = 1, append = false, unreadOnly = true) => {
@@ -372,10 +402,16 @@ export const NotificationProvider = ({ children }) => {
         
         return () => {
             if (connectionRef.current) {
-                connectionRef.current.off("ReceiveNotification");
-                connectionRef.current.off("UnreadCountChanged");
-                connectionRef.current.off("MessageRead");
-                connectionRef.current.stop();
+                try {
+                    connectionRef.current.off("ReceiveNotification");
+                    connectionRef.current.off("UnreadCountChanged");
+                    connectionRef.current.off("MessageRead");
+                    connectionRef.current.stop();
+                    console.log("Cleaned up SignalR connection");
+                } catch (error) {
+                    console.log("Error cleaning up SignalR connection:", error);
+                }
+                connectionRef.current = null;
             }
             document.removeEventListener('click', handleUserInteraction);
             document.removeEventListener('keydown', handleUserInteraction);

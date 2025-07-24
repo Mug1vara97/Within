@@ -129,7 +129,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
         };
     }, [userId]);
 
-    // Инициализация уведомлений и подключение к NotificationHub
+    // Инициализация уведомлений
     useEffect(() => {
         if (!userId) return;
 
@@ -137,44 +137,6 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
 
         // Инициализируем уведомления для пользователя
         initializeForUser(userId);
-
-        const notificationConnection = new signalR.HubConnectionBuilder()
-            .withUrl(`${BASE_URL}/notificationhub?userId=${userId}`)
-            .withAutomaticReconnect()
-            .build();
-
-        notificationConnection.on("ReceiveNotification", (notification) => {
-            console.log("Received new notification in ChatList:", notification);
-            // Не принудительно обновляем компонент, так как уведомления обновляются через NotificationContext
-        });
-
-        notificationConnection.on("UnreadCountChanged", (count) => {
-            console.log("Unread count changed in ChatList:", count);
-            // Принудительно обновляем компонент при изменении счетчика
-            setForceUpdate(prev => prev + 1);
-        });
-
-        // Обработчик MessageRead не нужен здесь, так как уведомления обновляются через NotificationContext
-        // и эффект useEffect отслеживает изменения в notifications
-
-        // Подписываемся на ChatUpdated от ChatHub и GroupChatHub
-        notificationConnection.on("ChatUpdated", (chatId, lastMessage, lastMessageTime) => {
-            console.log("ChatUpdated received from notification connection:", { chatId, lastMessage, lastMessageTime });
-            handleChatUpdated(chatId, lastMessage, lastMessageTime);
-        });
-
-        notificationConnection.start()
-            .then(() => {
-                console.log("Connected to NotificationHub in ChatList");
-            })
-            .catch(err => {
-                console.error("Error connecting to NotificationHub in ChatList:", err);
-            });
-
-        return () => {
-            notificationConnection.off("ChatUpdated");
-            notificationConnection.stop();
-        };
     }, [userId, initializeForUser]);
 
     // Функция для обновления чата
@@ -304,6 +266,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
         connection.on("Error", handleError);
         connection.on("ReceiveSearchResults", handleSearchResults);
         connection.on("GroupChatCreated", handleGroupChatCreated);
+        connection.on("ChatUpdated", handleChatUpdated);
 
 
         // Загружаем начальный список чатов
@@ -320,7 +283,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                 connection.off("Error", handleError);
                 connection.off("ReceiveSearchResults", handleSearchResults);
                 connection.off("GroupChatCreated", handleGroupChatCreated);
-        
+                connection.off("ChatUpdated", handleChatUpdated);
             }
         };
     }, [connection, userId, selectedChat, navigate]);
