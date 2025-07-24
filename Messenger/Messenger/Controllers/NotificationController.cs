@@ -25,7 +25,7 @@ namespace Messenger.Controllers
         {
             try
             {
-                var query = _context.Notifications
+                IQueryable<Notification> query = _context.Notifications
                     .Where(n => n.UserId == userId)
                     .Include(n => n.Chat)
                     .Include(n => n.Message)
