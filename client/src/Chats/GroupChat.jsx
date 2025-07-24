@@ -9,7 +9,7 @@ import { useMediaHandlers } from '../hooks/useMediaHandlers';
 import useScrollToBottom from '../hooks/useScrollToBottom';
 import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/GroupSettings';
 import { processLinks } from '../utils/linkUtils.jsx';
-import { useNotifications } from '../hooks/useNotifications';
+import { useMessageVisibility } from '../hooks/useMessageVisibility';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
   return (
@@ -65,7 +65,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     cancelRecording
   } = useMediaHandlers(connection, username, chatId);
   const { messagesEndRef, scrollToBottom } = useScrollToBottom();
-  const { markChatAsRead } = useNotifications();
+  const { addMessageRef } = useMessageVisibility(userId, chatId, messages);
   const {
     isSettingsOpen,
     setIsSettingsOpen,
@@ -312,10 +312,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
             createdAt: msg.createdAt
           })));
           
-          // Помечаем уведомления чата как прочитанные
-          if (markChatAsRead) {
-            markChatAsRead(chatId);
-          }
+          // Сообщения теперь помечаются как прочитанные при их видимости
         }
       } catch (error) {
         console.error('Connection failed: ', error);
@@ -594,6 +591,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
               highlightedMessageId === msg.messageId ? 'highlighted' : ''
             }`}
             onContextMenu={(e) => handleContextMenu(e, msg.messageId)}
+            ref={(el) => addMessageRef(msg.messageId, el)}
         >
             <UserAvatar 
                 username={msg.senderUsername}

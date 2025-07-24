@@ -4,7 +4,7 @@ import { BASE_URL } from '../config/apiConfig';
 import MediaMessage from './MediaMessage';
 import { useMediaHandlers } from '../hooks/useMediaHandlers';
 import useScrollToBottom from '../hooks/useScrollToBottom';
-import { useNotifications } from '../hooks/useNotifications';
+import { useMessageVisibility } from '../hooks/useMessageVisibility';
 import '../styles/links.css';
 
 
@@ -15,7 +15,7 @@ const ChatPage = ({ userId, username, chatId, chatPartnerUsername, PartnerId }) 
     const [editingMessageId, setEditingMessageId] = useState(null);
     const { isRecording, fileInputRef, handleSendMedia, handleAudioRecording } = useMediaHandlers(connection, username, chatId);
     const { messagesEndRef, scrollToBottom } = useScrollToBottom();
-    const { markChatAsRead } = useNotifications();
+    const { addMessageRef } = useMessageVisibility(userId, chatId, messages);
     const connectionRef = useRef(null);
 
     const [contextMenu, setContextMenu] = useState({
@@ -73,10 +73,7 @@ const ChatPage = ({ userId, username, chatId, chatPartnerUsername, PartnerId }) 
                 createdAt: msg.createdAt
             })));
             
-            // Помечаем уведомления чата как прочитанные
-            if (markChatAsRead) {
-                markChatAsRead(chatId);
-            }
+            // Сообщения теперь помечаются как прочитанные при их видимости
             
             // Обработчики событий
             newConnection.on('ReceiveMessage', (user, content, messageId) => {
@@ -246,8 +243,12 @@ const ChatPage = ({ userId, username, chatId, chatPartnerUsername, PartnerId }) 
     
             <div className="messages">
                 {messages.map((msg, index) => (
-                <div key={index} className={`message ${msg.username === username ? 'my-message' : 'user-message'}`}
-                    onContextMenu={(e) => msg.username === username && handleContextMenu(e, msg.id)}>
+                <div 
+                    key={index} 
+                    className={`message ${msg.username === username ? 'my-message' : 'user-message'}`}
+                    onContextMenu={(e) => msg.username === username && handleContextMenu(e, msg.id)}
+                    ref={(el) => addMessageRef(msg.id, el)}
+                >
                     <strong className="message-username">{msg.username}</strong>
                     <MediaMessage content={msg.content} />
                 </div>
