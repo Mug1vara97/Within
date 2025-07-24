@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as signalR from '@microsoft/signalr';
 import { BASE_URL } from '../config/apiConfig';
 import statusService from '../services/statusService';
@@ -8,52 +8,6 @@ const StatusContext = createContext();
 export const StatusProvider = ({ children, userId }) => {
     const [userStatuses, setUserStatuses] = useState({});
     const [connection, setConnection] = useState(null);
-    const [isUserActive, setIsUserActive] = useState(true);
-    const [manuallySetStatus, setManuallySetStatus] = useState(null);
-
-    // Обработчик закрытия вкладки
-    useEffect(() => {
-        const handleBeforeUnload = async () => {
-            if (userId) {
-                try {
-                    // Используем sendBeacon для надежной отправки статуса offline
-                    const data = JSON.stringify({ status: 'offline' });
-                    const url = `${BASE_URL}/api/status/${userId}`;
-                    
-                    // Отправляем запрос через sendBeacon (более надежно при закрытии вкладки)
-                    if (navigator.sendBeacon) {
-                        const blob = new Blob([data], { type: 'application/json' });
-                        const success = navigator.sendBeacon(url, blob);
-                        console.log('StatusContext: User status set to offline via sendBeacon', success);
-                    } else {
-                        // Fallback для старых браузеров
-                        await statusService.updateUserStatus(userId, 'offline');
-                        console.log('StatusContext: User status set to offline via fetch');
-                    }
-                } catch (error) {
-                    console.error('Error setting user status to offline:', error);
-                }
-            }
-        };
-
-        const handleVisibilityChange = () => {
-            if (document.hidden) {
-                // Страница стала невидимой (переключение вкладок)
-                setIsUserActive(false);
-            } else {
-                // Страница снова стала видимой
-                setIsUserActive(true);
-            }
-        };
-
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-
-        return () => {
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-        };
-    }, [userId]);
 
     // Инициализация SignalR соединения
     useEffect(() => {
@@ -62,15 +16,7 @@ export const StatusProvider = ({ children, userId }) => {
         const createConnection = async () => {
             const newConnection = new signalR.HubConnectionBuilder()
                 .withUrl(`${BASE_URL}/statushub?userId=${userId}`)
-                .withAutomaticReconnect({
-                    nextRetryDelayInMilliseconds: retryContext => {
-                        // Если пользователь не активен, не переподключаемся
-                        if (!isUserActive) {
-                            return null; // Остановить переподключение
-                        }
-                        return Math.min(1000 * Math.pow(2, retryContext.previousRetryCount), 30000);
-                    }
-                })
+                .withAutomaticReconnect()
                 .build();
 
             try {
@@ -92,38 +38,6 @@ export const StatusProvider = ({ children, userId }) => {
                     console.log(`StatusContext: User ${userId} activity: ${lastSeen}`);
                 });
 
-                // Обработчик переподключения
-                newConnection.onreconnecting(() => {
-                    console.log('StatusContext: Attempting to reconnect...');
-                });
-
-                newConnection.onreconnected(() => {
-                    console.log('StatusContext: Reconnected successfully');
-                    // При переподключении устанавливаем статус online только если пользователь активен
-                    if (isUserActive && userId) {
-                        setUserOnline();
-                    }
-                });
-
-                // Обработчик потери соединения
-                newConnection.onclose(() => {
-                    console.log('StatusContext: Connection closed');
-                    // При потере соединения устанавливаем статус offline
-                    if (userId) {
-                        statusService.updateUserStatus(userId, 'offline').catch(error => {
-                            console.error('Error setting status to offline on connection close:', error);
-                        });
-                    }
-                });
-
-                // При первом подключении устанавливаем статус online
-                if (isUserActive && userId) {
-                    setUserOnline();
-                }
-
-                // Загружаем актуальные статусы всех пользователей из базы данных
-                await loadAllUserStatuses();
-
             } catch (err) {
                 console.error('Ошибка подключения к StatusHub:', err);
             }
@@ -136,7 +50,7 @@ export const StatusProvider = ({ children, userId }) => {
                 connection.stop();
             }
         };
-    }, [userId, isUserActive]);
+    }, []);
 
     // Получить статус пользователя
     const getUserStatus = (userId) => {
@@ -152,14 +66,6 @@ export const StatusProvider = ({ children, userId }) => {
                 [userId]: status
             }));
 
-            // Если это текущий пользователь и статус не "online", запоминаем что он установлен вручную
-            if (userId === parseInt(userId) && status !== 'online') {
-                setManuallySetStatus(status);
-            } else if (userId === parseInt(userId) && status === 'online') {
-                // Сбрасываем ручно установленный статус при установке online
-                setManuallySetStatus(null);
-            }
-
             // Уведомляем других пользователей через SignalR
             if (connection) {
                 await connection.invoke('NotifyStatusChange', userId, status);
@@ -168,71 +74,6 @@ export const StatusProvider = ({ children, userId }) => {
             console.error('Error updating user status:', error);
         }
     };
-
-    // Установить статус online при активном использовании
-    const setUserOnline = async () => {
-        if (userId && isUserActive) {
-            // Не устанавливаем online если пользователь вручную установил другой статус
-            if (manuallySetStatus && manuallySetStatus !== 'online') {
-                console.log('StatusContext: Skipping auto-set to online due to manually set status:', manuallySetStatus);
-                return;
-            }
-
-            try {
-                await statusService.updateUserStatus(userId, 'online');
-                setUserStatuses(prev => ({
-                    ...prev,
-                    [userId]: 'online'
-                }));
-
-                // Сбрасываем ручно установленный статус при установке online
-                setManuallySetStatus(null);
-
-                // Уведомляем других пользователей через SignalR
-                if (connection) {
-                    await connection.invoke('NotifyStatusChange', userId, 'online');
-                }
-                console.log('StatusContext: User status set to online due to activity');
-            } catch (error) {
-                console.error('Error setting user status to online:', error);
-            }
-        }
-    };
-
-    // Дебаунсинг для активности пользователя
-    const debouncedSetUserOnline = useRef(null);
-    const debouncedSetUserOnlineFn = () => {
-        if (debouncedSetUserOnline.current) {
-            clearTimeout(debouncedSetUserOnline.current);
-        }
-        debouncedSetUserOnline.current = setTimeout(() => {
-            setUserOnline();
-        }, 1000); // Задержка 1 секунда
-    };
-
-    // Обработчик активности пользователя
-    useEffect(() => {
-        if (!userId || !isUserActive) return;
-
-        const handleUserActivity = () => {
-            debouncedSetUserOnlineFn();
-        };
-
-        // Слушаем события активности пользователя
-        const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-        events.forEach(event => {
-            document.addEventListener(event, handleUserActivity, { passive: true });
-        });
-
-        return () => {
-            events.forEach(event => {
-                document.removeEventListener(event, handleUserActivity);
-            });
-            if (debouncedSetUserOnline.current) {
-                clearTimeout(debouncedSetUserOnline.current);
-            }
-        };
-    }, [userId, isUserActive]);
 
     // Загрузить статусы пользователей сервера
     const loadServerUserStatuses = async (serverId) => {
@@ -263,24 +104,6 @@ export const StatusProvider = ({ children, userId }) => {
         }
     };
 
-    // Загрузить статусы всех пользователей
-    const loadAllUserStatuses = async () => {
-        try {
-            const response = await fetch(`${BASE_URL}/api/status/all`);
-            if (response.ok) {
-                const allStatuses = await response.json();
-                const statusesMap = {};
-                allStatuses.forEach(user => {
-                    statusesMap[user.userId] = user.status;
-                });
-                setUserStatuses(prev => ({ ...prev, ...statusesMap }));
-                console.log('Loaded all user statuses:', statusesMap);
-            }
-        } catch (error) {
-            console.error('Error loading all user statuses:', error);
-        }
-    };
-
     // Присоединиться к группе сервера
     const joinServerGroup = async (serverId) => {
         if (connection) {
@@ -307,12 +130,8 @@ export const StatusProvider = ({ children, userId }) => {
         userStatuses,
         getUserStatus,
         updateUserStatus,
-        setUserOnline,
-        isUserActive,
-        manuallySetStatus,
         loadServerUserStatuses,
         loadChatUserStatuses,
-        loadAllUserStatuses,
         joinServerGroup,
         leaveServerGroup,
         connection

@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.WebSockets;
 using System.Text.Json.Serialization;
 using Messenger.Hubs;
 using Microsoft.AspNetCore.SignalR;
-using Messenger.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,9 +33,6 @@ builder.Services.AddSignalR(options =>
 
 // Регистрируем IUserIdProvider только для ChatListHub
 builder.Services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();
-
-// Регистрируем фоновую службу для управления статусами пользователей
-builder.Services.AddHostedService<UserStatusService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

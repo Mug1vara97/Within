@@ -23,7 +23,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
     const [connection, setConnection] = useState(null);
     const connectionRef = useRef(null);
     const [forceUpdate, setForceUpdate] = useState(0);
-    const { getUserStatus, loadChatUserStatuses, loadAllUserStatuses, connection: statusConnection } = useStatus();
+    const { getUserStatus, loadChatUserStatuses, connection: statusConnection } = useStatus();
     const { notifications, initializeForUser } = useNotifications();
 
     // Функция для подсчета непрочитанных уведомлений для чата
@@ -104,9 +104,6 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
 
                 // Сразу после установки соединения запрашиваем чаты
                 await newConnection.invoke("GetUserChats", userId);
-                
-                // Загружаем актуальные статусы всех пользователей
-                await loadAllUserStatuses();
             } catch (err) {
                 console.error('Ошибка подключения к ChatListHub:', err);
             }
@@ -121,7 +118,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                 connectionRef.current.stop();
             }
         };
-    }, [userId, loadAllUserStatuses]);
+    }, [userId]);
 
     // Инициализация уведомлений и подключение к NotificationHub
     useEffect(() => {
