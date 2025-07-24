@@ -408,9 +408,14 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         setMessages(prev => prev.filter(msg => msg.messageId !== messageId));
       };
 
-      connection.on('ReceiveMessage', receiveMessageHandler);
-      connection.on('MessageEdited', messageEditedHandler);
-      connection.on('MessageDeleted', messageDeletedHandler);
+                  connection.on('ReceiveMessage', receiveMessageHandler);
+            connection.on('MessageEdited', messageEditedHandler);
+            connection.on('MessageDeleted', messageDeletedHandler);
+            connection.on('MessageRead', (messageId, readByUserId, readAt) => {
+                console.log(`Message ${messageId} read by user ${readByUserId} at ${readAt}`);
+                // Здесь можно добавить визуальную индикацию прочтения сообщения
+                // Например, обновить состояние сообщения или показать иконку "прочитано"
+            });
 
       return () => {
         connection.off('ReceiveMessage', receiveMessageHandler);

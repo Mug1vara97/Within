@@ -9,6 +9,7 @@ export const StatusProvider = ({ children, userId }) => {
     const [userStatuses, setUserStatuses] = useState({});
     const [connection, setConnection] = useState(null);
     const [isUserActive, setIsUserActive] = useState(true);
+    const [manuallySetStatus, setManuallySetStatus] = useState(null);
 
     // Обработчик закрытия вкладки
     useEffect(() => {
@@ -151,6 +152,14 @@ export const StatusProvider = ({ children, userId }) => {
                 [userId]: status
             }));
 
+            // Если это текущий пользователь и статус не "online", запоминаем что он установлен вручную
+            if (userId === parseInt(userId) && status !== 'online') {
+                setManuallySetStatus(status);
+            } else if (userId === parseInt(userId) && status === 'online') {
+                // Сбрасываем ручно установленный статус при установке online
+                setManuallySetStatus(null);
+            }
+
             // Уведомляем других пользователей через SignalR
             if (connection) {
                 await connection.invoke('NotifyStatusChange', userId, status);
@@ -163,12 +172,21 @@ export const StatusProvider = ({ children, userId }) => {
     // Установить статус online при активном использовании
     const setUserOnline = async () => {
         if (userId && isUserActive) {
+            // Не устанавливаем online если пользователь вручную установил другой статус
+            if (manuallySetStatus && manuallySetStatus !== 'online') {
+                console.log('StatusContext: Skipping auto-set to online due to manually set status:', manuallySetStatus);
+                return;
+            }
+
             try {
                 await statusService.updateUserStatus(userId, 'online');
                 setUserStatuses(prev => ({
                     ...prev,
                     [userId]: 'online'
                 }));
+
+                // Сбрасываем ручно установленный статус при установке online
+                setManuallySetStatus(null);
 
                 // Уведомляем других пользователей через SignalR
                 if (connection) {
@@ -291,6 +309,7 @@ export const StatusProvider = ({ children, userId }) => {
         updateUserStatus,
         setUserOnline,
         isUserActive,
+        manuallySetStatus,
         loadServerUserStatuses,
         loadChatUserStatuses,
         loadAllUserStatuses,
