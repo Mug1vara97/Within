@@ -16,6 +16,47 @@ export const NotificationProvider = ({ children }) => {
     const connectionRef = useRef(null);
     const userIdRef = useRef(null);
 
+    // Функция для проигрывания звука уведомления
+    const playNotificationSound = useCallback(() => {
+        try {
+            // Попытка проиграть реальный аудиофайл (если он есть)
+            // Сначала пробуем MP3, затем WAV
+            const audioElement = new Audio('/src/assets/notification-sound.mp3');
+            audioElement.volume = 0.5;
+            
+            audioElement.play().catch(() => {
+                // Если MP3 не найден, пробуем WAV
+                const wavAudio = new Audio('/src/assets/notification-sound.wav');
+                wavAudio.volume = 0.5;
+                
+                wavAudio.play().catch(() => {
+                    // Если файлы не найдены, используем заглушку
+                    console.log("Audio files not found, using fallback sound");
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                    oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
+                    
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.3);
+                });
+            });
+            
+            console.log("Notification sound played");
+        } catch (error) {
+            console.error("Error playing notification sound:", error);
+        }
+    }, []);
+
     // Инициализация SignalR соединения
     const initializeConnection = useCallback((userId) => {
         if (connectionRef.current) {
@@ -48,6 +89,9 @@ export const NotificationProvider = ({ children }) => {
                     console.log("Updated unread count:", newCount);
                     return newCount;
                 });
+                
+                // Проигрываем звук при получении нового сообщения
+                playNotificationSound();
             } else {
                 console.log("Received read notification, skipping:", notification);
             }
