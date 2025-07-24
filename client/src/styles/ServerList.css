@@ -85,6 +85,21 @@
     border-radius: 16px;
 }
 
+.logout-button {
+    background-color: #dc3545 !important;
+    color: white !important;
+}
+
+.logout-button:hover {
+    background-color: #c82333 !important;
+    transform: scale(1.05);
+}
+
+.logout-button svg {
+    width: 18px;
+    height: 18px;
+}
+
 .server-item:hover::before {
     content: '';
     position: absolute;

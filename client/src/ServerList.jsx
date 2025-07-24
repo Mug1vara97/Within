@@ -20,6 +20,19 @@ const ServerList = ({ userId, onDiscoverClick }) => {
         navigate('/discover/servers');
     };
 
+    const handleLogout = () => {
+        // Запрашиваем подтверждение
+        if (window.confirm('Вы уверены, что хотите выйти из аккаунта?')) {
+            // Очищаем данные пользователя из localStorage
+            localStorage.removeItem('userId');
+            localStorage.removeItem('username');
+            localStorage.removeItem('token');
+            
+            // Перенаправляем на страницу входа
+            navigate('/login');
+        }
+    };
+
     const fetchServers = useCallback(async () => {
         if (!userId) return;
         
@@ -226,6 +239,28 @@ const ServerList = ({ userId, onDiscoverClick }) => {
                             </li>
                             <li className="server-item">
                                 <NotificationButton />
+                            </li>
+                            <li className="server-item">
+                                <button
+                                    className="server-button logout-button"
+                                    onClick={handleLogout}
+                                    title="Выйти из аккаунта"
+                                >
+                                    <svg 
+                                        width="20" 
+                                        height="20" 
+                                        viewBox="0 0 24 24" 
+                                        fill="none" 
+                                        stroke="currentColor" 
+                                        strokeWidth="2" 
+                                        strokeLinecap="round" 
+                                        strokeLinejoin="round"
+                                    >
+                                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                                        <polyline points="16,17 21,12 16,7"/>
+                                        <line x1="21" y1="12" x2="9" y2="12"/>
+                                    </svg>
+                                </button>
                             </li>
                         </ul>
                     )}
