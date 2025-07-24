@@ -463,6 +463,30 @@ namespace Messenger
                 throw;
             }
         }
+
+        public async Task MarkMessageAsRead(long messageId, int userId, int chatId)
+        {
+            try
+            {
+                // Проверяем, что сообщение существует и не принадлежит пользователю
+                var message = await _context.Messages
+                    .FirstOrDefaultAsync(m => m.MessageId == messageId);
+
+                if (message == null || message.UserId == userId)
+                {
+                    return; // Не отправляем уведомление для собственных сообщений
+                }
+
+                // Уведомляем всех участников чата о прочтении сообщения
+                await Clients.Group(chatId.ToString()).SendAsync("MessageRead", messageId, userId, DateTime.UtcNow);
+                
+                Console.WriteLine($"Message {messageId} marked as read by user {userId} in chat {chatId}");
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Error marking message as read: {ex.Message}");
+            }
+        }
     }
 
     public class MessageDto

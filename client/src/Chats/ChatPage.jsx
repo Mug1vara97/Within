@@ -96,6 +96,12 @@ const ChatPage = ({ userId, username, chatId, chatPartnerUsername, PartnerId }) 
                 setMessages(prev => prev.filter(msg => msg.id !== messageId));
             });
 
+            newConnection.on('MessageRead', (messageId, readByUserId, readAt) => {
+                console.log(`Message ${messageId} read by user ${readByUserId} at ${readAt}`);
+                // Здесь можно добавить визуальную индикацию прочтения сообщения
+                // Например, обновить состояние сообщения или показать иконку "прочитано"
+            });
+
         } catch (err) {
             console.error('Connection error: ', err);
         }
