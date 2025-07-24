@@ -31,13 +31,18 @@ export const NotificationProvider = ({ children }) => {
 
         connection.on("ReceiveNotification", (notification) => {
             console.log("Received notification:", notification);
+            console.log("Current unread count before update:", unreadCount);
+            console.log("Current notifications count before update:", notifications.length);
+            
             // Добавляем уведомление только если оно непрочитанное
             if (!notification.isRead) {
                 setNotifications(prev => {
                     const newNotifications = [notification, ...prev];
                     console.log("Updated notifications:", newNotifications);
+                    console.log("New notifications count:", newNotifications.length);
                     return newNotifications;
                 });
+                // Обновляем счетчик непрочитанных сообщений
                 setUnreadCount(prev => {
                     const newCount = prev + 1;
                     console.log("Updated unread count:", newCount);
@@ -55,14 +60,24 @@ export const NotificationProvider = ({ children }) => {
         });
 
         connection.on("UnreadCountChanged", (count) => {
-            console.log("Unread count changed:", count);
+            console.log("Unread count changed from server:", count);
             setUnreadCount(count);
         });
 
         connection.on("MessageRead", (chatId, messageId) => {
             console.log(`Message ${messageId} read in chat ${chatId}`);
             // Удаляем уведомления для этого сообщения из списка
-            setNotifications(prev => prev.filter(n => !(n.chatId === chatId && n.messageId === messageId)));
+            setNotifications(prev => {
+                const filtered = prev.filter(n => !(n.chatId === chatId && n.messageId === messageId));
+                console.log(`Removed notifications for message ${messageId} in chat ${chatId}, remaining: ${filtered.length}`);
+                return filtered;
+            });
+            // Обновляем счетчик непрочитанных сообщений
+            setUnreadCount(prev => {
+                const newCount = Math.max(0, prev - 1);
+                console.log("Updated unread count after message read:", newCount);
+                return newCount;
+            });
         });
 
         connection.start()
@@ -120,7 +135,17 @@ export const NotificationProvider = ({ children }) => {
         try {
             await notificationService.markAsRead(notificationId, userIdRef.current);
             // Удаляем уведомление из списка при прочтении
-            setNotifications(prev => prev.filter(n => n.notificationId !== notificationId));
+            setNotifications(prev => {
+                const filtered = prev.filter(n => n.notificationId !== notificationId);
+                console.log(`Removed notification ${notificationId}, remaining: ${filtered.length}`);
+                return filtered;
+            });
+            // Обновляем счетчик непрочитанных сообщений
+            setUnreadCount(prev => {
+                const newCount = Math.max(0, prev - 1);
+                console.log("Updated unread count after marking as read:", newCount);
+                return newCount;
+            });
         } catch (error) {
             console.error("Error marking notification as read:", error);
         }
@@ -133,11 +158,23 @@ export const NotificationProvider = ({ children }) => {
         try {
             await notificationService.markChatAsRead(chatId, userIdRef.current);
             // Удаляем все уведомления этого чата из списка
-            setNotifications(prev => prev.filter(n => n.chatId !== chatId));
+            setNotifications(prev => {
+                const filtered = prev.filter(n => n.chatId !== chatId);
+                const removedCount = prev.length - filtered.length;
+                console.log(`Removed ${removedCount} notifications for chat ${chatId}, remaining: ${filtered.length}`);
+                return filtered;
+            });
+            // Обновляем счетчик непрочитанных сообщений
+            setUnreadCount(prev => {
+                const removedCount = notifications.filter(n => n.chatId === chatId && !n.isRead).length;
+                const newCount = Math.max(0, prev - removedCount);
+                console.log("Updated unread count after marking chat as read:", newCount);
+                return newCount;
+            });
         } catch (error) {
             console.error("Error marking chat notifications as read:", error);
         }
-    }, []);
+    }, [notifications]);
 
     // Удалить уведомление
     const deleteNotification = useCallback(async (notificationId) => {
@@ -145,7 +182,23 @@ export const NotificationProvider = ({ children }) => {
         
         try {
             await notificationService.deleteNotification(notificationId, userIdRef.current);
-            setNotifications(prev => prev.filter(n => n.notificationId !== notificationId));
+            // Удаляем уведомление из списка и обновляем счетчик
+            setNotifications(prev => {
+                const notification = prev.find(n => n.notificationId === notificationId);
+                const filtered = prev.filter(n => n.notificationId !== notificationId);
+                console.log(`Deleted notification ${notificationId}, remaining: ${filtered.length}`);
+                
+                // Обновляем счетчик непрочитанных сообщений только если уведомление было непрочитанным
+                if (notification && !notification.isRead) {
+                    setUnreadCount(prevCount => {
+                        const newCount = Math.max(0, prevCount - 1);
+                        console.log("Updated unread count after deleting notification:", newCount);
+                        return newCount;
+                    });
+                }
+                
+                return filtered;
+            });
         } catch (error) {
             console.error("Error deleting notification:", error);
         }
@@ -166,7 +219,9 @@ export const NotificationProvider = ({ children }) => {
         await loadNotifications(userId, 1, false);
         await loadUnreadCount(userId);
         console.log('Notifications initialization completed for user:', userId);
-    }, [initializeConnection, loadNotifications, loadUnreadCount]);
+        console.log('Initial notifications count:', notifications.length);
+        console.log('Initial unread count:', unreadCount);
+    }, [initializeConnection, loadNotifications, loadUnreadCount, notifications.length, unreadCount]);
 
     // Загрузка следующей страницы
     const loadMore = useCallback(async () => {

@@ -46,9 +46,10 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
                 onChatSelected(chat);
             }
             
-            // Помечаем уведомления чата как прочитанные
+            // Помечаем уведомления чата как прочитанные при выборе чата
             if (getUnreadCountForChat(chat.chat_id) > 0) {
                 // Уведомления обновляются автоматически через NotificationContext
+                console.log(`Marking notifications as read for chat ${chat.chat_id}`);
             }
             
             if (chat.isGroupChat) {
@@ -73,9 +74,11 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
         }
     }, [chats, urlChatId, initialChatId, selectedChat, handleChatSelection]);
 
-    // Эффект для отслеживания изменений в уведомлениях
+    // Эффект для отслеживания изменений в уведомлениях и принудительного обновления
     useEffect(() => {
         console.log('Notifications updated in ChatList:', notifications);
+        console.log('Total notifications count:', notifications.length);
+        console.log('Unread notifications count:', notifications.filter(n => !n.isRead).length);
         // Принудительно обновляем компонент при изменении уведомлений
         setForceUpdate(prev => prev + 1);
     }, [notifications]);
@@ -141,7 +144,8 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
 
         notificationConnection.on("UnreadCountChanged", (count) => {
             console.log("Unread count changed in ChatList:", count);
-            // Не принудительно обновляем компонент, так как уведомления обновляются через NotificationContext
+            // Принудительно обновляем компонент при изменении счетчика
+            setForceUpdate(prev => prev + 1);
         });
 
         // Обработчик MessageRead не нужен здесь, так как уведомления обновляются через NotificationContext
