@@ -19,8 +19,7 @@ export const NotificationProvider = ({ children }) => {
     // Функция для проигрывания звука уведомления
     const playNotificationSound = useCallback(() => {
         try {
-            // Попытка проиграть реальный аудиофайл (если он есть)
-            // Сначала пробуем MP3, затем WAV
+            // Сначала пробуем проиграть реальный аудиофайл
             const audioElement = new Audio('/notification-sound.mp3');
             audioElement.volume = 0.5;
             
@@ -32,28 +31,43 @@ export const NotificationProvider = ({ children }) => {
                 wavAudio.play().catch(() => {
                     // Если файлы не найдены, используем заглушку
                     console.log("Audio files not found, using fallback sound");
-                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    const oscillator = audioContext.createOscillator();
-                    const gainNode = audioContext.createGain();
-                    
-                    oscillator.connect(gainNode);
-                    gainNode.connect(audioContext.destination);
-                    
-                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-                    oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
-                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
-                    
-                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-                    
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.3);
+                    playFallbackSound();
                 });
             });
             
             console.log("Notification sound played");
         } catch (error) {
             console.error("Error playing notification sound:", error);
+            // В случае ошибки тоже используем fallback
+            playFallbackSound();
+        }
+    }, []);
+
+    // Функция для проигрывания fallback звука
+    const playFallbackSound = useCallback(() => {
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Создаем более заметный звук
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
+            oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.3);
+            
+            gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.4);
+            
+            console.log("Fallback sound played successfully");
+        } catch (error) {
+            console.error("Error playing fallback sound:", error);
         }
     }, []);
 
@@ -344,6 +358,7 @@ export const NotificationProvider = ({ children }) => {
         markChatAsRead,
         deleteNotification,
         requestNotificationPermission,
+        playNotificationSound, // Экспортируем функцию для тестирования
         addNotification: (notification) => {
             setNotifications(prev => [notification, ...prev]);
             setUnreadCount(prev => prev + 1);
