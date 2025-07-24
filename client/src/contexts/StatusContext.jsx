@@ -120,6 +120,9 @@ export const StatusProvider = ({ children, userId }) => {
                     setUserOnline();
                 }
 
+                // Загружаем актуальные статусы всех пользователей из базы данных
+                await loadAllUserStatuses();
+
             } catch (err) {
                 console.error('Ошибка подключения к StatusHub:', err);
             }
@@ -242,6 +245,24 @@ export const StatusProvider = ({ children, userId }) => {
         }
     };
 
+    // Загрузить статусы всех пользователей
+    const loadAllUserStatuses = async () => {
+        try {
+            const response = await fetch(`${BASE_URL}/api/status/all`);
+            if (response.ok) {
+                const allStatuses = await response.json();
+                const statusesMap = {};
+                allStatuses.forEach(user => {
+                    statusesMap[user.userId] = user.status;
+                });
+                setUserStatuses(prev => ({ ...prev, ...statusesMap }));
+                console.log('Loaded all user statuses:', statusesMap);
+            }
+        } catch (error) {
+            console.error('Error loading all user statuses:', error);
+        }
+    };
+
     // Присоединиться к группе сервера
     const joinServerGroup = async (serverId) => {
         if (connection) {
@@ -272,6 +293,7 @@ export const StatusProvider = ({ children, userId }) => {
         isUserActive,
         loadServerUserStatuses,
         loadChatUserStatuses,
+        loadAllUserStatuses,
         joinServerGroup,
         leaveServerGroup,
         connection

@@ -158,6 +158,32 @@ public class StatusController : ControllerBase
         }
     }
 
+    // Получить статусы всех пользователей
+    [HttpGet("all")]
+    public async Task<IActionResult> GetAllUserStatuses()
+    {
+        try
+        {
+            var userStatuses = await _context.Users
+                .Select(u => new
+                {
+                    UserId = u.UserId,
+                    Username = u.Username,
+                    Status = u.Status ?? "offline",
+                    LastSeen = u.LastSeen
+                })
+                .ToListAsync();
+
+            Console.WriteLine($"Returning statuses for {userStatuses.Count} users");
+            return Ok(userStatuses);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting all user statuses: {ex.Message}");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
     // Обновить время последней активности
     [HttpPost("{userId}/activity")]
     public async Task<IActionResult> UpdateUserActivity(int userId)
