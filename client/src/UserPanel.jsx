@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { BASE_URL } from './config/apiConfig';
 import { Mic, MicOff, Headset, HeadsetOff } from '@mui/icons-material';
 import statusService from './services/statusService';
+import { useStatus } from './contexts/StatusContext';
 
 const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
     const [userProfile, setUserProfile] = useState(null);
@@ -12,12 +13,18 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
     const [showAvatarEditor, setShowAvatarEditor] = useState(false);
     const [avatarInput, setAvatarInput] = useState('');
     const avatarFileInputRef = useRef(null);
-    const [userStatus, setUserStatus] = useState('online');
+    
+    // Используем StatusContext для синхронизации статусов
+    const { getUserStatus, updateUserStatus } = useStatus();
+    const userStatus = getUserStatus(userId);
 
     const fetchUserStatus = async () => {
         try {
             const statusData = await statusService.getUserStatus(userId);
-            setUserStatus(statusData.status);
+            // Обновляем статус в StatusContext
+            if (statusData.status !== userStatus) {
+                await updateUserStatus(userId, statusData.status);
+            }
         } catch (error) {
             console.error('Error fetching user status:', error);
         }
@@ -25,8 +32,7 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
 
     const handleStatusChange = async (newStatus) => {
         try {
-            await statusService.updateUserStatus(userId, newStatus);
-            setUserStatus(newStatus);
+            await updateUserStatus(userId, newStatus);
         } catch (error) {
             console.error('Error updating user status:', error);
         }
@@ -147,7 +153,14 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
           fetchUserProfile();
           fetchUserStatus();
         }
-      }, [isOpen, userId]);
+    }, [isOpen, userId]);
+
+    // Загружаем статус при монтировании компонента
+    useEffect(() => {
+        if (userId) {
+            fetchUserStatus();
+        }
+    }, [userId]);
     
       if (!isOpen) return null;    
 

@@ -9,6 +9,22 @@ export const StatusProvider = ({ children, userId }) => {
     const [userStatuses, setUserStatuses] = useState({});
     const [connection, setConnection] = useState(null);
 
+    // Загрузить статус текущего пользователя
+    const loadCurrentUserStatus = async (userId) => {
+        if (!userId) return;
+        
+        try {
+            const statusData = await statusService.getUserStatus(userId);
+            setUserStatuses(prev => ({
+                ...prev,
+                [userId]: statusData.status
+            }));
+            console.log(`StatusContext: Loaded current user status: ${statusData.status}`);
+        } catch (error) {
+            console.error('Error loading current user status:', error);
+        }
+    };
+
     // Инициализация SignalR соединения
     useEffect(() => {
         if (!userId) return;
@@ -38,6 +54,9 @@ export const StatusProvider = ({ children, userId }) => {
                 await newConnection.start();
                 console.log('StatusHub соединение установлено');
                 setConnection(newConnection);
+
+                // Загружаем статус текущего пользователя после подключения
+                await loadCurrentUserStatus(userId);
 
                 // Подписываемся на события изменения статуса
                 newConnection.on('UserStatusChanged', (userId, status) => {
@@ -194,6 +213,7 @@ export const StatusProvider = ({ children, userId }) => {
         updateUserStatus,
         loadServerUserStatuses,
         loadChatUserStatuses,
+        loadCurrentUserStatus,
         joinServerGroup,
         leaveServerGroup,
         connection
