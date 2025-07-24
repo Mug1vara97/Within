@@ -4,6 +4,12 @@ import { BASE_URL } from '../config/apiConfig';
 export const useMessageVisibility = (userId, chatId, messages) => {
     const observerRef = useRef(null);
     const messageRefs = useRef(new Map());
+    
+    // Функция для проверки, принадлежит ли сообщение пользователю
+    const isOwnMessage = useCallback((messageId) => {
+        const message = messages.find(msg => (msg.id || msg.messageId) === messageId);
+        return message && message.userId === parseInt(userId);
+    }, [messages, userId]);
 
     // Функция для пометки сообщения как прочитанного
     const markMessageAsRead = useCallback(async (messageId) => {
@@ -32,7 +38,12 @@ export const useMessageVisibility = (userId, chatId, messages) => {
                 const errorText = await response.text();
                 console.error('Error response:', errorText);
             } else {
-                console.log(`Successfully marked message ${messageId} as read`);
+                const result = await response.json();
+                if (result.reason === "own_message") {
+                    console.log(`Message ${messageId} is user's own message, skipping`);
+                } else {
+                    console.log(`Successfully marked message ${messageId} as read`);
+                }
             }
         } catch (error) {
             console.error('Error marking message as read:', error);
@@ -84,7 +95,13 @@ export const useMessageVisibility = (userId, chatId, messages) => {
                         const messageId = entry.target.dataset.messageId;
                         console.log('Message became visible:', messageId);
                         if (messageId) {
-                            markMessageAsRead(parseInt(messageId));
+                            const messageIdInt = parseInt(messageId);
+                            // Проверяем, не является ли сообщение собственным
+                            if (!isOwnMessage(messageIdInt)) {
+                                markMessageAsRead(messageIdInt);
+                            } else {
+                                console.log(`Skipping own message ${messageIdInt}`);
+                            }
                         }
                     }
                 });

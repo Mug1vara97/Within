@@ -1363,13 +1363,19 @@ namespace Messenger.Controllers
                     return Ok(new { alreadyRead = true });
                 }
 
-                // Проверяем, что сообщение существует и не является сообщением самого пользователя
+                // Проверяем, что сообщение существует
                 var message = await _context.Messages
-                    .FirstOrDefaultAsync(m => m.MessageId == request.MessageId && m.UserId != request.UserId);
+                    .FirstOrDefaultAsync(m => m.MessageId == request.MessageId);
 
                 if (message == null)
                 {
-                    return NotFound("Message not found or is your own message");
+                    return NotFound("Message not found");
+                }
+
+                // Проверяем, что сообщение не принадлежит самому пользователю
+                if (message.UserId == request.UserId)
+                {
+                    return Ok(new { alreadyRead = true, reason = "own_message" });
                 }
 
                 // Создаем запись о прочтении
