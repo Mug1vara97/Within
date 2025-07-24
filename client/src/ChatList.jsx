@@ -28,11 +28,17 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
 
     // Функция для подсчета непрочитанных уведомлений для чата
     const getUnreadCountForChat = useCallback((chatId) => {
-        if (!notifications || !chatId) return 0;
+        if (!notifications || !chatId) {
+            console.log(`getUnreadCountForChat: notifications=${notifications}, chatId=${chatId}`);
+            return 0;
+        }
+        // Приводим chatId к числу для корректного сравнения
+        const numericChatId = parseInt(chatId);
         const count = notifications.filter(notification => 
-            notification.chatId === chatId && !notification.isRead
+            parseInt(notification.chatId) === numericChatId && !notification.isRead
         ).length;
-        console.log(`Unread count for chat ${chatId}: ${count}, total notifications: ${notifications.length}`);
+        console.log(`Unread count for chat ${chatId} (numeric: ${numericChatId}): ${count}, total notifications: ${notifications.length}`);
+        console.log(`All notifications for chat ${chatId}:`, notifications.filter(n => parseInt(n.chatId) === numericChatId));
         return count;
     }, [notifications]);
 
