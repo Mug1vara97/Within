@@ -21,12 +21,12 @@ export const NotificationProvider = ({ children }) => {
         try {
             // Попытка проиграть реальный аудиофайл (если он есть)
             // Сначала пробуем MP3, затем WAV
-            const audioElement = new Audio('../assets/notification-sound.mp3');
+            const audioElement = new Audio('/notification-sound.mp3');
             audioElement.volume = 0.5;
             
             audioElement.play().catch(() => {
                 // Если MP3 не найден, пробуем WAV
-                const wavAudio = new Audio('../assets/notification-sound.wav');
+                const wavAudio = new Audio('/notification-sound.wav');
                 wavAudio.volume = 0.5;
                 
                 wavAudio.play().catch(() => {
