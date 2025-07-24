@@ -6,13 +6,12 @@ class StatusService {
         try {
             const response = await fetch(`${BASE_URL}/api/status/${userId}`);
             if (response.ok) {
-                const data = await response.json();
-                return data.status;
+                return await response.json();
             }
             throw new Error('Ошибка при получении статуса');
         } catch (error) {
             console.error('Error fetching user status:', error);
-            return 'offline';
+            return { status: 'offline', lastSeen: null };
         }
     }
 

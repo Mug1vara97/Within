@@ -28,7 +28,6 @@ public class StatusHub : Hub
         if (!string.IsNullOrEmpty(userId) && int.TryParse(userId, out int userIdInt))
         {
             _userConnections.Remove(userId);
-            Console.WriteLine($"User {userIdInt} disconnected, setting status to offline");
             await Clients.All.SendAsync("UserStatusChanged", userIdInt, "offline");
         }
         await base.OnDisconnectedAsync(exception);
