@@ -24,7 +24,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
     const connectionRef = useRef(null);
     const [forceUpdate, setForceUpdate] = useState(0);
     const { getUserStatus, loadChatUserStatuses, connection: statusConnection } = useStatus();
-    const { notifications, initializeForUser } = useNotifications();
+    const { notifications } = useNotifications();
 
     // Функция для подсчета непрочитанных уведомлений для чата
     const getUnreadCountForChat = useCallback((chatId) => {
@@ -129,15 +129,8 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
         };
     }, [userId]);
 
-    // Инициализация уведомлений
-    useEffect(() => {
-        if (!userId) return;
-
-        console.log('Initializing notifications for ChatList, userId:', userId);
-
-        // Инициализируем уведомления для пользователя
-        initializeForUser(userId);
-    }, [userId, initializeForUser]);
+    // Инициализация уведомлений уже происходит в Home.jsx
+    // Здесь только используем notifications из контекста
 
     // Функция для обновления чата
     const handleChatUpdated = (chatId, lastMessage, lastMessageTime) => {

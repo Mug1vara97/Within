@@ -112,34 +112,48 @@ export const NotificationProvider = ({ children }) => {
             console.log("Current unread count before update:", unreadCount);
             console.log("Current notifications count before update:", notifications.length);
             
-            // Добавляем уведомление только если оно непрочитанное
-            if (!notification.isRead) {
-                setNotifications(prev => {
+            // Проверяем, нет ли уже такого уведомления
+            setNotifications(prev => {
+                const existingNotification = prev.find(n => 
+                    n.notificationId === notification.notificationId ||
+                    (n.chatId === notification.chatId && n.messageId === notification.messageId)
+                );
+                
+                if (existingNotification) {
+                    console.log("Notification already exists, skipping:", notification);
+                    return prev;
+                }
+                
+                // Добавляем уведомление только если оно непрочитанное
+                if (!notification.isRead) {
                     const newNotifications = [notification, ...prev];
                     console.log("Updated notifications:", newNotifications);
                     console.log("New notifications count:", newNotifications.length);
+                    
+                    // Обновляем счетчик непрочитанных сообщений
+                    setUnreadCount(prev => {
+                        const newCount = prev + 1;
+                        console.log("Updated unread count:", newCount);
+                        return newCount;
+                    });
+                    
+                    // Проигрываем звук при получении нового сообщения
+                    playNotificationSound();
+                    
+                    // Показываем desktop уведомление только для непрочитанных
+                    if (Notification.permission === "granted") {
+                        new Notification("Новое сообщение", {
+                            body: notification.content,
+                            icon: "/vite.svg"
+                        });
+                    }
+                    
                     return newNotifications;
-                });
-                // Обновляем счетчик непрочитанных сообщений
-                setUnreadCount(prev => {
-                    const newCount = prev + 1;
-                    console.log("Updated unread count:", newCount);
-                    return newCount;
-                });
-                
-                // Проигрываем звук при получении нового сообщения
-                playNotificationSound();
-            } else {
-                console.log("Received read notification, skipping:", notification);
-            }
-            
-            // Показываем desktop уведомление только для непрочитанных
-            if (!notification.isRead && Notification.permission === "granted") {
-                new Notification("Новое сообщение", {
-                    body: notification.content,
-                    icon: "/vite.svg"
-                });
-            }
+                } else {
+                    console.log("Received read notification, skipping:", notification);
+                    return prev;
+                }
+            });
         });
 
         connection.on("UnreadCountChanged", (count) => {
@@ -337,7 +351,7 @@ export const NotificationProvider = ({ children }) => {
         } catch (error) {
             console.error('Error initializing notifications for user:', userId, error);
         }
-    }, [initializeConnection, loadNotifications, loadUnreadCount, notifications.length, unreadCount]);
+    }, [initializeConnection, loadNotifications, loadUnreadCount]);
 
     // Загрузка следующей страницы
     const loadMore = useCallback(async () => {
