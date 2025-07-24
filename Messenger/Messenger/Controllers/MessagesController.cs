@@ -1387,6 +1387,18 @@ namespace Messenger.Controllers
                 };
 
                 _context.MessageReads.Add(messageRead);
+
+                // Обновляем уведомления для этого сообщения
+                var notifications = await _context.Notifications
+                    .Where(n => n.MessageId == request.MessageId && n.UserId == request.UserId && !n.IsRead)
+                    .ToListAsync();
+
+                foreach (var notification in notifications)
+                {
+                    notification.IsRead = true;
+                    notification.ReadAt = DateTime.UtcNow;
+                }
+
                 await _context.SaveChangesAsync();
 
                 return Ok(new { success = true, readAt = messageRead.ReadAt });
