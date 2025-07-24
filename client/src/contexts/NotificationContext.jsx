@@ -15,6 +15,7 @@ export const NotificationProvider = ({ children }) => {
     
     const connectionRef = useRef(null);
     const userIdRef = useRef(null);
+    const audioContextRef = useRef(null);
 
     // Функция для проигрывания звука уведомления
     const playNotificationSound = useCallback(() => {
@@ -46,7 +47,22 @@ export const NotificationProvider = ({ children }) => {
     // Функция для проигрывания fallback звука
     const playFallbackSound = useCallback(() => {
         try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            // Создаем или используем существующий AudioContext
+            if (!audioContextRef.current) {
+                audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            const audioContext = audioContextRef.current;
+            
+            // Проверяем состояние AudioContext и возобновляем если нужно
+            if (audioContext.state === 'suspended') {
+                audioContext.resume().then(() => {
+                    console.log("AudioContext resumed");
+                    playFallbackSound(); // Повторяем попытку после возобновления
+                });
+                return;
+            }
+            
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
             
@@ -333,8 +349,26 @@ export const NotificationProvider = ({ children }) => {
         }
     }, []);
 
+    // Инициализация AudioContext при взаимодействии пользователя
+    const initializeAudioContext = useCallback(() => {
+        if (!audioContextRef.current) {
+            audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+            console.log("AudioContext initialized");
+        }
+    }, []);
+
     useEffect(() => {
         requestNotificationPermission();
+        
+        // Инициализируем AudioContext при первом взаимодействии пользователя
+        const handleUserInteraction = () => {
+            initializeAudioContext();
+            document.removeEventListener('click', handleUserInteraction);
+            document.removeEventListener('keydown', handleUserInteraction);
+        };
+        
+        document.addEventListener('click', handleUserInteraction);
+        document.addEventListener('keydown', handleUserInteraction);
         
         return () => {
             if (connectionRef.current) {
@@ -343,8 +377,10 @@ export const NotificationProvider = ({ children }) => {
                 connectionRef.current.off("MessageRead");
                 connectionRef.current.stop();
             }
+            document.removeEventListener('click', handleUserInteraction);
+            document.removeEventListener('keydown', handleUserInteraction);
         };
-    }, []);
+    }, [initializeAudioContext]);
 
     const value = {
         notifications,
