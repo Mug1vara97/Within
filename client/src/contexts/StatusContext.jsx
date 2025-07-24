@@ -143,6 +143,8 @@ export const StatusProvider = ({ children, userId }) => {
         window.addEventListener('click', handleUserActivity);
         window.addEventListener('scroll', handleUserActivity);
 
+
+
         // Устанавливаем статус "онлайн" при загрузке страницы и запускаем таймер
         resetInactivityTimer();
 
@@ -197,6 +199,8 @@ export const StatusProvider = ({ children, userId }) => {
             console.error('Error updating user status:', error);
         }
     };
+
+
 
     // Загрузить статусы пользователей сервера
     const loadServerUserStatuses = async (serverId) => {
