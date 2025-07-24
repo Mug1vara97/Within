@@ -144,6 +144,12 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
             // Не принудительно обновляем компонент, так как уведомления обновляются через NotificationContext
         });
 
+        notificationConnection.on("MessageRead", (chatId, messageId) => {
+            console.log(`Message ${messageId} read in chat ${chatId}`);
+            // Принудительно обновляем компонент для отображения изменений
+            setForceUpdate(prev => prev + 1);
+        });
+
         // Подписываемся на ChatUpdated от ChatHub и GroupChatHub
         notificationConnection.on("ChatUpdated", (chatId, lastMessage, lastMessageTime) => {
             console.log("ChatUpdated received from notification connection:", { chatId, lastMessage, lastMessageTime });
@@ -160,6 +166,7 @@ const ChatList = ({ userId, username, initialChatId, onChatSelected, voiceRoom, 
 
         return () => {
             notificationConnection.off("ChatUpdated");
+            notificationConnection.off("MessageRead");
             notificationConnection.stop();
         };
     }, [userId, initializeForUser]);

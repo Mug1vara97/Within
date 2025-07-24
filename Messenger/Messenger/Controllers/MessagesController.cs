@@ -20,11 +20,13 @@ namespace Messenger.Controllers
     {
         private readonly MessengerContext _context;
         private readonly IHubContext<ChatHub> _chatHub;
+        private readonly IHubContext<NotificationHub> _notificationHub;
 
-        public MessagesController(MessengerContext context, IHubContext<ChatHub> chatHub)
+        public MessagesController(MessengerContext context, IHubContext<ChatHub> chatHub, IHubContext<NotificationHub> notificationHub)
         {
             _context = context;
             _chatHub = chatHub;
+            _notificationHub = notificationHub;
         }
 
         [HttpGet("{chatId}")]
@@ -1407,6 +1409,10 @@ namespace Messenger.Controllers
                 // Отправляем уведомление через SignalR о прочтении сообщения
                 await _chatHub.Clients.Group(message.ChatId.ToString())
                     .SendAsync("MessageRead", request.MessageId, request.UserId, DateTime.UtcNow);
+
+                // Отправляем уведомление через NotificationHub для обновления списка чатов
+                await _notificationHub.Clients.Group($"user_{request.UserId}")
+                    .SendAsync("MessageRead", message.ChatId, request.MessageId);
 
                 return Ok(new { success = true, readAt = messageRead.ReadAt });
             }

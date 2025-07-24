@@ -38,5 +38,11 @@ namespace Messenger
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"user_{userId}");
         }
+
+        // Уведомление о прочтении сообщения
+        public async Task NotifyMessageRead(int userId, int chatId, long messageId)
+        {
+            await Clients.Group($"user_{userId}").SendAsync("MessageRead", chatId, messageId);
+        }
     }
 } 
