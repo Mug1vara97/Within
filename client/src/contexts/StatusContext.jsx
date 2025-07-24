@@ -82,17 +82,23 @@ export const StatusProvider = ({ children, userId }) => {
 
         const handleVisibilityChange = async () => {
             try {
+                const currentStatus = await statusService.getUserStatus(userId);
+                
                 if (document.hidden) {
-                    console.log('Page is hidden, setting status to idle');
-                    await statusService.updateUserStatus(userId, 'idle');
-                    if (connection) {
-                        await connection.invoke('NotifyStatusChange', userId, 'idle');
+                    if (currentStatus !== 'idle') {
+                        console.log('Page is hidden, setting status to idle');
+                        await statusService.updateUserStatus(userId, 'idle');
+                        if (connection) {
+                            await connection.invoke('NotifyStatusChange', userId, 'idle');
+                        }
                     }
                 } else {
-                    console.log('Page is visible, setting status to online');
-                    await statusService.updateUserStatus(userId, 'online');
-                    if (connection) {
-                        await connection.invoke('NotifyStatusChange', userId, 'online');
+                    if (currentStatus !== 'online') {
+                        console.log('Page is visible, setting status to online');
+                        await statusService.updateUserStatus(userId, 'online');
+                        if (connection) {
+                            await connection.invoke('NotifyStatusChange', userId, 'online');
+                        }
                     }
                 }
             } catch (error) {
@@ -106,11 +112,14 @@ export const StatusProvider = ({ children, userId }) => {
                 clearTimeout(inactivityTimer);
             }
 
-            // Устанавливаем статус "онлайн" при активности
+            // Устанавливаем статус "онлайн" при активности только если пользователь не уже онлайн
             try {
-                await statusService.updateUserStatus(userId, 'online');
-                if (connection) {
-                    await connection.invoke('NotifyStatusChange', userId, 'online');
+                const currentStatus = await statusService.getUserStatus(userId);
+                if (currentStatus !== 'online') {
+                    await statusService.updateUserStatus(userId, 'online');
+                    if (connection) {
+                        await connection.invoke('NotifyStatusChange', userId, 'online');
+                    }
                 }
             } catch (error) {
                 console.error('Error setting online status:', error);
@@ -148,7 +157,7 @@ export const StatusProvider = ({ children, userId }) => {
         // Устанавливаем статус "онлайн" при загрузке страницы и запускаем таймер
         resetInactivityTimer();
 
-        // Периодически отправляем сигнал активности каждые 30 секунд
+        // Периодически отправляем сигнал активности каждые 2 минуты
         const activityInterval = setInterval(async () => {
             if (connection && connection.state === signalR.HubConnectionState.Connected) {
                 try {
@@ -157,7 +166,7 @@ export const StatusProvider = ({ children, userId }) => {
                     console.error('Error sending activity signal:', error);
                 }
             }
-        }, 30000); // 30 секунд
+        }, 120000); // 2 минуты
 
         return () => {
             window.removeEventListener('beforeunload', handleBeforeUnload);

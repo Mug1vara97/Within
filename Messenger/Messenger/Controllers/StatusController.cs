@@ -63,14 +63,25 @@ public class StatusController : ControllerBase
                 return BadRequest("Неверный статус");
             }
 
+            // Проверяем, изменился ли статус
+            var oldStatus = user.Status;
+            var statusChanged = oldStatus != request.Status;
+
             user.Status = request.Status;
             user.LastSeen = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 
-            // Уведомляем всех клиентов об изменении статуса
-            await _statusHub.Clients.All.SendAsync("UserStatusChanged", userId, user.Status);
-            Console.WriteLine($"StatusController: Notified all clients about user {userId} status change to {user.Status}");
+            // Уведомляем всех клиентов об изменении статуса только если статус действительно изменился
+            if (statusChanged)
+            {
+                await _statusHub.Clients.All.SendAsync("UserStatusChanged", userId, user.Status);
+                Console.WriteLine($"StatusController: Notified all clients about user {userId} status change from {oldStatus} to {user.Status}");
+            }
+            else
+            {
+                Console.WriteLine($"StatusController: User {userId} status unchanged ({user.Status}), skipping notification");
+            }
 
             return Ok(new { Status = user.Status, LastSeen = user.LastSeen });
         }
