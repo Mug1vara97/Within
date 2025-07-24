@@ -16,8 +16,23 @@ export const StatusProvider = ({ children, userId }) => {
         const createConnection = async () => {
             const newConnection = new signalR.HubConnectionBuilder()
                 .withUrl(`${BASE_URL}/statushub?userId=${userId}`)
-                .withAutomaticReconnect()
+                .withAutomaticReconnect([0, 2000, 10000, 30000]) // Настраиваем интервалы переподключения
                 .build();
+
+            // Обработчик переподключения
+            newConnection.onreconnecting((error) => {
+                console.log('StatusHub: Переподключение...', error);
+            });
+
+            newConnection.onreconnected(() => {
+                console.log('StatusHub: Переподключение успешно');
+            });
+
+            newConnection.onclose((error) => {
+                console.log('StatusHub: Соединение закрыто', error);
+                // При закрытии соединения не пытаемся переподключиться
+                setConnection(null);
+            });
 
             try {
                 await newConnection.start();
@@ -45,10 +60,57 @@ export const StatusProvider = ({ children, userId }) => {
 
         createConnection();
 
-        return () => {
+        // Обработчик закрытия страницы/приложения
+        const handleBeforeUnload = () => {
             if (connection) {
+                console.log('StatusContext: Приложение закрывается, отключаем соединение');
                 connection.stop();
             }
+        };
+
+        // Обработчик видимости страницы
+        const handleVisibilityChange = async () => {
+            if (document.hidden) {
+                console.log('StatusContext: Страница скрыта, устанавливаем статус idle');
+                // Устанавливаем статус idle при скрытии страницы
+                if (connection && userId) {
+                    try {
+                        await statusService.updateUserStatus(userId, 'idle');
+                        setUserStatuses(prev => ({
+                            ...prev,
+                            [userId]: 'idle'
+                        }));
+                    } catch (error) {
+                        console.error('Error setting idle status:', error);
+                    }
+                }
+            } else {
+                console.log('StatusContext: Страница снова видна, восстанавливаем статус online');
+                // Восстанавливаем статус online при возвращении на страницу
+                if (connection && userId) {
+                    try {
+                        await statusService.updateUserStatus(userId, 'online');
+                        setUserStatuses(prev => ({
+                            ...prev,
+                            [userId]: 'online'
+                        }));
+                    } catch (error) {
+                        console.error('Error restoring online status:', error);
+                    }
+                }
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            if (connection) {
+                console.log('StatusContext: Очистка соединения');
+                connection.stop();
+            }
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, []);
 
