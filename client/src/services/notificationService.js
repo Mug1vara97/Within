@@ -4,10 +4,10 @@ const API_BASE_URL = BASE_URL;
 
 export const notificationService = {
     // Получить уведомления пользователя
-    async getNotifications(userId, page = 1, pageSize = 20) {
+    async getNotifications(userId, page = 1, pageSize = 20, unreadOnly = true) {
         try {
-            console.log('Fetching notifications for user:', userId, 'page:', page);
-            const response = await fetch(`${API_BASE_URL}/api/notification?userId=${userId}&page=${page}&pageSize=${pageSize}`);
+            console.log('Fetching notifications for user:', userId, 'page:', page, 'unreadOnly:', unreadOnly);
+            const response = await fetch(`${API_BASE_URL}/api/notification?userId=${userId}&page=${page}&pageSize=${pageSize}&unreadOnly=${unreadOnly}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch notifications');
             }

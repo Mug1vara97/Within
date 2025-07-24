@@ -13,6 +13,9 @@ const NotificationPanel = ({ isOpen, onClose }) => {
         deleteNotification 
     } = useNotifications();
 
+    // Фильтруем только непрочитанные уведомления
+    const unreadNotifications = notifications.filter(notification => !notification.isRead);
+
     const formatTime = (dateString) => {
         const date = new Date(dateString);
         const now = new Date();
@@ -51,7 +54,7 @@ const NotificationPanel = ({ isOpen, onClose }) => {
         <div className="notification-panel-overlay" onClick={onClose}>
             <div className="notification-panel" onClick={(e) => e.stopPropagation()}>
                 <div className="notification-header">
-                    <h3>Уведомления</h3>
+                    <h3>Непрочитанные уведомления</h3>
                     {unreadCount > 0 && (
                         <span className="unread-badge">{unreadCount}</span>
                     )}
@@ -59,15 +62,15 @@ const NotificationPanel = ({ isOpen, onClose }) => {
                 </div>
 
                 <div className="notification-list">
-                    {notifications.length === 0 ? (
+                    {unreadNotifications.length === 0 ? (
                         <div className="no-notifications">
-                            <p>Нет уведомлений</p>
+                            <p>Нет непрочитанных уведомлений</p>
                         </div>
                     ) : (
-                        notifications.map((notification) => (
+                        unreadNotifications.map((notification) => (
                             <div 
                                 key={notification.notificationId}
-                                className={`notification-item ${!notification.isRead ? 'unread' : ''}`}
+                                className="notification-item unread"
                                 onClick={() => handleNotificationClick(notification)}
                             >
                                 <div className="notification-content">
@@ -101,7 +104,7 @@ const NotificationPanel = ({ isOpen, onClose }) => {
                         </div>
                     )}
                     
-                    {hasMore && !isLoading && (
+                    {hasMore && !isLoading && unreadNotifications.length > 0 && (
                         <button className="load-more-button" onClick={handleLoadMore}>
                             Загрузить еще
                         </button>

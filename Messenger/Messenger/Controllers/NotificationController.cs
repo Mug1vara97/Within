@@ -21,15 +21,23 @@ namespace Messenger.Controllers
 
         // Получить уведомления пользователя
         [HttpGet]
-        public async Task<IActionResult> GetNotifications([FromQuery] int userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        public async Task<IActionResult> GetNotifications([FromQuery] int userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] bool unreadOnly = true)
         {
             try
             {
-                var notifications = await _context.Notifications
+                var query = _context.Notifications
                     .Where(n => n.UserId == userId)
                     .Include(n => n.Chat)
                     .Include(n => n.Message)
-                    .ThenInclude(m => m.User)
+                    .ThenInclude(m => m.User);
+
+                // Фильтруем только непрочитанные уведомления если unreadOnly = true
+                if (unreadOnly)
+                {
+                    query = query.Where(n => !n.IsRead);
+                }
+
+                var notifications = await query
                     .OrderByDescending(n => n.CreatedAt)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)

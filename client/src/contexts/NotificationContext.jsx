@@ -31,19 +31,22 @@ export const NotificationProvider = ({ children }) => {
 
         connection.on("ReceiveNotification", (notification) => {
             console.log("Received notification:", notification);
-            setNotifications(prev => {
-                const newNotifications = [notification, ...prev];
-                console.log("Updated notifications:", newNotifications);
-                return newNotifications;
-            });
-            setUnreadCount(prev => {
-                const newCount = prev + 1;
-                console.log("Updated unread count:", newCount);
-                return newCount;
-            });
+            // Добавляем уведомление только если оно непрочитанное
+            if (!notification.isRead) {
+                setNotifications(prev => {
+                    const newNotifications = [notification, ...prev];
+                    console.log("Updated notifications:", newNotifications);
+                    return newNotifications;
+                });
+                setUnreadCount(prev => {
+                    const newCount = prev + 1;
+                    console.log("Updated unread count:", newCount);
+                    return newCount;
+                });
+            }
             
-            // Показываем desktop уведомление
-            if (Notification.permission === "granted") {
+            // Показываем desktop уведомление только для непрочитанных
+            if (!notification.isRead && Notification.permission === "granted") {
                 new Notification("Новое сообщение", {
                     body: notification.content,
                     icon: "/vite.svg"
@@ -58,14 +61,8 @@ export const NotificationProvider = ({ children }) => {
 
         connection.on("MessageRead", (chatId, messageId) => {
             console.log(`Message ${messageId} read in chat ${chatId}`);
-            // Обновляем уведомления для этого чата
-            setNotifications(prev => 
-                prev.map(n => 
-                    n.chatId === chatId && n.messageId === messageId
-                        ? { ...n, isRead: true, readAt: new Date().toISOString() }
-                        : n
-                )
-            );
+            // Удаляем уведомления для этого сообщения из списка
+            setNotifications(prev => prev.filter(n => !(n.chatId === chatId && n.messageId === messageId)));
         });
 
         connection.start()
@@ -80,13 +77,13 @@ export const NotificationProvider = ({ children }) => {
     }, []);
 
     // Загрузка уведомлений
-    const loadNotifications = useCallback(async (userId, page = 1, append = false) => {
+    const loadNotifications = useCallback(async (userId, page = 1, append = false, unreadOnly = true) => {
         if (!userId) return;
         
         setIsLoading(true);
         try {
-            console.log('Loading notifications for user:', userId, 'page:', page);
-            const data = await notificationService.getNotifications(userId, page);
+            console.log('Loading notifications for user:', userId, 'page:', page, 'unreadOnly:', unreadOnly);
+            const data = await notificationService.getNotifications(userId, page, unreadOnly);
             console.log('Loaded notifications:', data);
             
             if (append) {
@@ -122,13 +119,8 @@ export const NotificationProvider = ({ children }) => {
         
         try {
             await notificationService.markAsRead(notificationId, userIdRef.current);
-            setNotifications(prev => 
-                prev.map(n => 
-                    n.notificationId === notificationId 
-                        ? { ...n, isRead: true, readAt: new Date().toISOString() }
-                        : n
-                )
-            );
+            // Удаляем уведомление из списка при прочтении
+            setNotifications(prev => prev.filter(n => n.notificationId !== notificationId));
         } catch (error) {
             console.error("Error marking notification as read:", error);
         }
@@ -140,13 +132,8 @@ export const NotificationProvider = ({ children }) => {
         
         try {
             await notificationService.markChatAsRead(chatId, userIdRef.current);
-            setNotifications(prev => 
-                prev.map(n => 
-                    n.chatId === chatId 
-                        ? { ...n, isRead: true, readAt: new Date().toISOString() }
-                        : n
-                )
-            );
+            // Удаляем все уведомления этого чата из списка
+            setNotifications(prev => prev.filter(n => n.chatId !== chatId));
         } catch (error) {
             console.error("Error marking chat notifications as read:", error);
         }
@@ -188,6 +175,31 @@ export const NotificationProvider = ({ children }) => {
         await loadNotifications(userIdRef.current, currentPage + 1, true);
     }, [isLoading, hasMore, currentPage]);
 
+    // Загрузка всех уведомлений (включая прочитанные)
+    const loadAllNotifications = useCallback(async (userId, page = 1, append = false) => {
+        if (!userId) return;
+        
+        setIsLoading(true);
+        try {
+            console.log('Loading all notifications for user:', userId, 'page:', page);
+            const data = await notificationService.getNotifications(userId, page, 20, false);
+            console.log('Loaded all notifications:', data);
+            
+            if (append) {
+                setNotifications(prev => [...prev, ...data]);
+            } else {
+                setNotifications(data);
+            }
+            
+            setCurrentPage(page);
+            setHasMore(data.length === 20);
+        } catch (error) {
+            console.error("Error loading all notifications:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
     // Запрос разрешения на desktop уведомления
     const requestNotificationPermission = useCallback(async () => {
         if (Notification.permission === "default") {
@@ -216,6 +228,7 @@ export const NotificationProvider = ({ children }) => {
         hasMore,
         initializeForUser,
         loadMore,
+        loadAllNotifications,
         markAsRead,
         markChatAsRead,
         deleteNotification,
