@@ -1186,9 +1186,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   // Use userId and serverId in socket connection
   useEffect(() => {
-    if (socketRef.current) {
-      socketRef.current.emit('setUserInfo', { userId, serverId });
-    }
+    safeEmit('setUserInfo', { userId, serverId });
   }, [userId, serverId]);
 
 
@@ -1255,11 +1253,22 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   const [fullscreenShare, setFullscreenShare] = useState(null);
 
+  // Вспомогательная функция для безопасного вызова emit
+  const safeEmit = (event, data, callback) => {
+    if (!socketRef.current) {
+      console.error(`Cannot emit '${event}': socket is null`);
+      if (callback) callback({ error: 'Socket connection lost' });
+      return false;
+    }
+    socketRef.current.emit(event, data, callback);
+    return true;
+  };
+
   // Обработчик для уведомления о выходе при закрытии вкладки
   useEffect(() => {
     const handleBeforeUnload = () => {
-      if (roomId && userId && socketRef.current) {
-        socketRef.current.emit('userLeftVoiceChannel', {
+      if (roomId && userId) {
+        safeEmit('userLeftVoiceChannel', {
           channelId: roomId,
           userId: userId
         });
@@ -3897,7 +3906,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       const { rtpCapabilities } = deviceRef.current;
       
       const { id, producerId, kind, rtpParameters, appData } = await new Promise((resolve, reject) => {
-        socketRef.current.emit('consume', {
+        safeEmit('consume', {
           rtpCapabilities,
           remoteProducerId: producer.producerId,
           transportId: transport.id
@@ -3987,10 +3996,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           const source = audioContext.createMediaStreamSource(stream);
           console.log('handleConsume: Created MediaStreamSource from stream');
           
-          // Debug: Check if MediaStreamSource is receiving audio data
+          // Debug: Check if MediaStreamSource is receiving audio data (только для мониторинга, НЕ для воспроизведения)
           const debugAnalyser = audioContext.createAnalyser();
           debugAnalyser.fftSize = 256;
-          source.connect(debugAnalyser);
           
           const checkAudioData = () => {
             const dataArray = new Uint8Array(debugAnalyser.frequencyBinCount);
@@ -4024,12 +4032,12 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             initialVolume
           });
 
-          // Подключаем анализатор для детекции голоса
+          // Подключаем анализатор для детекции голоса (только для анализа, НЕ для воспроизведения)
           source.connect(analyser);
-          analyser.connect(audioContext.destination);
-          console.log('handleConsume: Connected audio nodes: source -> analyser -> destination (with amplification chain)');
+          console.log('handleConsume: Connected audio nodes: source -> analyser (for voice detection only)');
           
-          // Debug: Also connect debugAnalyser to the main chain for monitoring
+          // Debug: Connect debugAnalyser to analyser for monitoring (только для анализа)
+          source.connect(debugAnalyser);
           debugAnalyser.connect(analyser);
           
           // Добавляем периодическую проверку усилителя
