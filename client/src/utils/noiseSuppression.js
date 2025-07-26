@@ -108,7 +108,7 @@ export class NoiseSuppressionManager {
       });
 
       this.gainNode = this.audioContext.createGain();
-      this.gainNode.gain.value = 1.0; // Не уменьшаем усиление, так как оно уже применено
+      this.gainNode.gain.value = 0.3;
 
       this.sourceNode.connect(this.gainNode);
       this.gainNode.connect(this.destinationNode);
@@ -163,9 +163,10 @@ export class NoiseSuppressionManager {
           throw new Error('Invalid noise suppression mode');
       }
 
-      this.sourceNode.connect(processingNode);
-      processingNode.connect(this.gainNode);
-      this.gainNode.connect(this.destinationNode);
+      // Сначала усиливаем, потом применяем шумоподавление
+      this.sourceNode.connect(this.gainNode);
+      this.gainNode.connect(processingNode);
+      processingNode.connect(this.destinationNode);
 
       this.currentMode = mode;
 
