@@ -3977,30 +3977,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             console.log('handleConsume: Audio track constraints:', constraints);
           }
           
-          // Создаем анализатор для проверки аудио данных
-          const analyser = audioContext.createAnalyser();
-          analyser.fftSize = 256;
-          const bufferLength = analyser.frequencyBinCount;
-          const dataArray = new Uint8Array(bufferLength);
-          
-          // Подключаем анализатор к потоку для мониторинга
-          source.connect(analyser);
-          analyser.connect(gainNode);
-          
-          // Функция для проверки аудио данных
-          const checkAudioData = () => {
-            analyser.getByteFrequencyData(dataArray);
-            const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-            console.log('handleConsume: Audio data check for peer', producer.producerSocketId, {
-              averageLevel: average,
-              maxLevel: Math.max(...dataArray),
-              hasData: average > 0
-            });
-          };
-          
-          // Проверяем аудио данные через 1 секунду
-          setTimeout(checkAudioData, 1000);
-          
           const source = audioContext.createMediaStreamSource(stream);
           console.log('handleConsume: Created MediaStreamSource from stream');
           
@@ -4034,6 +4010,30 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             gainMinValue: gainNode.gain.minValue,
             gainMaxValue: gainNode.gain.maxValue
           });
+
+          // Создаем анализатор для проверки аудио данных
+          const analyser = audioContext.createAnalyser();
+          analyser.fftSize = 256;
+          const bufferLength = analyser.frequencyBinCount;
+          const dataArray = new Uint8Array(bufferLength);
+          
+          // Подключаем анализатор к потоку для мониторинга
+          source.connect(analyser);
+          analyser.connect(gainNode);
+          
+          // Функция для проверки аудио данных
+          const checkAudioData = () => {
+            analyser.getByteFrequencyData(dataArray);
+            const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+            console.log('handleConsume: Audio data check for peer', producer.producerSocketId, {
+              averageLevel: average,
+              maxLevel: Math.max(...dataArray),
+              hasData: average > 0
+            });
+          };
+          
+          // Проверяем аудио данные через 1 секунду
+          setTimeout(checkAudioData, 1000);
 
           // Подключаем цепочку аудио узлов напрямую для упрощения
           source.connect(gainNode);
