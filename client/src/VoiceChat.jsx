@@ -45,10 +45,7 @@ import {
 import { Device } from 'mediasoup-client';
 import { io } from 'socket.io-client';
 import { NoiseSuppressionManager } from './utils/noiseSuppression';
-import { AudioAmplifier } from './utils/audioAmplifier';
 import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
-
-
 
 
 
@@ -86,7 +83,7 @@ const config = {
     autoGainControl: true,
     sampleRate: 48000,
     channelCount: 2,
-    volume: 1.0, // Временно отключаем базовое усиление для тестирования
+    volume: 4.0,
     latency: 0,
     suppressLocalAudioPlayback: true,
     advanced: [
@@ -1186,7 +1183,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   // Use userId and serverId in socket connection
   useEffect(() => {
-    safeEmit('setUserInfo', { userId, serverId });
+    if (socketRef.current) {
+      socketRef.current.emit('setUserInfo', { userId, serverId });
+    }
   }, [userId, serverId]);
 
 
@@ -1253,22 +1252,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   const [fullscreenShare, setFullscreenShare] = useState(null);
 
-  // Вспомогательная функция для безопасного вызова emit
-  const safeEmit = (event, data, callback) => {
-    if (!socketRef.current) {
-      console.error(`Cannot emit '${event}': socket is null`);
-      if (callback) callback({ error: 'Socket connection lost' });
-      return false;
-    }
-    socketRef.current.emit(event, data, callback);
-    return true;
-  };
-
   // Обработчик для уведомления о выходе при закрытии вкладки
   useEffect(() => {
     const handleBeforeUnload = () => {
-      if (roomId && userId) {
-        safeEmit('userLeftVoiceChannel', {
+      if (roomId && userId && socketRef.current) {
+        socketRef.current.emit('userLeftVoiceChannel', {
           channelId: roomId,
           userId: userId
         });
@@ -1670,10 +1658,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       });
       audioRef.current.clear();
 
-      // Cleanup gain nodes (now AudioAmplifier instances)
-      gainNodesRef.current.forEach(amplifier => {
-        if (amplifier && typeof amplifier.cleanup === 'function') {
-          amplifier.cleanup();
+      // Cleanup gain nodes
+      gainNodesRef.current.forEach(node => {
+        if (node) {
+          node.disconnect();
         }
       });
       gainNodesRef.current.clear();
@@ -2191,34 +2179,36 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // Add analyzer for voice activity detection
           const analyser = createAudioAnalyser(audioContext);
           
-          // Создаем усилитель с каскадным усилением
-          const amplifier = new AudioAmplifier(audioContext);
+          // Create gain node для регулировки громкости
+          const gainNode = audioContext.createGain();
+          // Начальная громкость всегда 100% для нового пира (индивидуально не замьючен)
+          // Глобальное состояние звука будет применено через эффект
           const isIndividuallyMuted = individualMutedPeersRef.current.get(producer.producerSocketId) ?? false;
           const initialVolume = isIndividuallyMuted ? 0 : 100;
-          
-          // Создаем цепочку усиления с защитой от клиппинга
-          amplifier.createAmplificationChain(source, audioContext.destination, initialVolume);
-          
-          console.log('handleExistingProducer: Created amplification chain for peer:', producer.producerSocketId, {
+          const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 100.0) * 4.0 : 0;
+          gainNode.gain.value = initialGain;
+          console.log('Created gain node for peer:', producer.producerSocketId, {
             isAudioEnabled: isAudioEnabledRef.current,
             isIndividuallyMuted,
-            initialVolume
+            initialVolume,
+            initialGain
           });
 
-          // Подключаем анализатор для детекции голоса
+          // Подключаем цепочку аудио узлов
           source.connect(analyser);
-          analyser.connect(audioContext.destination);
-          console.log('handleExistingProducer: Connected audio nodes: source -> analyser -> destination (with amplification chain)');
+          analyser.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          console.log('Connected audio nodes: source -> analyser -> gainNode -> destination');
           
           // Debug: Also connect debugAnalyser to the main chain for monitoring
           debugAnalyser.connect(analyser);
           
-          // Добавляем периодическую проверку усилителя
+          // Добавляем периодическую проверку gain node
           const checkGainInterval = setInterval(() => {
-            console.log(`handleExistingProducer: Amplifier check for peer ${producer.producerSocketId}:`, {
+            console.log(`Gain check for peer ${producer.producerSocketId}:`, {
+              gainValue: gainNode.gain.value,
               isAudioEnabled: isAudioEnabledRef.current,
-              individualVolume: volumes.get(producer.producerSocketId) || 100,
-              amplifierInitialized: amplifier.isInitialized()
+              individualVolume: volumes.get(producer.producerSocketId) || 100
             });
           }, 5000);
           
@@ -2227,7 +2217,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
           // Store references
           analyserNodesRef.current.set(producer.producerSocketId, analyser);
-          gainNodesRef.current.set(producer.producerSocketId, amplifier);
+          gainNodesRef.current.set(producer.producerSocketId, gainNode);
           setVolumes(prev => new Map(prev).set(producer.producerSocketId, 100));
 
           // Start voice detection
@@ -2509,20 +2499,21 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   useEffect(() => {
     isAudioEnabledRef.current = isAudioEnabled;
     
-    // Управляем AudioAmplifier для регулировки громкости
-    gainNodesRef.current.forEach((amplifier, peerId) => {
-      if (amplifier && typeof amplifier.applyAmplification === 'function') {
-                  if (!isAudioEnabled) {
-            amplifier.applyAmplification(0, 1.5);
+    // Управляем gain nodes для регулировки громкости
+    gainNodesRef.current.forEach((gainNode, peerId) => {
+      if (gainNode) {
+        if (!isAudioEnabled) {
+          gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
+        } else {
+          const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
+          if (!isIndividuallyMuted) {
+            const individualVolume = volumes.get(peerId) || 100;
+            const gainValue = (individualVolume / 100.0) * 4.0;
+            gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
           } else {
-            const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
-            if (!isIndividuallyMuted) {
-              const individualVolume = volumes.get(peerId) || 100;
-              amplifier.applyAmplification(individualVolume, 1.5);
-            } else {
-              amplifier.applyAmplification(0, 1.5);
-            }
+            gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
           }
+        }
       }
     });
     
@@ -2571,14 +2562,15 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     console.log('Peer:', peerId, 'Current individual mute:', isIndividuallyMuted, 'New individual mute:', newIsIndividuallyMuted, 'New volume:', newVolume);
     console.log('GainNode exists:', !!gainNode);
     
-    if (gainNode && gainNode.isInitialized()) {
+    if (gainNode) {
       if (!newIsIndividuallyMuted) {
         // Восстанавливаем предыдущий уровень громкости
-        gainNode.applyAmplification(newVolume, 1.5);
-        console.log('Set amplification to', newVolume, '% and unmuted peer:', peerId);
+        const gainValue = (newVolume / 100.0) * 4.0;
+        gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
+        console.log('Set gain to', gainValue, 'and unmuted peer:', peerId);
       } else {
-        gainNode.applyAmplification(0, 1.5);
-        console.log('Set amplification to 0 and muted peer:', peerId);
+        gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
+        console.log('Set gain to 0 and muted peer:', peerId);
       }
 
       // Сохраняем новое индивидуальное состояние
@@ -2607,15 +2599,16 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
    const handleVolumeSliderChange = useCallback((peerId, newVolume) => {
      console.log('Volume slider change for peer:', peerId, 'New volume:', newVolume);
      
-     const amplifier = gainNodesRef.current.get(peerId);
+     const gainNode = gainNodesRef.current.get(peerId);
      
-     if (amplifier && amplifier.isInitialized()) {
-       // Слайдер 0-100% соответствует 0-1000% усиления (0.0-10.0 gain)
-               amplifier.applyAmplification(newVolume, 1.5);
+     if (gainNode) {
+       // Слайдер 0-100% соответствует 0-400% усиления (0.0-4.0 gain)
+       const gainValue = (newVolume / 100.0) * 4.0;
+       gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
        
-       console.log('Set amplification value to', newVolume, '% for peer:', peerId);
+       console.log('Set gain node value to', gainValue, 'for peer:', peerId);
      } else {
-       console.error('Amplifier not found or not initialized for peer:', peerId);
+       console.error('Gain node not found for peer:', peerId);
      }
      
      // Также обновляем HTML Audio элемент
@@ -3906,7 +3899,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       const { rtpCapabilities } = deviceRef.current;
       
       const { id, producerId, kind, rtpParameters, appData } = await new Promise((resolve, reject) => {
-        safeEmit('consume', {
+        socketRef.current.emit('consume', {
           rtpCapabilities,
           remoteProducerId: producer.producerId,
           transportId: transport.id
@@ -3996,9 +3989,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           const source = audioContext.createMediaStreamSource(stream);
           console.log('handleConsume: Created MediaStreamSource from stream');
           
-          // Debug: Check if MediaStreamSource is receiving audio data (только для мониторинга, НЕ для воспроизведения)
+          // Debug: Check if MediaStreamSource is receiving audio data
           const debugAnalyser = audioContext.createAnalyser();
           debugAnalyser.fftSize = 256;
+          source.connect(debugAnalyser);
           
           const checkAudioData = () => {
             const dataArray = new Uint8Array(debugAnalyser.frequencyBinCount);
@@ -4018,34 +4012,36 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           
           const analyser = createAudioAnalyser(audioContext);
           
-          // Создаем усилитель с каскадным усилением
-          const amplifier = new AudioAmplifier(audioContext);
+          // Create gain node для регулировки громкости
+          const gainNode = audioContext.createGain();
+          // Начальная громкость всегда 100% для нового пира (индивидуально не замьючен)
+          // Глобальное состояние звука будет применено через эффект
           const isIndividuallyMuted = individualMutedPeersRef.current.get(producer.producerSocketId) ?? false;
           const initialVolume = isIndividuallyMuted ? 0 : 100;
-          
-          // Создаем цепочку усиления с защитой от клиппинга
-          amplifier.createAmplificationChain(source, audioContext.destination, initialVolume);
-          
-          console.log('handleConsume: Created amplification chain for peer:', producer.producerSocketId, {
+          const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 100.0) * 4.0 : 0;
+          gainNode.gain.value = initialGain;
+          console.log('handleConsume: Created gain node for peer:', producer.producerSocketId, {
             isAudioEnabled: isAudioEnabledRef.current,
             isIndividuallyMuted,
-            initialVolume
+            initialVolume,
+            initialGain
           });
 
-          // Подключаем анализатор для детекции голоса (только для анализа, НЕ для воспроизведения)
+          // Подключаем цепочку аудио узлов
           source.connect(analyser);
-          console.log('handleConsume: Connected audio nodes: source -> analyser (for voice detection only)');
+          analyser.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          console.log('handleConsume: Connected audio nodes: source -> analyser -> gainNode -> destination');
           
-          // Debug: Connect debugAnalyser to analyser for monitoring (только для анализа)
-          source.connect(debugAnalyser);
+          // Debug: Also connect debugAnalyser to the main chain for monitoring
           debugAnalyser.connect(analyser);
           
-          // Добавляем периодическую проверку усилителя
+          // Добавляем периодическую проверку gain node
           const checkGainInterval = setInterval(() => {
-            console.log(`handleConsume: Amplifier check for peer ${producer.producerSocketId}:`, {
+            console.log(`handleConsume: Gain check for peer ${producer.producerSocketId}:`, {
+              gainValue: gainNode.gain.value,
               isAudioEnabled: isAudioEnabledRef.current,
-              individualVolume: volumes.get(producer.producerSocketId) || 100,
-              amplifierInitialized: amplifier.isInitialized()
+              individualVolume: volumes.get(producer.producerSocketId) || 100
             });
           }, 5000);
           
@@ -4056,7 +4052,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           audioRef.current.get(producer.producerSocketId).set('gainCheckInterval', checkGainInterval);
 
           analyserNodesRef.current.set(producer.producerSocketId, analyser);
-          gainNodesRef.current.set(producer.producerSocketId, amplifier);
+          gainNodesRef.current.set(producer.producerSocketId, gainNode);
           setVolumes(prev => new Map(prev).set(producer.producerSocketId, 100));
 
           // Start voice detection with producerId
@@ -4103,16 +4099,17 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       socketRef.current.emit('audioState', { isEnabled: newState });
     }
 
-    // Mute/unmute all amplifiers with individual volume levels
-    gainNodesRef.current.forEach((amplifier, peerId) => {
-      if (amplifier && amplifier.isInitialized()) {
+    // Mute/unmute all gain nodes with individual volume levels
+    gainNodesRef.current.forEach((gainNode, peerId) => {
+      if (gainNode) {
         if (newState) {
           // При включении восстанавливаем индивидуальный уровень громкости
           const individualVolume = volumes.get(peerId) || 100;
-          amplifier.applyAmplification(individualVolume, 1.5);
+          const gainValue = (individualVolume / 100.0) * 4.0; // 0-100% слайдера -> 0.0-4.0 gain
+          gainNode.gain.value = gainValue;
         } else {
           // При выключении мутим всех
-          amplifier.applyAmplification(0, 1.5);
+          gainNode.gain.value = 0.0;
         }
       }
     });
