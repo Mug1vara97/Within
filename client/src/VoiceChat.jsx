@@ -83,7 +83,7 @@ const config = {
     autoGainControl: true,
     sampleRate: 48000,
     channelCount: 2,
-    volume: 20.0, // Увеличиваем громкость в 20 раз
+    volume: 4.0, // Базовая громкость
     latency: 0,
     suppressLocalAudioPlayback: true,
     advanced: [
@@ -1057,7 +1057,7 @@ const VideoOverlay = React.memo(({
                 onChange={handleSliderChange}
                 orientation="vertical"
                 min={0}
-                max={100}
+                max={200}
                 step={1}
                 size="small"
                 sx={{
@@ -2825,7 +2825,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           sampleRate: 48000,
           sampleSize: 16,
           latency: 0,
-          volume: 20.0, // Увеличиваем громкость в 20 раз
+          volume: 4.0, // Увеличиваем громкость в 20 раз
           enabled: true // Ensure audio starts enabled
         },
         video: false
@@ -2837,7 +2837,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       console.log('Applying audio amplification to original stream...');
       const source = audioContextRef.current.createMediaStreamSource(stream);
       const gainNode = audioContextRef.current.createGain();
-      gainNode.gain.value = 15.0; // Усиление в 15 раз
+      gainNode.gain.value = 4.0; // Усиление в 4 раза
       
       // Создаем усиленный MediaStream
       const destination = audioContextRef.current.createMediaStreamDestination();
@@ -2845,7 +2845,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       gainNode.connect(destination);
       
       const amplifiedStream = destination.stream;
-      console.log('Applied 15x audio amplification to original stream');
+      console.log('Applied 4x audio amplification to original stream');
       
       // Initialize audio context and noise suppression with amplified stream
       noiseSuppressionRef.current = new NoiseSuppressionManager();
@@ -2865,7 +2865,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       // Ensure track settings are applied
       const settings = track.getSettings();
       console.log('Final audio track settings:', settings);
-      console.log('Audio amplification applied: getUserMedia volume=20.0, WebAudio gain=15.0, total amplification=300x');
+      console.log('Audio amplification applied: getUserMedia volume=4.0, WebAudio gain=4.0, total amplification=16x');
 
       // Set track enabled state based on initial mute state
       track.enabled = !initialMuted; // Track enabled opposite of mute state
