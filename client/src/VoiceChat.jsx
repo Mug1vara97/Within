@@ -2500,19 +2500,18 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   useEffect(() => {
     isAudioEnabledRef.current = isAudioEnabled;
     
-    // Управляем gain nodes для регулировки громкости
-    gainNodesRef.current.forEach((gainNode, peerId) => {
-      if (gainNode) {
+    // Управляем AudioAmplifier для регулировки громкости
+    gainNodesRef.current.forEach((amplifier, peerId) => {
+      if (amplifier && typeof amplifier.applyAmplification === 'function') {
         if (!isAudioEnabled) {
-          gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
+          amplifier.applyAmplification(0, 10.0);
         } else {
           const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
           if (!isIndividuallyMuted) {
             const individualVolume = volumes.get(peerId) || 100;
-            const gainValue = (individualVolume / 100.0) * 4.0;
-            gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
+            amplifier.applyAmplification(individualVolume, 10.0);
           } else {
-            gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
+            amplifier.applyAmplification(0, 10.0);
           }
         }
       }
