@@ -51,7 +51,9 @@ export class AudioAmplifier {
       // Каскадное усиление
       const gainPerStage = Math.pow(gainValue, 1 / this.gainNodes.length);
       this.gainNodes.forEach(gainNode => {
-        gainNode.gain.setValueAtTime(gainPerStage, this.audioContext.currentTime);
+        if (gainNode && gainNode.gain && typeof gainNode.gain.setValueAtTime === 'function') {
+          gainNode.gain.setValueAtTime(gainPerStage, this.audioContext.currentTime);
+        }
       });
     }
   }
@@ -61,25 +63,29 @@ export class AudioAmplifier {
     let currentNode = sourceNode;
     
     // Подключаем компрессор если есть
-    if (this.compressor) {
+    if (this.compressor && typeof this.compressor.connect === 'function') {
       currentNode.connect(this.compressor);
       currentNode = this.compressor;
     }
     
     // Подключаем каскадные gain nodes
     this.gainNodes.forEach((gainNode) => {
-      currentNode.connect(gainNode);
-      currentNode = gainNode;
+      if (gainNode && typeof gainNode.connect === 'function') {
+        currentNode.connect(gainNode);
+        currentNode = gainNode;
+      }
     });
     
     // Подключаем лимитер если есть
-    if (this.limiter) {
+    if (this.limiter && typeof this.limiter.connect === 'function') {
       currentNode.connect(this.limiter);
       currentNode = this.limiter;
     }
     
     // Подключаем к назначению
-    currentNode.connect(destinationNode);
+    if (destinationNode && typeof destinationNode.connect === 'function') {
+      currentNode.connect(destinationNode);
+    }
   }
 
   // Создание полной цепочки усиления
@@ -105,14 +111,16 @@ export class AudioAmplifier {
   // Очистка ресурсов
   cleanup() {
     this.gainNodes.forEach(gainNode => {
-      gainNode.disconnect();
+      if (gainNode && typeof gainNode.disconnect === 'function') {
+        gainNode.disconnect();
+      }
     });
     
-    if (this.compressor) {
+    if (this.compressor && typeof this.compressor.disconnect === 'function') {
       this.compressor.disconnect();
     }
     
-    if (this.limiter) {
+    if (this.limiter && typeof this.limiter.disconnect === 'function') {
       this.limiter.disconnect();
     }
     
@@ -139,6 +147,8 @@ export const applyVolumeWithProtection = (gainNodes, volumePercent, maxGain = 10
   const gainPerStage = Math.pow(gainValue, 1 / gainNodes.length);
   
   gainNodes.forEach(gainNode => {
-    gainNode.gain.setValueAtTime(gainPerStage, gainNode.context.currentTime);
+    if (gainNode && gainNode.gain && typeof gainNode.gain.setValueAtTime === 'function') {
+      gainNode.gain.setValueAtTime(gainPerStage, gainNode.context.currentTime);
+    }
   });
 }; 
