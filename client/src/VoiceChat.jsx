@@ -86,7 +86,7 @@ const config = {
     autoGainControl: true,
     sampleRate: 48000,
     channelCount: 2,
-    volume: 8.0, // Увеличиваем базовый коэффициент усиления
+    volume: 2.0, // Уменьшаем базовый коэффициент усиления для устранения шипения
     latency: 0,
     suppressLocalAudioPlayback: true,
     advanced: [
@@ -2512,17 +2512,17 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     // Управляем AudioAmplifier для регулировки громкости
     gainNodesRef.current.forEach((amplifier, peerId) => {
       if (amplifier && typeof amplifier.applyAmplification === 'function') {
-        if (!isAudioEnabled) {
-          amplifier.applyAmplification(0, 10.0);
-        } else {
-          const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
-          if (!isIndividuallyMuted) {
-            const individualVolume = volumes.get(peerId) || 100;
-            amplifier.applyAmplification(individualVolume, 10.0);
+                  if (!isAudioEnabled) {
+            amplifier.applyAmplification(0, 4.0);
           } else {
-            amplifier.applyAmplification(0, 10.0);
+            const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
+            if (!isIndividuallyMuted) {
+              const individualVolume = volumes.get(peerId) || 100;
+              amplifier.applyAmplification(individualVolume, 4.0);
+            } else {
+              amplifier.applyAmplification(0, 4.0);
+            }
           }
-        }
       }
     });
     
@@ -2574,10 +2574,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     if (gainNode && gainNode.isInitialized()) {
       if (!newIsIndividuallyMuted) {
         // Восстанавливаем предыдущий уровень громкости
-        gainNode.applyAmplification(newVolume, 10.0);
+        gainNode.applyAmplification(newVolume, 4.0);
         console.log('Set amplification to', newVolume, '% and unmuted peer:', peerId);
       } else {
-        gainNode.applyAmplification(0, 10.0);
+        gainNode.applyAmplification(0, 4.0);
         console.log('Set amplification to 0 and muted peer:', peerId);
       }
 
@@ -2611,7 +2611,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
      
      if (amplifier && amplifier.isInitialized()) {
        // Слайдер 0-100% соответствует 0-1000% усиления (0.0-10.0 gain)
-       amplifier.applyAmplification(newVolume, 10.0);
+               amplifier.applyAmplification(newVolume, 4.0);
        
        console.log('Set amplification value to', newVolume, '% for peer:', peerId);
      } else {
@@ -4109,10 +4109,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         if (newState) {
           // При включении восстанавливаем индивидуальный уровень громкости
           const individualVolume = volumes.get(peerId) || 100;
-          amplifier.applyAmplification(individualVolume, 10.0);
+          amplifier.applyAmplification(individualVolume, 4.0);
         } else {
           // При выключении мутим всех
-          amplifier.applyAmplification(0, 10.0);
+          amplifier.applyAmplification(0, 4.0);
         }
       }
     });

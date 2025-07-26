@@ -62,6 +62,18 @@ export class AudioAmplifier {
   connectChain(sourceNode, destinationNode) {
     let currentNode = sourceNode;
     
+    // Подключаем фильтр высоких частот если есть (первым)
+    if (this.highPassFilter && typeof this.highPassFilter.connect === 'function') {
+      currentNode.connect(this.highPassFilter);
+      currentNode = this.highPassFilter;
+    }
+    
+    // Подключаем фильтр низких частот если есть
+    if (this.lowPassFilter && typeof this.lowPassFilter.connect === 'function') {
+      currentNode.connect(this.lowPassFilter);
+      currentNode = this.lowPassFilter;
+    }
+    
     // Подключаем компрессор если есть
     if (this.compressor && typeof this.compressor.connect === 'function') {
       currentNode.connect(this.compressor);
@@ -90,11 +102,23 @@ export class AudioAmplifier {
 
   // Создание полной цепочки усиления
   createAmplificationChain(sourceNode, destinationNode, volumePercent = 100) {
+    // Создаем фильтр низких частот для устранения шипения
+    this.lowPassFilter = this.audioContext.createBiquadFilter();
+    this.lowPassFilter.type = 'lowpass';
+    this.lowPassFilter.frequency.value = 6000; // Ограничиваем частоты выше 6кГц для устранения шипения
+    this.lowPassFilter.Q.value = 0.7; // Более мягкий фильтр
+    
+    // Создаем фильтр высоких частот для устранения низкочастотного шума
+    this.highPassFilter = this.audioContext.createBiquadFilter();
+    this.highPassFilter.type = 'highpass';
+    this.highPassFilter.frequency.value = 80; // Отсекаем частоты ниже 80Гц
+    this.highPassFilter.Q.value = 0.7;
+    
     // Создаем компрессор
     this.createCompressor();
     
-    // Создаем каскадные gain nodes
-    this.createCascadedGain(10.0, 4);
+    // Создаем каскадные gain nodes с меньшим усилением
+    this.createCascadedGain(4.0, 3); // Уменьшаем максимальное усиление с 10.0 до 4.0
     
     // Создаем лимитер
     this.createLimiter();
@@ -116,6 +140,14 @@ export class AudioAmplifier {
       }
     });
     
+    if (this.highPassFilter && typeof this.highPassFilter.disconnect === 'function') {
+      this.highPassFilter.disconnect();
+    }
+    
+    if (this.lowPassFilter && typeof this.lowPassFilter.disconnect === 'function') {
+      this.lowPassFilter.disconnect();
+    }
+    
     if (this.compressor && typeof this.compressor.disconnect === 'function') {
       this.compressor.disconnect();
     }
@@ -125,6 +157,8 @@ export class AudioAmplifier {
     }
     
     this.gainNodes = [];
+    this.highPassFilter = null;
+    this.lowPassFilter = null;
     this.compressor = null;
     this.limiter = null;
     this._isInitialized = false;
