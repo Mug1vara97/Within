@@ -83,7 +83,7 @@ const config = {
     autoGainControl: true,
     sampleRate: 48000,
     channelCount: 2,
-    volume: 10.0, // Увеличиваем громкость в 10 раз
+    volume: 20.0, // Увеличиваем громкость в 20 раз
     latency: 0,
     suppressLocalAudioPlayback: true,
     advanced: [
@@ -2816,7 +2816,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           sampleRate: 48000,
           sampleSize: 16,
           latency: 0,
-          volume: 10.0, // Увеличиваем громкость в 10 раз
+          volume: 20.0, // Увеличиваем громкость в 20 раз
           enabled: true // Ensure audio starts enabled
         },
         video: false
@@ -2824,12 +2824,26 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
       localStreamRef.current = stream;
       
-      // Initialize audio context and noise suppression
+      // Сначала усиливаем исходный поток
+      console.log('Applying audio amplification to original stream...');
+      const source = audioContextRef.current.createMediaStreamSource(stream);
+      const gainNode = audioContextRef.current.createGain();
+      gainNode.gain.value = 15.0; // Усиление в 15 раз
+      
+      // Создаем усиленный MediaStream
+      const destination = audioContextRef.current.createMediaStreamDestination();
+      source.connect(gainNode);
+      gainNode.connect(destination);
+      
+      const amplifiedStream = destination.stream;
+      console.log('Applied 15x audio amplification to original stream');
+      
+      // Initialize audio context and noise suppression with amplified stream
       noiseSuppressionRef.current = new NoiseSuppressionManager();
       
-      // Initialize noise suppression with the stream
-      await noiseSuppressionRef.current.initialize(stream, audioContextRef.current);
-      console.log('Noise suppression initialized');
+      // Initialize noise suppression with the amplified stream
+      await noiseSuppressionRef.current.initialize(amplifiedStream, audioContextRef.current);
+      console.log('Noise suppression initialized with amplified stream');
       
       // Get the processed stream for the producer
       const processedStream = noiseSuppressionRef.current.getProcessedStream();
@@ -2842,7 +2856,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       // Ensure track settings are applied
       const settings = track.getSettings();
       console.log('Final audio track settings:', settings);
-      console.log('Audio amplification applied: getUserMedia volume=10.0, WebAudio gain=10.0, total amplification=100x');
+      console.log('Audio amplification applied: getUserMedia volume=20.0, WebAudio gain=15.0, total amplification=300x');
 
       // Set track enabled state based on initial mute state
       track.enabled = !initialMuted; // Track enabled opposite of mute state
@@ -2867,30 +2881,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       }
 
       // Add analyzer for voice activity detection
-      const source = audioContextRef.current.createMediaStreamSource(processedStream);
-      
-      // Добавляем GainNode для усиления исходящего звука в 10 раз
-      const gainNode = audioContextRef.current.createGain();
-      gainNode.gain.value = 10.0; // Усиление в 10 раз
-      console.log('Applied 10x audio amplification for outgoing stream');
-      
+      const analyserSource = audioContextRef.current.createMediaStreamSource(processedStream);
       const analyser = createAudioAnalyser(audioContextRef.current);
-      
-      // Подключаем цепочку: source -> gainNode -> analyser
-      source.connect(gainNode);
-      gainNode.connect(analyser);
-      
-      // Создаем новый MediaStream из усиленного аудио
-      const destination = audioContextRef.current.createMediaStreamDestination();
-      gainNode.connect(destination);
-      
-      // Получаем усиленный трек
-      const amplifiedTrack = destination.stream.getAudioTracks()[0];
-      
-      // Заменяем трек в processedStream на усиленный
-      const processedTrack = processedStream.getAudioTracks()[0];
-      processedStream.removeTrack(processedTrack);
-      processedStream.addTrack(amplifiedTrack);
+      analyserSource.connect(analyser);
 
       // Store analyser reference
       analyserNodesRef.current.set(socketRef.current.id, analyser);
