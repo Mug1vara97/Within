@@ -2821,7 +2821,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   const createLocalStream = async () => {
     try {
-      console.log('Creating local stream...');
+      console.log('Creating local stream with amplification before noise suppression...');
       
       // Always start with audio enabled
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -2841,11 +2841,26 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
       localStreamRef.current = stream;
       
-      // Initialize audio context and noise suppression
+      // Сначала усиливаем исходный поток
+      console.log('Applying audio amplification to original stream...');
+      const amplificationSource = audioContextRef.current.createMediaStreamSource(stream);
+      const gainNode = audioContextRef.current.createGain();
+      gainNode.gain.value = 4.0; // Усиление в 4 раза
+      
+      // Создаем усиленный MediaStream
+      const destination = audioContextRef.current.createMediaStreamDestination();
+      amplificationSource.connect(gainNode);
+      gainNode.connect(destination);
+      
+      const amplifiedStream = destination.stream;
+      console.log('Applied 4x audio amplification to original stream');
+      
+      // Initialize audio context and noise suppression with amplified stream
       noiseSuppressionRef.current = new NoiseSuppressionManager();
       
-      // Initialize noise suppression with the stream
-      await noiseSuppressionRef.current.initialize(stream, audioContextRef.current);
+      // Initialize noise suppression with the amplified stream
+      await noiseSuppressionRef.current.initialize(amplifiedStream, audioContextRef.current);
+      console.log('Noise suppression initialized with amplified stream');
       
       // Get the processed stream for the producer
       const processedStream = noiseSuppressionRef.current.getProcessedStream();
@@ -2858,6 +2873,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       // Ensure track settings are applied
       const settings = track.getSettings();
       console.log('Final audio track settings:', settings);
+      console.log('Audio processing order: getUserMedia -> WebAudio amplification (4x) -> noise suppression -> output');
 
       // Set track enabled state based on initial mute state
       track.enabled = !initialMuted; // Track enabled opposite of mute state
@@ -2872,6 +2888,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         const enableResult = await noiseSuppressionRef.current.enable(noiseSuppressionMode);
         if (!enableResult) {
           console.warn('Failed to enable noise suppression, continuing without it');
+        } else {
+          console.log(`Noise suppression enabled with mode: ${noiseSuppressionMode}`);
         }
       }
 
@@ -2880,9 +2898,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       }
 
       // Add analyzer for voice activity detection
-      const source = audioContextRef.current.createMediaStreamSource(processedStream);
+      const analyserSource = audioContextRef.current.createMediaStreamSource(processedStream);
       const analyser = createAudioAnalyser(audioContextRef.current);
-      source.connect(analyser);
+      analyserSource.connect(analyser);
 
       // Store analyser reference
       analyserNodesRef.current.set(socketRef.current.id, analyser);

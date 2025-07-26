@@ -108,7 +108,7 @@ export class NoiseSuppressionManager {
       });
 
       this.gainNode = this.audioContext.createGain();
-      this.gainNode.gain.value = 0.3;
+      this.gainNode.gain.value = 1.0; // Не уменьшаем усиление, так как оно уже применено
 
       this.sourceNode.connect(this.gainNode);
       this.gainNode.connect(this.destinationNode);
