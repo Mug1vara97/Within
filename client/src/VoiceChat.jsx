@@ -40,8 +40,7 @@ import {
   HeadsetOff,
   Headset,
   Fullscreen,
-  FullscreenExit,
-  BugReport
+  FullscreenExit
 } from '@mui/icons-material';
 import { Device } from 'mediasoup-client';
 import { io } from 'socket.io-client';
@@ -1272,16 +1271,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   useEffect(() => {
     const resumeAudioContext = async () => {
-      if (audioContextRef.current) {
+      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
         try {
-          if (audioContextRef.current.state === 'suspended') {
-            await audioContextRef.current.resume();
-            console.log('AudioContext resumed successfully');
-          } else if (audioContextRef.current.state === 'closed') {
-            // Если AudioContext закрыт, создаем новый
-            audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-            console.log('New AudioContext created');
-          }
+          await audioContextRef.current.resume();
+          console.log('AudioContext resumed successfully');
         } catch (error) {
           console.error('Failed to resume AudioContext:', error);
         }
@@ -1292,13 +1285,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       console.log('User interaction detected, resuming audio...');
       await resumeAudioContext();
       
-      // Удаляем обработчики только после успешного возобновления
-      if (audioContextRef.current && audioContextRef.current.state === 'running') {
-        document.removeEventListener('click', handleInteraction);
-        document.removeEventListener('touchstart', handleInteraction);
-        document.removeEventListener('keydown', handleInteraction);
-        console.log('AudioContext is running, removed event listeners');
-      }
+      document.removeEventListener('click', handleInteraction);
+      document.removeEventListener('touchstart', handleInteraction);
+      document.removeEventListener('keydown', handleInteraction);
     };
 
     if (socketRef.current) {
@@ -1327,19 +1316,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       });
     }
 
-    // Добавляем обработчики для всех типов взаимодействий
     document.addEventListener('click', handleInteraction);
     document.addEventListener('touchstart', handleInteraction);
     document.addEventListener('keydown', handleInteraction);
-    document.addEventListener('mousedown', handleInteraction);
-    document.addEventListener('mouseup', handleInteraction);
 
     return () => {
       document.removeEventListener('click', handleInteraction);
       document.removeEventListener('touchstart', handleInteraction);
       document.removeEventListener('keydown', handleInteraction);
-      document.removeEventListener('mousedown', handleInteraction);
-      document.removeEventListener('mouseup', handleInteraction);
     };
   }, []);
 
@@ -1659,7 +1643,17 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
               clearInterval(interval);
             }
           }
-
+          if (audio.has('audioElement')) {
+            // Очищаем HTML Audio элемент
+            const audioElement = audio.get('audioElement');
+            if (audioElement) {
+              audioElement.pause();
+              audioElement.srcObject = null;
+              if (audioElement.parentNode) {
+                audioElement.parentNode.removeChild(audioElement);
+              }
+            }
+          }
         }
       });
       audioRef.current.clear();
@@ -1943,13 +1937,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             await audioContextRef.current.resume();
             console.log('AudioContext state after resume:', audioContextRef.current.state);
             
-            // Проверяем, что AudioContext действительно работает
-            if (audioContextRef.current.state !== 'running') {
-              console.warn('AudioContext is not running after resume, state:', audioContextRef.current.state);
-            } else {
-              console.log('AudioContext is running successfully');
-            }
-            
             // Проверяем политику автовоспроизведения
             if (navigator.getAutoplayPolicy) {
               const policy = navigator.getAutoplayPolicy('mediaelement');
@@ -1958,14 +1945,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                 console.warn('Autoplay is disallowed - user interaction required for audio');
               }
             }
-            
-            // Проверяем поддержку аудио в браузере
-            console.log('Audio support check:', {
-              audioContext: !!(window.AudioContext || window.webkitAudioContext),
-              getUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
-              audioWorklet: !!(window.AudioWorklet),
-              autoplayPolicy: navigator.getAutoplayPolicy ? navigator.getAutoplayPolicy('mediaelement') : 'unknown'
-            });
 
             // Load device with router capabilities
             console.log('Loading device with router capabilities...');
@@ -2118,25 +2097,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         // Handle regular audio streams
         try {
           // Create audio context and nodes for Web Audio API processing
-          let audioContext = audioContextRef.current;
-          console.log('AudioContext state:', audioContext?.state);
+          const audioContext = audioContextRef.current;
+          console.log('AudioContext state:', audioContext.state);
           
-          // Проверяем и восстанавливаем AudioContext
-          if (!audioContext || audioContext.state === 'closed') {
-            console.log('Creating new AudioContext...');
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            audioContextRef.current = audioContext;
-          } else if (audioContext.state === 'suspended') {
+          // Resume audio context if suspended
+          if (audioContext.state === 'suspended') {
             console.log('Resuming suspended AudioContext...');
-            try {
-              await audioContext.resume();
-              console.log('AudioContext resumed, new state:', audioContext.state);
-            } catch (error) {
-              console.error('Failed to resume AudioContext:', error);
-              // Создаем новый AudioContext если не удалось возобновить
-              audioContext = new (window.AudioContext || window.webkitAudioContext)();
-              audioContextRef.current = audioContext;
-            }
+            await audioContext.resume();
+            console.log('AudioContext resumed, new state:', audioContext.state);
           }
           
           // Проверяем, что поток содержит активные треки
@@ -2152,13 +2120,64 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             });
           });
           
-          // Инициализируем audioRef для этого пира
+          // Create HTML Audio element as fallback
+          const audioElement = document.createElement('audio');
+          audioElement.srcObject = stream;
+          audioElement.autoplay = true;
+          audioElement.playsInline = true;
+          // Initialize volume based on individual mute state and global audio state
+          const isIndividuallyMutedForAudio = individualMutedPeersRef.current.get(producer.producerSocketId) ?? false;
+          const individualVolume = volumes.get(producer.producerSocketId) || 100;
+          audioElement.volume = (isAudioEnabledRef.current && !isIndividuallyMutedForAudio) ? (individualVolume / 100.0) : 0.0;
+          audioElement.style.display = 'none';
+          document.body.appendChild(audioElement);
+          
+          console.log('Created HTML Audio fallback element');
+          
+          // Store audio element for cleanup and volume control
           if (!audioRef.current.has(producer.producerSocketId)) {
             audioRef.current.set(producer.producerSocketId, new Map());
+          }
+          audioRef.current.get(producer.producerSocketId).set('audioElement', audioElement);
+          
+          // Try to play the audio element
+          const playPromise = audioElement.play();
+          if (playPromise !== undefined) {
+            playPromise.then(() => {
+              console.log('HTML Audio element playing successfully');
+            }).catch(error => {
+              console.error('HTML Audio element play failed:', error);
+            });
           }
           
           const source = audioContext.createMediaStreamSource(stream);
           console.log('Created MediaStreamSource from stream');
+          
+          // Debug: Check if MediaStreamSource is receiving audio data
+          const debugAnalyser = audioContext.createAnalyser();
+          debugAnalyser.fftSize = 256;
+          source.connect(debugAnalyser);
+          
+          const checkAudioData = () => {
+            const dataArray = new Uint8Array(debugAnalyser.frequencyBinCount);
+            debugAnalyser.getByteFrequencyData(dataArray);
+            const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+            console.log(`Audio data for peer ${producer.producerSocketId}: average=${average}, max=${Math.max(...dataArray)}`);
+            
+            // If Web Audio API shows no data but we have a track, the HTML audio might still work
+            if (average === 0 && audioTracks.length > 0 && audioTracks[0].readyState === 'live') {
+              console.log('Web Audio API shows no data, but HTML Audio fallback should be working');
+            }
+          };
+          
+          // Check audio data every 2 seconds
+          const audioCheckInterval = setInterval(checkAudioData, 2000);
+          
+          // Store interval for cleanup
+          audioRef.current.get(producer.producerSocketId).set('audioCheckInterval', audioCheckInterval);
+          
+          // Add analyzer for voice activity detection
+          const analyser = createAudioAnalyser(audioContext);
           
           // Create gain node для регулировки громкости
           const gainNode = audioContext.createGain();
@@ -2166,7 +2185,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // Глобальное состояние звука будет применено через эффект
           const isIndividuallyMuted = individualMutedPeersRef.current.get(producer.producerSocketId) ?? false;
           const initialVolume = isIndividuallyMuted ? 0 : 100;
-          const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 100.0) * 20.0 : 0;
+          const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 100.0) * 4.0 : 0;
           gainNode.gain.value = initialGain;
           console.log('Created gain node for peer:', producer.producerSocketId, {
             isAudioEnabled: isAudioEnabledRef.current,
@@ -2175,10 +2194,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             initialGain
           });
 
-          // Подключаем цепочку аудио узлов напрямую для упрощения
-          source.connect(gainNode);
+          // Подключаем цепочку аудио узлов
+          source.connect(analyser);
+          analyser.connect(gainNode);
           gainNode.connect(audioContext.destination);
-          console.log('Connected audio nodes: source -> gainNode -> destination (simplified for remote peers)');
+          console.log('Connected audio nodes: source -> analyser -> gainNode -> destination');
+          
+          // Debug: Also connect debugAnalyser to the main chain for monitoring
+          debugAnalyser.connect(analyser);
           
           // Добавляем периодическую проверку gain node
           const checkGainInterval = setInterval(() => {
@@ -2193,11 +2216,12 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           audioRef.current.get(producer.producerSocketId).set('gainCheckInterval', checkGainInterval);
 
           // Store references
+          analyserNodesRef.current.set(producer.producerSocketId, analyser);
           gainNodesRef.current.set(producer.producerSocketId, gainNode);
           setVolumes(prev => new Map(prev).set(producer.producerSocketId, 100));
 
-          // Voice detection disabled for remote peers to isolate audio issues
-          console.log('Voice detection disabled for remote peer:', producer.producerSocketId);
+          // Start voice detection
+          detectSpeaking(analyser, producer.producerSocketId, producer.producerId);
           console.log('Audio setup completed for peer:', producer.producerSocketId);
         } catch (error) {
           console.error('Error setting up audio:', error);
@@ -2477,41 +2501,40 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     
     console.log('Global audio effect triggered:', {
       isAudioEnabled,
-      gainNodesCount: gainNodesRef.current.size,
+      audioElementsCount: audioRef.current.size,
       volumesCount: volumes.size
     });
     
-    // Управляем gain nodes для регулировки громкости
-    gainNodesRef.current.forEach((gainNode, peerId) => {
-      if (gainNode) {
-        const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
-        const individualVolume = volumes.get(peerId) || 100;
-        
-        let newGainValue = 0;
-        if (isAudioEnabled && !isIndividuallyMuted) {
-          newGainValue = (individualVolume / 100.0) * 20.0;
+    // Управляем HTML Audio элементами для регулировки громкости
+    audioRef.current.forEach((peerAudio, peerId) => {
+      if (peerAudio instanceof Map && peerAudio.has('audioElement')) {
+        const audioElement = peerAudio.get('audioElement');
+        if (audioElement) {
+          const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
+          const individualVolume = volumes.get(peerId) || 100;
+          
+          let newVolume = 0;
+          if (isAudioEnabled && !isIndividuallyMuted) {
+            newVolume = individualVolume / 100.0;
+          }
+          
+          audioElement.volume = newVolume;
+          
+          console.log(`Global audio effect: Peer ${peerId}:`, {
+            isAudioEnabled,
+            isIndividuallyMuted,
+            individualVolume,
+            newVolume,
+            audioElementExists: !!audioElement
+          });
         }
-        
-        gainNode.gain.setValueAtTime(newGainValue, audioContextRef.current.currentTime);
-        
-        console.log(`Global audio effect: Peer ${peerId}:`, {
-          isAudioEnabled,
-          isIndividuallyMuted,
-          individualVolume,
-          newGainValue,
-          gainNodeExists: !!gainNode
-        });
-      } else {
-        console.warn(`Global audio effect: Gain node not found for peer ${peerId}`);
       }
     });
     
-
   }, [isAudioEnabled, volumes]);
 
     const handleVolumeChange = (peerId) => {
     console.log('Volume change requested for peer:', peerId);
-    const gainNode = gainNodesRef.current.get(peerId);
     
     // Даже если глобально звук выключен, мы все равно меняем индивидуальное состояние
     const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
@@ -2531,50 +2554,63 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     }
     
     console.log('Peer:', peerId, 'Current individual mute:', isIndividuallyMuted, 'New individual mute:', newIsIndividuallyMuted, 'New volume:', newVolume);
-    console.log('GainNode exists:', !!gainNode);
     
-    if (gainNode) {
-      if (!newIsIndividuallyMuted) {
-        // Восстанавливаем предыдущий уровень громкости
-        const gainValue = (newVolume / 100.0) * 20.0;
-        gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
-        console.log('Set gain to', gainValue, 'and unmuted peer:', peerId);
-      } else {
-        gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
-        console.log('Set gain to 0 and muted peer:', peerId);
+    // Обновляем HTML Audio элемент
+    const peerAudio = audioRef.current.get(peerId);
+    if (peerAudio instanceof Map && peerAudio.has('audioElement')) {
+      const audioElement = peerAudio.get('audioElement');
+      if (audioElement) {
+        if (!newIsIndividuallyMuted && isAudioEnabledRef.current) {
+          // Восстанавливаем предыдущий уровень громкости
+          audioElement.volume = newVolume / 100.0;
+          console.log('Set HTML Audio volume to', newVolume / 100.0, 'and unmuted peer:', peerId);
+        } else {
+          // Мутим
+          audioElement.volume = 0;
+          console.log('Set HTML Audio volume to 0 and muted peer:', peerId);
+        }
       }
-
-      // Сохраняем новое индивидуальное состояние
-      individualMutedPeersRef.current.set(peerId, newIsIndividuallyMuted);
-      
-      // Обновляем UI состояние
-      setVolumes(prev => {
-        const newVolumes = new Map(prev);
-        newVolumes.set(peerId, newVolume);
-        return newVolumes;
-      });
-      
-
     }
+
+    // Сохраняем новое индивидуальное состояние
+    individualMutedPeersRef.current.set(peerId, newIsIndividuallyMuted);
+    
+    // Обновляем UI состояние
+    setVolumes(prev => {
+      const newVolumes = new Map(prev);
+      newVolumes.set(peerId, newVolume);
+      return newVolumes;
+    });
+    
+    // Обновляем состояние в peers для UI
+    setPeers(prev => {
+      const newPeers = new Map(prev);
+      const peer = newPeers.get(peerId);
+      if (peer) {
+        newPeers.set(peerId, { ...peer, isMuted: newIsIndividuallyMuted });
+      }
+      return newPeers;
+    });
   };
 
-   // Функция для изменения громкости слайдером (Web Audio API gain nodes и HTML Audio)
+   // Функция для изменения громкости слайдером (HTML Audio)
    const handleVolumeSliderChange = useCallback((peerId, newVolume) => {
      console.log('Volume slider change for peer:', peerId, 'New volume:', newVolume);
      
-     const gainNode = gainNodesRef.current.get(peerId);
-     
-     if (gainNode) {
-       // Слайдер 0-100% соответствует 0-2000% усиления (0.0-20.0 gain)
-       const gainValue = (newVolume / 100.0) * 20.0;
-       gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
-       
-       console.log('Set gain node value to', gainValue, 'for peer:', peerId);
-     } else {
-       console.error('Gain node not found for peer:', peerId);
+     // Обновляем HTML Audio элемент
+     const peerAudio = audioRef.current.get(peerId);
+     if (peerAudio instanceof Map && peerAudio.has('audioElement')) {
+       const audioElement = peerAudio.get('audioElement');
+       if (audioElement) {
+         if (isAudioEnabledRef.current) {
+           audioElement.volume = newVolume / 100.0;
+           console.log('Set HTML Audio volume to', newVolume / 100.0, 'for peer:', peerId);
+         } else {
+           audioElement.volume = 0;
+           console.log('Audio disabled, setting HTML Audio volume to 0 for peer:', peerId);
+         }
+       }
      }
-     
-
      
      // Сохраняем предыдущий уровень громкости если он не 0
      if (newVolume > 0) {
@@ -2976,35 +3012,51 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         // Очищаем аудио узлы
         // Находим producerSocketId по consumer
         let producerSocketId = null;
-        for (const [, cons] of consumersRef.current.entries()) {
-          if (cons === consumer) {
-            // Ищем соответствующий peerId в gainNodes
-            for (const [socketId, gainNode] of gainNodesRef.current.entries()) {
-              if (gainNode) {
-                producerSocketId = socketId;
+        for (const [peerId, peerAudio] of audioRef.current.entries()) {
+          if (peerAudio instanceof Map && peerAudio.has('audioElement')) {
+            // Проверяем, что это правильный peer
+            const audioElement = peerAudio.get('audioElement');
+            if (audioElement && audioElement.srcObject) {
+              const tracks = audioElement.srcObject.getTracks();
+              if (tracks.some(track => track.id === consumer.track.id)) {
+                producerSocketId = peerId;
                 break;
               }
             }
-            break;
           }
         }
         
         if (producerSocketId) {
-          const gainNode = gainNodesRef.current.get(producerSocketId);
-          if (gainNode) {
-            gainNode.disconnect();
-            gainNodesRef.current.delete(producerSocketId);
-          }
-
+          console.log('Found producerSocketId for consumer removal:', producerSocketId);
+          
+          // Очищаем анализатор для голосовой активности
           const analyser = analyserNodesRef.current.get(producerSocketId);
           if (analyser) {
             analyser.disconnect();
             analyserNodesRef.current.delete(producerSocketId);
           }
 
-          // Очищаем voice detector и интервалы если есть
+          // Очищаем HTML audio элемент
           const peerAudio = audioRef.current.get(producerSocketId);
           if (peerAudio instanceof Map) {
+            if (peerAudio.has('audioElement')) {
+              const audioElement = peerAudio.get('audioElement');
+              if (audioElement) {
+                // Останавливаем треки
+                if (audioElement.srcObject) {
+                  audioElement.srcObject.getTracks().forEach(track => {
+                    track.stop();
+                  });
+                }
+                // Удаляем из DOM
+                if (audioElement.parentNode) {
+                  audioElement.parentNode.removeChild(audioElement);
+                }
+                console.log('Removed HTML audio element for peer:', producerSocketId);
+              }
+            }
+            
+            // Очищаем voice detector если есть
             if (peerAudio.has('voiceDetector')) {
               const voiceDetector = peerAudio.get('voiceDetector');
               if (voiceDetector) {
@@ -3012,18 +3064,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                 voiceDetector.disconnect();
               }
             }
-                      if (peerAudio.has('gainCheckInterval')) {
-            const interval = peerAudio.get('gainCheckInterval');
-            if (interval) {
-              clearInterval(interval);
+            
+            // Очищаем интервалы если есть
+            if (peerAudio.has('gainCheckInterval')) {
+              const interval = peerAudio.get('gainCheckInterval');
+              if (interval) {
+                clearInterval(interval);
+              }
             }
-          }
-          if (peerAudio.has('audioCheckInterval')) {
-            const interval = peerAudio.get('audioCheckInterval');
-            if (interval) {
-              clearInterval(interval);
-            }
-          }
             if (peerAudio.has('audioCheckInterval')) {
               const interval = peerAudio.get('audioCheckInterval');
               if (interval) {
@@ -3031,6 +3079,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
               }
             }
           }
+          
           audioRef.current.delete(producerSocketId);
 
           setVolumes(prev => {
@@ -3917,26 +3966,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         }
       } else if (kind === 'audio') {
         try {
-          // Create audio context and nodes for Web Audio API processing
-          let audioContext = audioContextRef.current;
-          console.log('handleConsume: AudioContext state:', audioContext?.state);
-          
-          // Ensure AudioContext exists and is running
-          if (!audioContext || audioContext.state === 'closed') {
-            console.log('handleConsume: Creating new AudioContext...');
-            audioContext = new (window.AudioContext || window.webkitAudioContext)({
-              sampleRate: 48000,
-              latencyHint: 'interactive'
-            });
-            audioContextRef.current = audioContext;
-          }
-          
-          // Resume audio context if suspended
-          if (audioContext.state === 'suspended') {
-            console.log('handleConsume: Resuming suspended AudioContext...');
-            await audioContext.resume();
-            console.log('handleConsume: AudioContext resumed, new state:', audioContext.state);
-          }
+          console.log('handleConsume: Setting up HTML audio for incoming stream');
           
           // Проверяем, что поток содержит активные треки
           const audioTracks = stream.getAudioTracks();
@@ -3951,159 +3981,56 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             });
           });
           
-          // Проверяем, что трек активен
-          if (audioTracks.length === 0 || audioTracks[0].readyState !== 'live') {
-            console.warn('handleConsume: Audio track is not live, waiting...');
-            // Ждем, пока трек станет активным
-            await new Promise((resolve) => {
-              const checkTrack = () => {
-                if (audioTracks[0] && audioTracks[0].readyState === 'live') {
-                  resolve();
-                } else {
-                  setTimeout(checkTrack, 100);
-                }
-              };
-              checkTrack();
-            });
-          }
+          // Создаем HTML audio элемент для простого и надежного воспроизведения
+          const audioElement = document.createElement('audio');
+          audioElement.autoplay = true;
+          audioElement.playsInline = true;
+          audioElement.controls = false;
+          audioElement.style.display = 'none';
+          audioElement.srcObject = stream;
           
-          // Проверяем настройки трека
-          const trackSettings = audioTracks[0]?.getSettings();
-          console.log('handleConsume: Audio track settings:', trackSettings);
+          // Добавляем в DOM для активации
+          document.body.appendChild(audioElement);
           
-          // Проверяем, что трек содержит аудио данные
-          if (audioTracks[0]) {
-            const constraints = audioTracks[0].getConstraints();
-            console.log('handleConsume: Audio track constraints:', constraints);
-          }
-          
-          const source = audioContext.createMediaStreamSource(stream);
-          console.log('handleConsume: Created MediaStreamSource from stream');
-          
-          // Проверяем, что MediaStreamSource подключен к активному потоку
-          console.log('handleConsume: MediaStreamSource info:', {
-            streamActive: stream.active,
-            streamId: stream.id,
-            tracksCount: stream.getTracks().length,
-            audioTracksCount: stream.getAudioTracks().length
-          });
-          
-          // Create gain node для регулировки громкости
-          const gainNode = audioContext.createGain();
-          // Начальная громкость всегда 100% для нового пира (индивидуально не замьючен)
-          // Глобальное состояние звука будет применено через эффект
+          // Начальная громкость
           const isIndividuallyMuted = individualMutedPeersRef.current.get(producer.producerSocketId) ?? false;
-          const initialVolume = isIndividuallyMuted ? 0 : 100;
-          const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 100.0) * 20.0 : 0;
-          gainNode.gain.value = initialGain;
-          console.log('handleConsume: Created gain node for peer:', producer.producerSocketId, {
+          const initialVolume = isIndividuallyMuted ? 0 : (volumes.get(producer.producerSocketId) || 100) / 100;
+          audioElement.volume = isAudioEnabledRef.current && !isIndividuallyMuted ? initialVolume : 0;
+          
+          console.log('handleConsume: Created HTML audio for peer:', producer.producerSocketId, {
             isAudioEnabled: isAudioEnabledRef.current,
             isIndividuallyMuted,
-            initialVolume,
-            initialGain
+            initialVolume: audioElement.volume,
+            streamActive: stream.active,
+            tracksCount: stream.getTracks().length
           });
           
-          // Проверяем настройки gain node
-          console.log('handleConsume: Gain node info:', {
-            gainValue: gainNode.gain.value,
-            gainDefaultValue: gainNode.gain.defaultValue,
-            gainMinValue: gainNode.gain.minValue,
-            gainMaxValue: gainNode.gain.maxValue
-          });
-
-          // Создаем анализатор для проверки аудио данных
-          const analyser = audioContext.createAnalyser();
-          analyser.fftSize = 256;
-          const bufferLength = analyser.frequencyBinCount;
-          const dataArray = new Uint8Array(bufferLength);
-          
-          // Подключаем анализатор к потоку для мониторинга
-          source.connect(analyser);
-          analyser.connect(gainNode);
-          
-          // Функция для проверки аудио данных
-          const checkAudioData = () => {
-            analyser.getByteFrequencyData(dataArray);
-            const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-            console.log('handleConsume: Audio data check for peer', producer.producerSocketId, {
-              averageLevel: average,
-              maxLevel: Math.max(...dataArray),
-              hasData: average > 0
-            });
-          };
-          
-          // Проверяем аудио данные через 1 секунду
-          setTimeout(checkAudioData, 1000);
-
-          // Подключаем цепочку аудио узлов напрямую для упрощения
-          source.connect(gainNode);
-          gainNode.connect(audioContext.destination);
-          console.log('handleConsume: Connected audio nodes: source -> gainNode -> destination (simplified for remote peers)');
-          
-          // Проверяем подключения
-          console.log('handleConsume: Audio node connections:', {
-            sourceConnected: source.numberOfOutputs > 0,
-            gainNodeInputs: gainNode.numberOfInputs,
-            gainNodeOutputs: gainNode.numberOfOutputs,
-            destinationInputs: audioContext.destination.numberOfInputs
-          });
-          
-          // Проверяем подключение к destination
-          console.log('handleConsume: AudioContext destination:', {
-            maxChannelCount: audioContext.destination.maxChannelCount,
-            channelCount: audioContext.destination.channelCount,
-            channelCountMode: audioContext.destination.channelCountMode,
-            sampleRate: audioContext.destination.context.sampleRate,
-            state: audioContext.destination.context.state
-          });
-          
-          // Добавляем периодическую проверку gain node и аудио треков
-          const checkGainInterval = setInterval(() => {
-            const audioTracks = stream.getAudioTracks();
+          // Создаем анализатор для голосовой активности (только для детекции)
+          const audioContext = audioContextRef.current;
+          if (audioContext && audioContext.state === 'running') {
+            const source = audioContext.createMediaStreamSource(stream);
+            const analyser = createAudioAnalyser(audioContext);
+            source.connect(analyser);
             
-            // Проверяем аудио данные
-            analyser.getByteFrequencyData(dataArray);
-            const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+            // Start voice detection with producerId
+            detectSpeaking(analyser, producer.producerSocketId, producer.producerId);
             
-            console.log(`handleConsume: Gain check for peer ${producer.producerSocketId}:`, {
-              gainValue: gainNode.gain.value,
-              isAudioEnabled: isAudioEnabledRef.current,
-              individualVolume: volumes.get(producer.producerSocketId) || 100,
-              audioTracksCount: audioTracks.length,
-              trackEnabled: audioTracks[0]?.enabled,
-              trackReadyState: audioTracks[0]?.readyState,
-              audioContextState: audioContext.state,
-              audioDataAverage: average,
-              audioDataMax: Math.max(...dataArray),
-              hasAudioData: average > 0
-            });
-          }, 5000);
+            // Сохраняем анализатор для очистки
+            analyserNodesRef.current.set(producer.producerSocketId, analyser);
+          }
           
-          // Сохраняем интервал для очистки
+          // Сохраняем HTML audio элемент для управления громкостью
           if (!audioRef.current.has(producer.producerSocketId)) {
             audioRef.current.set(producer.producerSocketId, new Map());
           }
-          audioRef.current.get(producer.producerSocketId).set('gainCheckInterval', checkGainInterval);
-
-          gainNodesRef.current.set(producer.producerSocketId, gainNode);
+          audioRef.current.get(producer.producerSocketId).set('audioElement', audioElement);
+          
+          // Инициализируем громкость
           setVolumes(prev => new Map(prev).set(producer.producerSocketId, 100));
-
-          // Voice detection disabled for remote peers to isolate audio issues
-          console.log('handleConsume: Voice detection disabled for remote peer:', producer.producerSocketId);
-          console.log('handleConsume: Audio setup completed for peer:', producer.producerSocketId);
           
-          // Дополнительная проверка через 1 секунду
-          setTimeout(() => {
-            console.log('handleConsume: Post-setup check for peer:', producer.producerSocketId, {
-              gainValue: gainNode.gain.value,
-              audioContextState: audioContext.state,
-              trackEnabled: audioTracks[0]?.enabled,
-              trackReadyState: audioTracks[0]?.readyState
-            });
-          }, 1000);
-          
+          console.log('handleConsume: HTML audio setup completed for peer:', producer.producerSocketId);
         } catch (error) {
-          console.error('Error setting up audio:', error);
+          console.error('Error setting up HTML audio:', error);
         }
       }
 
@@ -4132,76 +4059,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     }
   };
 
-  // Функция для принудительного возобновления AudioContext
-  const forceResumeAudioContext = useCallback(async () => {
-    try {
-      if (audioContextRef.current) {
-        if (audioContextRef.current.state === 'suspended') {
-          await audioContextRef.current.resume();
-          console.log('AudioContext force resumed successfully');
-        } else if (audioContextRef.current.state === 'closed') {
-          audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-          console.log('New AudioContext force created');
-        }
-      } else {
-        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-        console.log('AudioContext force created');
-      }
-    } catch (error) {
-      console.error('Failed to force resume AudioContext:', error);
-    }
-  }, []);
-
-  // Функция для диагностики аудио
-  const diagnoseAudio = useCallback(() => {
-    console.log('=== Audio Diagnosis ===');
-    console.log('AudioContext state:', audioContextRef.current?.state);
-    console.log('Gain nodes count:', gainNodesRef.current.size);
-    console.log('Volumes map:', Array.from(volumes.entries()));
-    console.log('Individual muted peers:', Array.from(individualMutedPeersRef.current.entries()));
-    console.log('Is audio enabled:', isAudioEnabledRef.current);
-    
-    gainNodesRef.current.forEach((gainNode, peerId) => {
-      console.log(`Peer ${peerId}:`, {
-        gainValue: gainNode.gain.value,
-        isIndividuallyMuted: individualMutedPeersRef.current.get(peerId),
-        volume: volumes.get(peerId)
-      });
-    });
-    console.log('=== End Audio Diagnosis ===');
-  }, [volumes]);
-
-  // Функция для тестирования аудио вывода
-  const testAudioOutput = useCallback(() => {
-    if (!audioContextRef.current || audioContextRef.current.state !== 'running') {
-      console.error('AudioContext is not running, cannot test audio output');
-      return;
-    }
-
-    try {
-      console.log('=== Testing Audio Output ===');
-      
-      // Создаем тестовый тон
-      const oscillator = audioContextRef.current.createOscillator();
-      const gainNode = audioContextRef.current.createGain();
-      
-      oscillator.frequency.setValueAtTime(440, audioContextRef.current.currentTime); // A4 note
-      oscillator.type = 'sine';
-      gainNode.gain.setValueAtTime(0.1, audioContextRef.current.currentTime); // Low volume
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContextRef.current.destination);
-      
-      oscillator.start(audioContextRef.current.currentTime);
-      oscillator.stop(audioContextRef.current.currentTime + 1); // Play for 1 second
-      
-      console.log('Test tone played successfully!');
-      console.log('=== End Audio Output Test ===');
-    } catch (error) {
-      console.error('Failed to test audio output:', error);
-    }
-  }, []);
-
   // Update toggleAudio function
   const toggleAudio = useCallback(() => {
     const newState = !isAudioEnabled;
@@ -4213,17 +4070,24 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       socketRef.current.emit('audioState', { isEnabled: newState });
     }
 
-    // Mute/unmute all gain nodes with individual volume levels
-    gainNodesRef.current.forEach((gainNode, peerId) => {
-      if (gainNode) {
-        if (newState) {
-          // При включении восстанавливаем индивидуальный уровень громкости
-          const individualVolume = volumes.get(peerId) || 100;
-                     const gainValue = (individualVolume / 100.0) * 20.0; // 0-100% слайдера -> 0.0-20.0 gain
-          gainNode.gain.value = gainValue;
-        } else {
-          // При выключении мутим всех
-          gainNode.gain.value = 0.0;
+    // Mute/unmute all HTML audio elements with individual volume levels
+    audioRef.current.forEach((peerAudio, peerId) => {
+      if (peerAudio instanceof Map && peerAudio.has('audioElement')) {
+        const audioElement = peerAudio.get('audioElement');
+        if (audioElement) {
+          if (newState) {
+            // При включении восстанавливаем индивидуальный уровень громкости
+            const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
+            if (!isIndividuallyMuted) {
+              const individualVolume = volumes.get(peerId) || 100;
+              audioElement.volume = individualVolume / 100.0;
+              console.log(`Enabled audio for peer ${peerId}, volume: ${audioElement.volume}`);
+            }
+          } else {
+            // При выключении мутим всех
+            audioElement.volume = 0.0;
+            console.log(`Disabled audio for peer ${peerId}`);
+          }
         }
       }
     });
@@ -4237,10 +4101,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   // Предоставляем внешним компонентам доступ к функциям управления
   useImperativeHandle(ref, () => ({
     handleMute,
-    toggleAudio,
-    diagnoseAudio,
-    testAudioOutput
-  }), [handleMute, toggleAudio, diagnoseAudio, testAudioOutput]);
+    toggleAudio
+  }), [handleMute, toggleAudio]);
 
   // Add initial audio state when joining
   useEffect(() => {
@@ -4461,27 +4323,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                   title={isAudioEnabled ? "Disable audio output" : "Enable audio output"}
                 >
                   {isAudioEnabled ? <Headset /> : <HeadsetOff />}
-                </IconButton>
-                <IconButton
-                  sx={styles.iconButton}
-                  onClick={forceResumeAudioContext}
-                  title="Force resume AudioContext"
-                >
-                  <VolumeUp />
-                </IconButton>
-                <IconButton
-                  sx={styles.iconButton}
-                  onClick={diagnoseAudio}
-                  title="Diagnose audio issues"
-                >
-                  <BugReport />
-                </IconButton>
-                <IconButton
-                  sx={styles.iconButton}
-                  onClick={testAudioOutput}
-                  title="Test audio output"
-                >
-                  <VolumeUp />
                 </IconButton>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <IconButton
