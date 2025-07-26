@@ -40,7 +40,8 @@ import {
   HeadsetOff,
   Headset,
   Fullscreen,
-  FullscreenExit
+  FullscreenExit,
+  BugReport
 } from '@mui/icons-material';
 import { Device } from 'mediasoup-client';
 import { io } from 'socket.io-client';
@@ -1942,6 +1943,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             await audioContextRef.current.resume();
             console.log('AudioContext state after resume:', audioContextRef.current.state);
             
+            // Проверяем, что AudioContext действительно работает
+            if (audioContextRef.current.state !== 'running') {
+              console.warn('AudioContext is not running after resume, state:', audioContextRef.current.state);
+            } else {
+              console.log('AudioContext is running successfully');
+            }
+            
             // Проверяем политику автовоспроизведения
             if (navigator.getAutoplayPolicy) {
               const policy = navigator.getAutoplayPolicy('mediaelement');
@@ -1950,6 +1958,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                 console.warn('Autoplay is disallowed - user interaction required for audio');
               }
             }
+            
+            // Проверяем поддержку аудио в браузере
+            console.log('Audio support check:', {
+              audioContext: !!(window.AudioContext || window.webkitAudioContext),
+              getUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+              audioWorklet: !!(window.AudioWorklet),
+              autoplayPolicy: navigator.getAutoplayPolicy ? navigator.getAutoplayPolicy('mediaelement') : 'unknown'
+            });
 
             // Load device with router capabilities
             console.log('Loading device with router capabilities...');
@@ -2459,21 +2475,34 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   useEffect(() => {
     isAudioEnabledRef.current = isAudioEnabled;
     
+    console.log('Global audio effect triggered:', {
+      isAudioEnabled,
+      gainNodesCount: gainNodesRef.current.size,
+      volumesCount: volumes.size
+    });
+    
     // Управляем gain nodes для регулировки громкости
     gainNodesRef.current.forEach((gainNode, peerId) => {
       if (gainNode) {
-        if (!isAudioEnabled) {
-          gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
-        } else {
-          const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
-          if (!isIndividuallyMuted) {
-            const individualVolume = volumes.get(peerId) || 100;
-            const gainValue = (individualVolume / 100.0) * 20.0;
-            gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
-          } else {
-            gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
-          }
+        const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
+        const individualVolume = volumes.get(peerId) || 100;
+        
+        let newGainValue = 0;
+        if (isAudioEnabled && !isIndividuallyMuted) {
+          newGainValue = (individualVolume / 100.0) * 20.0;
         }
+        
+        gainNode.gain.setValueAtTime(newGainValue, audioContextRef.current.currentTime);
+        
+        console.log(`Global audio effect: Peer ${peerId}:`, {
+          isAudioEnabled,
+          isIndividuallyMuted,
+          individualVolume,
+          newGainValue,
+          gainNodeExists: !!gainNode
+        });
+      } else {
+        console.warn(`Global audio effect: Gain node not found for peer ${peerId}`);
       }
     });
     
@@ -3889,8 +3918,18 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       } else if (kind === 'audio') {
         try {
           // Create audio context and nodes for Web Audio API processing
-          const audioContext = audioContextRef.current;
-          console.log('handleConsume: AudioContext state:', audioContext.state);
+          let audioContext = audioContextRef.current;
+          console.log('handleConsume: AudioContext state:', audioContext?.state);
+          
+          // Ensure AudioContext exists and is running
+          if (!audioContext || audioContext.state === 'closed') {
+            console.log('handleConsume: Creating new AudioContext...');
+            audioContext = new (window.AudioContext || window.webkitAudioContext)({
+              sampleRate: 48000,
+              latencyHint: 'interactive'
+            });
+            audioContextRef.current = audioContext;
+          }
           
           // Resume audio context if suspended
           if (audioContext.state === 'suspended') {
@@ -3912,10 +3951,42 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             });
           });
           
+          // Проверяем, что трек активен
+          if (audioTracks.length === 0 || audioTracks[0].readyState !== 'live') {
+            console.warn('handleConsume: Audio track is not live, waiting...');
+            // Ждем, пока трек станет активным
+            await new Promise((resolve) => {
+              const checkTrack = () => {
+                if (audioTracks[0] && audioTracks[0].readyState === 'live') {
+                  resolve();
+                } else {
+                  setTimeout(checkTrack, 100);
+                }
+              };
+              checkTrack();
+            });
+          }
+          
+          // Проверяем настройки трека
+          const trackSettings = audioTracks[0]?.getSettings();
+          console.log('handleConsume: Audio track settings:', trackSettings);
+          
+          // Проверяем, что трек содержит аудио данные
+          if (audioTracks[0]) {
+            const constraints = audioTracks[0].getConstraints();
+            console.log('handleConsume: Audio track constraints:', constraints);
+          }
+          
           const source = audioContext.createMediaStreamSource(stream);
           console.log('handleConsume: Created MediaStreamSource from stream');
           
-
+          // Проверяем, что MediaStreamSource подключен к активному потоку
+          console.log('handleConsume: MediaStreamSource info:', {
+            streamActive: stream.active,
+            streamId: stream.id,
+            tracksCount: stream.getTracks().length,
+            audioTracksCount: stream.getAudioTracks().length
+          });
           
           // Create gain node для регулировки громкости
           const gainNode = audioContext.createGain();
@@ -3931,18 +4002,48 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             initialVolume,
             initialGain
           });
+          
+          // Проверяем настройки gain node
+          console.log('handleConsume: Gain node info:', {
+            gainValue: gainNode.gain.value,
+            gainDefaultValue: gainNode.gain.defaultValue,
+            gainMinValue: gainNode.gain.minValue,
+            gainMaxValue: gainNode.gain.maxValue
+          });
 
           // Подключаем цепочку аудио узлов напрямую для упрощения
           source.connect(gainNode);
           gainNode.connect(audioContext.destination);
           console.log('handleConsume: Connected audio nodes: source -> gainNode -> destination (simplified for remote peers)');
           
-          // Добавляем периодическую проверку gain node
+          // Проверяем подключения
+          console.log('handleConsume: Audio node connections:', {
+            sourceConnected: source.numberOfOutputs > 0,
+            gainNodeInputs: gainNode.numberOfInputs,
+            gainNodeOutputs: gainNode.numberOfOutputs,
+            destinationInputs: audioContext.destination.numberOfInputs
+          });
+          
+          // Проверяем подключение к destination
+          console.log('handleConsume: AudioContext destination:', {
+            maxChannelCount: audioContext.destination.maxChannelCount,
+            channelCount: audioContext.destination.channelCount,
+            channelCountMode: audioContext.destination.channelCountMode,
+            sampleRate: audioContext.destination.context.sampleRate,
+            state: audioContext.destination.context.state
+          });
+          
+          // Добавляем периодическую проверку gain node и аудио треков
           const checkGainInterval = setInterval(() => {
+            const audioTracks = stream.getAudioTracks();
             console.log(`handleConsume: Gain check for peer ${producer.producerSocketId}:`, {
               gainValue: gainNode.gain.value,
               isAudioEnabled: isAudioEnabledRef.current,
-              individualVolume: volumes.get(producer.producerSocketId) || 100
+              individualVolume: volumes.get(producer.producerSocketId) || 100,
+              audioTracksCount: audioTracks.length,
+              trackEnabled: audioTracks[0]?.enabled,
+              trackReadyState: audioTracks[0]?.readyState,
+              audioContextState: audioContext.state
             });
           }, 5000);
           
@@ -3958,6 +4059,17 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // Voice detection disabled for remote peers to isolate audio issues
           console.log('handleConsume: Voice detection disabled for remote peer:', producer.producerSocketId);
           console.log('handleConsume: Audio setup completed for peer:', producer.producerSocketId);
+          
+          // Дополнительная проверка через 1 секунду
+          setTimeout(() => {
+            console.log('handleConsume: Post-setup check for peer:', producer.producerSocketId, {
+              gainValue: gainNode.gain.value,
+              audioContextState: audioContext.state,
+              trackEnabled: audioTracks[0]?.enabled,
+              trackReadyState: audioTracks[0]?.readyState
+            });
+          }, 1000);
+          
         } catch (error) {
           console.error('Error setting up audio:', error);
         }
@@ -4008,6 +4120,56 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     }
   }, []);
 
+  // Функция для диагностики аудио
+  const diagnoseAudio = useCallback(() => {
+    console.log('=== Audio Diagnosis ===');
+    console.log('AudioContext state:', audioContextRef.current?.state);
+    console.log('Gain nodes count:', gainNodesRef.current.size);
+    console.log('Volumes map:', Array.from(volumes.entries()));
+    console.log('Individual muted peers:', Array.from(individualMutedPeersRef.current.entries()));
+    console.log('Is audio enabled:', isAudioEnabledRef.current);
+    
+    gainNodesRef.current.forEach((gainNode, peerId) => {
+      console.log(`Peer ${peerId}:`, {
+        gainValue: gainNode.gain.value,
+        isIndividuallyMuted: individualMutedPeersRef.current.get(peerId),
+        volume: volumes.get(peerId)
+      });
+    });
+    console.log('=== End Audio Diagnosis ===');
+  }, [volumes]);
+
+  // Функция для тестирования аудио вывода
+  const testAudioOutput = useCallback(() => {
+    if (!audioContextRef.current || audioContextRef.current.state !== 'running') {
+      console.error('AudioContext is not running, cannot test audio output');
+      return;
+    }
+
+    try {
+      console.log('=== Testing Audio Output ===');
+      
+      // Создаем тестовый тон
+      const oscillator = audioContextRef.current.createOscillator();
+      const gainNode = audioContextRef.current.createGain();
+      
+      oscillator.frequency.setValueAtTime(440, audioContextRef.current.currentTime); // A4 note
+      oscillator.type = 'sine';
+      gainNode.gain.setValueAtTime(0.1, audioContextRef.current.currentTime); // Low volume
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContextRef.current.destination);
+      
+      oscillator.start(audioContextRef.current.currentTime);
+      oscillator.stop(audioContextRef.current.currentTime + 1); // Play for 1 second
+      
+      console.log('Test tone played successfully!');
+      console.log('=== End Audio Output Test ===');
+    } catch (error) {
+      console.error('Failed to test audio output:', error);
+    }
+  }, []);
+
   // Update toggleAudio function
   const toggleAudio = useCallback(() => {
     const newState = !isAudioEnabled;
@@ -4043,8 +4205,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   // Предоставляем внешним компонентам доступ к функциям управления
   useImperativeHandle(ref, () => ({
     handleMute,
-    toggleAudio
-  }), [handleMute, toggleAudio]);
+    toggleAudio,
+    diagnoseAudio,
+    testAudioOutput
+  }), [handleMute, toggleAudio, diagnoseAudio, testAudioOutput]);
 
   // Add initial audio state when joining
   useEffect(() => {
@@ -4270,6 +4434,20 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                   sx={styles.iconButton}
                   onClick={forceResumeAudioContext}
                   title="Force resume AudioContext"
+                >
+                  <VolumeUp />
+                </IconButton>
+                <IconButton
+                  sx={styles.iconButton}
+                  onClick={diagnoseAudio}
+                  title="Diagnose audio issues"
+                >
+                  <BugReport />
+                </IconButton>
+                <IconButton
+                  sx={styles.iconButton}
+                  onClick={testAudioOutput}
+                  title="Test audio output"
                 >
                   <VolumeUp />
                 </IconButton>
