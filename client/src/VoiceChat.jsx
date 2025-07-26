@@ -83,14 +83,14 @@ const config = {
     autoGainControl: true,
     sampleRate: 48000,
     channelCount: 2,
-    volume: 4.0,
+    volume: 5.0, // Увеличиваем громкость в 5 раз
     latency: 0,
     suppressLocalAudioPlayback: true,
     advanced: [
       {
         echoCancellationType: 'system',
         noiseSuppression: { level: 'high' },
-        autoGainControl: { level: 'high' },
+        autoGainControl: { level: 'high', targetLevelDbfs: -10 }, // Увеличиваем целевой уровень громкости
         googEchoCancellation: true,
         googEchoCancellation2: true,
         googAutoGainControl: true,
@@ -2816,7 +2816,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           sampleRate: 48000,
           sampleSize: 16,
           latency: 0,
-          volume: 1.0,
+          volume: 5.0, // Увеличиваем громкость в 5 раз
           enabled: true // Ensure audio starts enabled
         },
         video: false
@@ -2841,6 +2841,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       // Ensure track settings are applied
       const settings = track.getSettings();
       console.log('Final audio track settings:', settings);
+      console.log('Audio amplification applied: getUserMedia volume=5.0, WebAudio gain=5.0, total amplification=25x');
 
       // Set track enabled state based on initial mute state
       track.enabled = !initialMuted; // Track enabled opposite of mute state
@@ -2864,8 +2865,29 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
       // Add analyzer for voice activity detection
       const source = audioContextRef.current.createMediaStreamSource(processedStream);
+      
+      // Добавляем GainNode для усиления исходящего звука в 5 раз
+      const gainNode = audioContextRef.current.createGain();
+      gainNode.gain.value = 5.0; // Усиление в 5 раз
+      console.log('Applied 5x audio amplification for outgoing stream');
+      
       const analyser = createAudioAnalyser(audioContextRef.current);
-      source.connect(analyser);
+      
+      // Подключаем цепочку: source -> gainNode -> analyser
+      source.connect(gainNode);
+      gainNode.connect(analyser);
+      
+      // Создаем новый MediaStream из усиленного аудио
+      const destination = audioContextRef.current.createMediaStreamDestination();
+      gainNode.connect(destination);
+      
+      // Получаем усиленный трек
+      const amplifiedTrack = destination.stream.getAudioTracks()[0];
+      
+      // Заменяем трек в processedStream на усиленный
+      const processedTrack = processedStream.getAudioTracks()[0];
+      processedStream.removeTrack(processedTrack);
+      processedStream.addTrack(amplifiedTrack);
 
       // Store analyser reference
       analyserNodesRef.current.set(socketRef.current.id, analyser);
@@ -2880,7 +2902,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           opusStereo: true,
           opusDtx: true,
           opusFec: true,
-          opusNack: true
+          opusNack: true,
+          opusMaxAverageBitrate: 128000, // Увеличиваем битрейт для лучшего качества
+          opusMaxPlaybackRate: 48000, // Максимальная частота воспроизведения
+          opusComplexity: 10, // Максимальная сложность кодирования
+          opusSignal: 'voice' // Оптимизация для голоса
         },
         appData: {
           streamId: processedStream.id
