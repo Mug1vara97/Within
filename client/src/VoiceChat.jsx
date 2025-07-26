@@ -83,14 +83,14 @@ const config = {
     autoGainControl: true,
     sampleRate: 48000,
     channelCount: 2,
-    volume: 5.0, // Увеличиваем громкость в 5 раз
+    volume: 10.0, // Увеличиваем громкость в 10 раз
     latency: 0,
     suppressLocalAudioPlayback: true,
     advanced: [
       {
         echoCancellationType: 'system',
         noiseSuppression: { level: 'high' },
-        autoGainControl: { level: 'high', targetLevelDbfs: -10 }, // Увеличиваем целевой уровень громкости
+        autoGainControl: { level: 'high', targetLevelDbfs: -5 }, // Увеличиваем целевой уровень громкости еще больше
         googEchoCancellation: true,
         googEchoCancellation2: true,
         googAutoGainControl: true,
@@ -1211,7 +1211,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const [videoProducer, setVideoProducer] = useState(null);
   const [videoStream, setVideoStream] = useState(null);
   const [remoteVideos, setRemoteVideos] = useState(new Map());
-  const [isNoiseSuppressed, setIsNoiseSuppressed] = useState(false);
+  const [isNoiseSuppressed, setIsNoiseSuppressed] = useState(true); // Включаем шумоподавление по умолчанию
   const [noiseSuppressionMode, setNoiseSuppressionMode] = useState('rnnoise');
   const [noiseSuppressMenuAnchor, setNoiseSuppressMenuAnchor] = useState(null);
   const noiseSuppressionRef = useRef(null);
@@ -2816,7 +2816,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           sampleRate: 48000,
           sampleSize: 16,
           latency: 0,
-          volume: 5.0, // Увеличиваем громкость в 5 раз
+          volume: 10.0, // Увеличиваем громкость в 10 раз
           enabled: true // Ensure audio starts enabled
         },
         video: false
@@ -2829,6 +2829,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       
       // Initialize noise suppression with the stream
       await noiseSuppressionRef.current.initialize(stream, audioContextRef.current);
+      console.log('Noise suppression initialized');
       
       // Get the processed stream for the producer
       const processedStream = noiseSuppressionRef.current.getProcessedStream();
@@ -2841,7 +2842,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       // Ensure track settings are applied
       const settings = track.getSettings();
       console.log('Final audio track settings:', settings);
-      console.log('Audio amplification applied: getUserMedia volume=5.0, WebAudio gain=5.0, total amplification=25x');
+      console.log('Audio amplification applied: getUserMedia volume=10.0, WebAudio gain=10.0, total amplification=100x');
 
       // Set track enabled state based on initial mute state
       track.enabled = !initialMuted; // Track enabled opposite of mute state
@@ -2856,6 +2857,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         const enableResult = await noiseSuppressionRef.current.enable(noiseSuppressionMode);
         if (!enableResult) {
           console.warn('Failed to enable noise suppression, continuing without it');
+        } else {
+          console.log(`Noise suppression enabled with mode: ${noiseSuppressionMode}`);
         }
       }
 
@@ -2866,10 +2869,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       // Add analyzer for voice activity detection
       const source = audioContextRef.current.createMediaStreamSource(processedStream);
       
-      // Добавляем GainNode для усиления исходящего звука в 5 раз
+      // Добавляем GainNode для усиления исходящего звука в 10 раз
       const gainNode = audioContextRef.current.createGain();
-      gainNode.gain.value = 5.0; // Усиление в 5 раз
-      console.log('Applied 5x audio amplification for outgoing stream');
+      gainNode.gain.value = 10.0; // Усиление в 10 раз
+      console.log('Applied 10x audio amplification for outgoing stream');
       
       const analyser = createAudioAnalyser(audioContextRef.current);
       
