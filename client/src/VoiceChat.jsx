@@ -2218,11 +2218,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // Store references
           analyserNodesRef.current.set(producer.producerSocketId, analyser);
           gainNodesRef.current.set(producer.producerSocketId, gainNode);
+          console.log('Created gain node for producerSocketId:', producer.producerSocketId);
           setVolumes(prev => new Map(prev).set(producer.producerSocketId, 200));
 
           // Start voice detection
           detectSpeaking(analyser, producer.producerSocketId, producer.producerId);
           console.log('Audio setup completed for peer:', producer.producerSocketId);
+      console.log('All gain nodes after setup:', Array.from(gainNodesRef.current.keys()));
         } catch (error) {
           console.error('Error setting up audio:', error);
         }
@@ -2540,6 +2542,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
     const handleVolumeChange = (peerId) => {
     console.log('Volume change requested for peer:', peerId);
+    console.log('Available gain nodes in handleVolumeChange:', Array.from(gainNodesRef.current.keys()));
     const gainNode = gainNodesRef.current.get(peerId);
     
     // Даже если глобально звук выключен, мы все равно меняем индивидуальное состояние
@@ -2599,7 +2602,15 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
    const handleVolumeSliderChange = useCallback((peerId, newVolume) => {
      console.log('Volume slider change for peer:', peerId, 'New volume:', newVolume);
      
-     const gainNode = gainNodesRef.current.get(peerId);
+     // Попробуем найти gain node по разным возможным ключам
+     let gainNode = gainNodesRef.current.get(peerId);
+     if (!gainNode) {
+       // Попробуем найти по producerSocketId
+       gainNode = gainNodesRef.current.get(peerId);
+     }
+     
+     console.log('Available gain nodes:', Array.from(gainNodesRef.current.keys()));
+     console.log('Looking for gain node for peer:', peerId);
      
      if (gainNode) {
        // Слайдер 0-200% соответствует 0-400% усиления (0.0-4.0 gain)
@@ -2609,6 +2620,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
        console.log('Set gain node value to', gainValue, 'for peer:', peerId);
      } else {
        console.error('Gain node not found for peer:', peerId);
+       console.log('Available gain nodes:', Array.from(gainNodesRef.current.keys()));
      }
      
      // Также обновляем HTML Audio элемент
@@ -2662,10 +2674,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     // Инициализируем состояние - не замучен индивидуально
     individualMutedPeersRef.current.set(peerId, false);
     // Инициализируем предыдущий уровень громкости
-    previousVolumesRef.current.set(peerId, 100);
+    previousVolumesRef.current.set(peerId, 200);
          setVolumes(prev => {
        const newVolumes = new Map(prev);
-       newVolumes.set(peerId, 100);
+       newVolumes.set(peerId, 200);
        return newVolumes;
      });
      setShowVolumeSliders(prev => {
@@ -3043,12 +3055,18 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         // Очищаем аудио узлы
         // Находим producerSocketId по consumer
         let producerSocketId = null;
-        for (const [, cons] of consumersRef.current.entries()) {
+        console.log('Looking for producerSocketId for consumer:', consumerId);
+        console.log('Available gain nodes before cleanup:', Array.from(gainNodesRef.current.keys()));
+        
+        // Попробуем найти producerSocketId по consumer
+        for (const [consId, cons] of consumersRef.current.entries()) {
           if (cons === consumer) {
+            console.log('Found consumer in consumersRef:', consId);
             // Ищем соответствующий peerId в gainNodes
             for (const [socketId, gainNode] of gainNodesRef.current.entries()) {
               if (gainNode) {
                 producerSocketId = socketId;
+                console.log('Found producerSocketId:', producerSocketId);
                 break;
               }
             }
@@ -3057,10 +3075,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         }
         
         if (producerSocketId) {
+          console.log('Cleaning up gain node for producerSocketId:', producerSocketId);
           const gainNode = gainNodesRef.current.get(producerSocketId);
           if (gainNode) {
             gainNode.disconnect();
             gainNodesRef.current.delete(producerSocketId);
+            console.log('Gain node removed for producerSocketId:', producerSocketId);
+          } else {
+            console.log('No gain node found for producerSocketId:', producerSocketId);
           }
 
           const analyser = analyserNodesRef.current.get(producerSocketId);
@@ -4075,11 +4097,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
           analyserNodesRef.current.set(producer.producerSocketId, analyser);
           gainNodesRef.current.set(producer.producerSocketId, gainNode);
+          console.log('handleConsume: Created gain node for producerSocketId:', producer.producerSocketId);
           setVolumes(prev => new Map(prev).set(producer.producerSocketId, 200));
 
           // Start voice detection with producerId
           detectSpeaking(analyser, producer.producerSocketId, producer.producerId);
           console.log('handleConsume: Audio setup completed for peer:', producer.producerSocketId);
+      console.log('handleConsume: All gain nodes after setup:', Array.from(gainNodesRef.current.keys()));
         } catch (error) {
           console.error('Error setting up audio:', error);
         }
@@ -4312,7 +4336,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                         volume={volumes.get(peer.id) || 200}
                         isAudioMuted={individualMutedPeersRef.current.get(peer.id) || false}
                         showVolumeSlider={showVolumeSliders.get(peer.id) || false}
-                        onVolumeSliderChange={(newVolume) => handleVolumeSliderChange(peer.id, newVolume)}
+                        onVolumeSliderChange={(newVolume) => {
+                          console.log('Calling handleVolumeSliderChange with peer.id:', peer.id);
+                          handleVolumeSliderChange(peer.id, newVolume);
+                        }}
                         onToggleVolumeSlider={() => toggleVolumeSlider(peer.id)}
                       />
                     ) : (
@@ -4338,7 +4365,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                           volume={volumes.get(peer.id) || 200}
                           isAudioMuted={individualMutedPeersRef.current.get(peer.id) || false}
                           showVolumeSlider={showVolumeSliders.get(peer.id) || false}
-                          onVolumeSliderChange={(newVolume) => handleVolumeSliderChange(peer.id, newVolume)}
+                          onVolumeSliderChange={(newVolume) => {
+                            console.log('Calling handleVolumeSliderChange with peer.id:', peer.id);
+                            handleVolumeSliderChange(peer.id, newVolume);
+                          }}
                           onToggleVolumeSlider={() => toggleVolumeSlider(peer.id)}
                         />
                       </div>
