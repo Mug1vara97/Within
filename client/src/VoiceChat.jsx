@@ -83,7 +83,7 @@ const config = {
     autoGainControl: true,
     sampleRate: 48000,
     channelCount: 2,
-    volume: 6.0, // Увеличиваем базовое усиление
+    volume: 10.0, // Увеличиваем базовое усиление до максимума
     latency: 0,
     suppressLocalAudioPlayback: true,
     advanced: [
@@ -2532,7 +2532,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
           if (!isIndividuallyMuted) {
             const individualVolume = volumes.get(peerId) || 100;
-            const gainValue = (individualVolume / 100.0) * 6.0;
+            const gainValue = (individualVolume / 100.0) * 10.0;
             gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
           } else {
             gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
@@ -2589,7 +2589,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     if (gainNode) {
       if (!newIsIndividuallyMuted) {
         // Восстанавливаем предыдущий уровень громкости
-        const gainValue = (newVolume / 100.0) * 6.0;
+        const gainValue = (newVolume / 100.0) * 10.0;
         gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
         console.log('Set gain to', gainValue, 'and unmuted peer:', peerId);
       } else {
@@ -2626,8 +2626,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
      const gainNode = gainNodesRef.current.get(peerId);
      
      if (gainNode) {
-       // Слайдер 0-100% соответствует 0-600% усиления (0.0-6.0 gain)
-       const gainValue = (newVolume / 100.0) * 6.0;
+       // Слайдер 0-100% соответствует 0-1000% усиления (0.0-10.0 gain)
+       const gainValue = (newVolume / 100.0) * 10.0;
        gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
        
        console.log('Set gain node value to', gainValue, 'for peer:', peerId);
@@ -4126,7 +4126,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         if (newState) {
           // При включении восстанавливаем индивидуальный уровень громкости
           const individualVolume = volumes.get(peerId) || 100;
-                     const gainValue = (individualVolume / 100.0) * 6.0; // 0-100% слайдера -> 0.0-6.0 gain
+                     const gainValue = (individualVolume / 100.0) * 10.0; // 0-100% слайдера -> 0.0-10.0 gain
           gainNode.gain.value = gainValue;
         } else {
           // При выключении мутим всех
