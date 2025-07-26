@@ -1299,10 +1299,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         });
       });
 
-      socketRef.current.on('peerMuteStateChanged', ({ peerId, isMuted }) => {
+              socketRef.current.on('peerMuteStateChanged', ({ peerId, isMuted }) => {
         setVolumes(prev => {
           const newVolumes = new Map(prev);
-          newVolumes.set(peerId, isMuted ? 0 : 100);
+          newVolumes.set(peerId, isMuted ? 0 : 200);
           return newVolumes;
         });
         
@@ -1435,7 +1435,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       
       setVolumes(prev => {
         const newVolumes = new Map(prev);
-        newVolumes.set(peerId, isMuted ? 0 : 100);
+        newVolumes.set(peerId, isMuted ? 0 : 200);
         return newVolumes;
       });
       
@@ -1806,7 +1806,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         // Initialize volumes for the new peer
         setVolumes(prev => {
           const newVolumes = new Map(prev);
-          newVolumes.set(peerId, isMuted ? 0 : 100); // Set volume based on mute state
+          newVolumes.set(peerId, isMuted ? 0 : 200); // Set volume based on mute state
           return newVolumes;
         });
 
@@ -1912,10 +1912,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                 individualMutedPeersRef.current.set(peer.id, false);
                 
                 // Initialize previous volumes for existing peers
-                previousVolumesRef.current.set(peer.id, 100);
+                previousVolumesRef.current.set(peer.id, 200);
                 
                 // Initialize volumes for existing peers - full volume by default
-                volumesMap.set(peer.id, 100);
+                volumesMap.set(peer.id, 200);
               });
               
               setPeers(peersMap);
@@ -2127,7 +2127,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           audioElement.playsInline = true;
           // Initialize volume based on individual mute state and global audio state
           const isIndividuallyMutedForAudio = individualMutedPeersRef.current.get(producer.producerSocketId) ?? false;
-          const individualVolume = volumes.get(producer.producerSocketId) || 100;
+          const individualVolume = volumes.get(producer.producerSocketId) || 200;
           audioElement.volume = (isAudioEnabledRef.current && !isIndividuallyMutedForAudio) ? (individualVolume / 100.0) : 0.0;
           audioElement.style.display = 'none';
           document.body.appendChild(audioElement);
@@ -2181,11 +2181,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           
           // Create gain node для регулировки громкости
           const gainNode = audioContext.createGain();
-          // Начальная громкость всегда 100% для нового пира (индивидуально не замьючен)
+          // Начальная громкость всегда 200% для нового пира (индивидуально не замьючен)
           // Глобальное состояние звука будет применено через эффект
           const isIndividuallyMuted = individualMutedPeersRef.current.get(producer.producerSocketId) ?? false;
-          const initialVolume = isIndividuallyMuted ? 0 : 100;
-          const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 100.0) * 4.0 : 0;
+          const initialVolume = isIndividuallyMuted ? 0 : 200;
+          const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 100.0) * 2.0 : 0;
           gainNode.gain.value = initialGain;
           console.log('Created gain node for peer:', producer.producerSocketId, {
             isAudioEnabled: isAudioEnabledRef.current,
@@ -2208,7 +2208,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             console.log(`Gain check for peer ${producer.producerSocketId}:`, {
               gainValue: gainNode.gain.value,
               isAudioEnabled: isAudioEnabledRef.current,
-              individualVolume: volumes.get(producer.producerSocketId) || 100
+              individualVolume: volumes.get(producer.producerSocketId) || 200
             });
           }, 5000);
           
@@ -2218,7 +2218,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // Store references
           analyserNodesRef.current.set(producer.producerSocketId, analyser);
           gainNodesRef.current.set(producer.producerSocketId, gainNode);
-          setVolumes(prev => new Map(prev).set(producer.producerSocketId, 100));
+          setVolumes(prev => new Map(prev).set(producer.producerSocketId, 200));
 
           // Start voice detection
           detectSpeaking(analyser, producer.producerSocketId, producer.producerId);
@@ -2507,8 +2507,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         } else {
           const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
           if (!isIndividuallyMuted) {
-            const individualVolume = volumes.get(peerId) || 100;
-            const gainValue = (individualVolume / 100.0) * 4.0;
+            const individualVolume = volumes.get(peerId) || 200;
+            const gainValue = (individualVolume / 100.0) * 2.0;
             gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
           } else {
             gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
@@ -2527,7 +2527,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           } else {
             const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
             if (!isIndividuallyMuted) {
-              const individualVolume = volumes.get(peerId) || 100;
+              const individualVolume = volumes.get(peerId) || 200;
               audioElement.volume = individualVolume / 100.0;
             } else {
               audioElement.volume = 0;
@@ -2549,14 +2549,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     let newVolume;
     if (newIsIndividuallyMuted) {
       // Мутим - устанавливаем 0, но сначала сохраняем текущий уровень если он больше 0
-      const currentVolume = volumes.get(peerId) || 100;
+      const currentVolume = volumes.get(peerId) || 200;
       if (currentVolume > 0) {
         previousVolumesRef.current.set(peerId, currentVolume);
       }
       newVolume = 0;
     } else {
       // Размутиваем - восстанавливаем предыдущий уровень или используем 100% по умолчанию
-      newVolume = previousVolumesRef.current.get(peerId) || 100;
+      newVolume = previousVolumesRef.current.get(peerId) || 200;
     }
     
     console.log('Peer:', peerId, 'Current individual mute:', isIndividuallyMuted, 'New individual mute:', newIsIndividuallyMuted, 'New volume:', newVolume);
@@ -3542,7 +3542,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           actuallyMuted = !track || !track.enabled;
                  } else {
            // Для удаленных пользователей проверяем volume через ref
-           actuallyMuted = (volumesRef.current.get(peerId) || 100) === 0;
+           actuallyMuted = (volumesRef.current.get(peerId) || 200) === 0;
          }
          
          if (actuallyMuted) {
@@ -4036,11 +4036,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           
           // Create gain node для регулировки громкости
           const gainNode = audioContext.createGain();
-          // Начальная громкость всегда 100% для нового пира (индивидуально не замьючен)
+          // Начальная громкость всегда 200% для нового пира (индивидуально не замьючен)
           // Глобальное состояние звука будет применено через эффект
           const isIndividuallyMuted = individualMutedPeersRef.current.get(producer.producerSocketId) ?? false;
-          const initialVolume = isIndividuallyMuted ? 0 : 100;
-          const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 100.0) * 4.0 : 0;
+          const initialVolume = isIndividuallyMuted ? 0 : 200;
+          const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 100.0) * 2.0 : 0;
           gainNode.gain.value = initialGain;
           console.log('handleConsume: Created gain node for peer:', producer.producerSocketId, {
             isAudioEnabled: isAudioEnabledRef.current,
@@ -4063,7 +4063,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             console.log(`handleConsume: Gain check for peer ${producer.producerSocketId}:`, {
               gainValue: gainNode.gain.value,
               isAudioEnabled: isAudioEnabledRef.current,
-              individualVolume: volumes.get(producer.producerSocketId) || 100
+              individualVolume: volumes.get(producer.producerSocketId) || 200
             });
           }, 5000);
           
@@ -4075,7 +4075,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
           analyserNodesRef.current.set(producer.producerSocketId, analyser);
           gainNodesRef.current.set(producer.producerSocketId, gainNode);
-          setVolumes(prev => new Map(prev).set(producer.producerSocketId, 100));
+          setVolumes(prev => new Map(prev).set(producer.producerSocketId, 200));
 
           // Start voice detection with producerId
           detectSpeaking(analyser, producer.producerSocketId, producer.producerId);
@@ -4126,7 +4126,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       if (gainNode) {
         if (newState) {
           // При включении восстанавливаем индивидуальный уровень громкости
-          const individualVolume = volumes.get(peerId) || 100;
+          const individualVolume = volumes.get(peerId) || 200;
           const gainValue = (individualVolume / 100.0) * 2.0; // 0-200% слайдера -> 0.0-4.0 gain
           gainNode.gain.value = gainValue;
         } else {
@@ -4309,7 +4309,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                         isAudioEnabled={audioStates.get(peer.id)}
                         isLocal={false}
                         onVolumeClick={() => handleVolumeChange(peer.id)}
-                        volume={volumes.get(peer.id) || 100}
+                        volume={volumes.get(peer.id) || 200}
                         isAudioMuted={individualMutedPeersRef.current.get(peer.id) || false}
                         showVolumeSlider={showVolumeSliders.get(peer.id) || false}
                         onVolumeSliderChange={(newVolume) => handleVolumeSliderChange(peer.id, newVolume)}
@@ -4335,7 +4335,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                           isAudioEnabled={audioStates.get(peer.id)}
                           isLocal={false}
                           onVolumeClick={() => handleVolumeChange(peer.id)}
-                          volume={volumes.get(peer.id) || 100}
+                          volume={volumes.get(peer.id) || 200}
                           isAudioMuted={individualMutedPeersRef.current.get(peer.id) || false}
                           showVolumeSlider={showVolumeSliders.get(peer.id) || false}
                           onVolumeSliderChange={(newVolume) => handleVolumeSliderChange(peer.id, newVolume)}
