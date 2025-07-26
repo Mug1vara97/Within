@@ -117,8 +117,8 @@ export class AudioAmplifier {
     // Создаем компрессор
     this.createCompressor();
     
-    // Создаем каскадные gain nodes с меньшим усилением
-    this.createCascadedGain(4.0, 3); // Уменьшаем максимальное усиление с 10.0 до 4.0
+    // Создаем каскадные gain nodes с минимальным усилением для тестирования
+    this.createCascadedGain(1.5, 2); // Временно уменьшаем до минимума для тестирования
     
     // Создаем лимитер
     this.createLimiter();
