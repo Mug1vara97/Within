@@ -3977,6 +3977,30 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             console.log('handleConsume: Audio track constraints:', constraints);
           }
           
+          // Создаем анализатор для проверки аудио данных
+          const analyser = audioContext.createAnalyser();
+          analyser.fftSize = 256;
+          const bufferLength = analyser.frequencyBinCount;
+          const dataArray = new Uint8Array(bufferLength);
+          
+          // Подключаем анализатор к потоку для мониторинга
+          source.connect(analyser);
+          analyser.connect(gainNode);
+          
+          // Функция для проверки аудио данных
+          const checkAudioData = () => {
+            analyser.getByteFrequencyData(dataArray);
+            const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+            console.log('handleConsume: Audio data check for peer', producer.producerSocketId, {
+              averageLevel: average,
+              maxLevel: Math.max(...dataArray),
+              hasData: average > 0
+            });
+          };
+          
+          // Проверяем аудио данные через 1 секунду
+          setTimeout(checkAudioData, 1000);
+          
           const source = audioContext.createMediaStreamSource(stream);
           console.log('handleConsume: Created MediaStreamSource from stream');
           
@@ -4036,6 +4060,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // Добавляем периодическую проверку gain node и аудио треков
           const checkGainInterval = setInterval(() => {
             const audioTracks = stream.getAudioTracks();
+            
+            // Проверяем аудио данные
+            analyser.getByteFrequencyData(dataArray);
+            const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+            
             console.log(`handleConsume: Gain check for peer ${producer.producerSocketId}:`, {
               gainValue: gainNode.gain.value,
               isAudioEnabled: isAudioEnabledRef.current,
@@ -4043,7 +4072,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
               audioTracksCount: audioTracks.length,
               trackEnabled: audioTracks[0]?.enabled,
               trackReadyState: audioTracks[0]?.readyState,
-              audioContextState: audioContext.state
+              audioContextState: audioContext.state,
+              audioDataAverage: average,
+              audioDataMax: Math.max(...dataArray),
+              hasAudioData: average > 0
             });
           }, 5000);
           
