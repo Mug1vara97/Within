@@ -1271,10 +1271,16 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   useEffect(() => {
     const resumeAudioContext = async () => {
-      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+      if (audioContextRef.current) {
         try {
-          await audioContextRef.current.resume();
-          console.log('AudioContext resumed successfully');
+          if (audioContextRef.current.state === 'suspended') {
+            await audioContextRef.current.resume();
+            console.log('AudioContext resumed successfully');
+          } else if (audioContextRef.current.state === 'closed') {
+            // Если AudioContext закрыт, создаем новый
+            audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+            console.log('New AudioContext created');
+          }
         } catch (error) {
           console.error('Failed to resume AudioContext:', error);
         }
@@ -1285,9 +1291,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       console.log('User interaction detected, resuming audio...');
       await resumeAudioContext();
       
-      document.removeEventListener('click', handleInteraction);
-      document.removeEventListener('touchstart', handleInteraction);
-      document.removeEventListener('keydown', handleInteraction);
+      // Удаляем обработчики только после успешного возобновления
+      if (audioContextRef.current && audioContextRef.current.state === 'running') {
+        document.removeEventListener('click', handleInteraction);
+        document.removeEventListener('touchstart', handleInteraction);
+        document.removeEventListener('keydown', handleInteraction);
+        console.log('AudioContext is running, removed event listeners');
+      }
     };
 
     if (socketRef.current) {
@@ -1316,14 +1326,19 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       });
     }
 
+    // Добавляем обработчики для всех типов взаимодействий
     document.addEventListener('click', handleInteraction);
     document.addEventListener('touchstart', handleInteraction);
     document.addEventListener('keydown', handleInteraction);
+    document.addEventListener('mousedown', handleInteraction);
+    document.addEventListener('mouseup', handleInteraction);
 
     return () => {
       document.removeEventListener('click', handleInteraction);
       document.removeEventListener('touchstart', handleInteraction);
       document.removeEventListener('keydown', handleInteraction);
+      document.removeEventListener('mousedown', handleInteraction);
+      document.removeEventListener('mouseup', handleInteraction);
     };
   }, []);
 
@@ -2087,14 +2102,25 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         // Handle regular audio streams
         try {
           // Create audio context and nodes for Web Audio API processing
-          const audioContext = audioContextRef.current;
-          console.log('AudioContext state:', audioContext.state);
+          let audioContext = audioContextRef.current;
+          console.log('AudioContext state:', audioContext?.state);
           
-          // Resume audio context if suspended
-          if (audioContext.state === 'suspended') {
+          // Проверяем и восстанавливаем AudioContext
+          if (!audioContext || audioContext.state === 'closed') {
+            console.log('Creating new AudioContext...');
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            audioContextRef.current = audioContext;
+          } else if (audioContext.state === 'suspended') {
             console.log('Resuming suspended AudioContext...');
-            await audioContext.resume();
-            console.log('AudioContext resumed, new state:', audioContext.state);
+            try {
+              await audioContext.resume();
+              console.log('AudioContext resumed, new state:', audioContext.state);
+            } catch (error) {
+              console.error('Failed to resume AudioContext:', error);
+              // Создаем новый AudioContext если не удалось возобновить
+              audioContext = new (window.AudioContext || window.webkitAudioContext)();
+              audioContextRef.current = audioContext;
+            }
           }
           
           // Проверяем, что поток содержит активные треки
@@ -2150,7 +2176,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // Глобальное состояние звука будет применено через эффект
           const isIndividuallyMuted = individualMutedPeersRef.current.get(producer.producerSocketId) ?? false;
           const initialVolume = isIndividuallyMuted ? 0 : 100;
-          const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 100.0) * 4.0 : 0;
+          const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 100.0) * 20.0 : 0;
           gainNode.gain.value = initialGain;
           console.log('Created gain node for peer:', producer.producerSocketId, {
             isAudioEnabled: isAudioEnabledRef.current,
@@ -4019,6 +4045,26 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     }
   };
 
+  // Функция для принудительного возобновления AudioContext
+  const forceResumeAudioContext = useCallback(async () => {
+    try {
+      if (audioContextRef.current) {
+        if (audioContextRef.current.state === 'suspended') {
+          await audioContextRef.current.resume();
+          console.log('AudioContext force resumed successfully');
+        } else if (audioContextRef.current.state === 'closed') {
+          audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+          console.log('New AudioContext force created');
+        }
+      } else {
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+        console.log('AudioContext force created');
+      }
+    } catch (error) {
+      console.error('Failed to force resume AudioContext:', error);
+    }
+  }, []);
+
   // Update toggleAudio function
   const toggleAudio = useCallback(() => {
     const newState = !isAudioEnabled;
@@ -4276,6 +4322,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                   title={isAudioEnabled ? "Disable audio output" : "Enable audio output"}
                 >
                   {isAudioEnabled ? <Headset /> : <HeadsetOff />}
+                </IconButton>
+                <IconButton
+                  sx={styles.iconButton}
+                  onClick={forceResumeAudioContext}
+                  title="Force resume AudioContext"
+                >
+                  <VolumeUp />
                 </IconButton>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <IconButton
