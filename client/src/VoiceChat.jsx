@@ -83,7 +83,7 @@ const config = {
     autoGainControl: true,
     sampleRate: 48000,
     channelCount: 2,
-    volume: 10.0, // Увеличиваем базовое усиление до максимума
+    volume: 20.0, // Увеличиваем базовое усиление до максимума
     latency: 0,
     suppressLocalAudioPlayback: true,
     advanced: [
@@ -1252,31 +1252,21 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   const [fullscreenShare, setFullscreenShare] = useState(null);
 
-  // Функция для создания улучшенной аудио цепочки с компрессором
+  // Функция для создания каскадной аудио цепочки с максимальным усилением
   const createEnhancedAudioChain = (audioContext, source, analyser, gainNode) => {
-    // Создаем компрессор для увеличения громкости
-    const compressor = audioContext.createDynamicsCompressor();
-    compressor.threshold.value = -20; // Более мягкий порог
-    compressor.knee.value = 10;
-    compressor.ratio.value = 4; // Умеренное сжатие
-    compressor.attack.value = 0.01;
-    compressor.release.value = 0.1;
+    // Создаем дополнительный gain node для каскадного усиления
+    const additionalGain = audioContext.createGain();
+    additionalGain.gain.value = 5.0; // Дополнительное усиление
     
-    // Создаем фильтр высоких частот для устранения низкочастотного шума
-    const highPassFilter = audioContext.createBiquadFilter();
-    highPassFilter.type = 'highpass';
-    highPassFilter.frequency.value = 100; // Отсекаем частоты ниже 100Гц
-    
-    // Подключаем цепочку: source -> highPassFilter -> compressor -> analyser -> gainNode -> destination
-    source.connect(highPassFilter);
-    highPassFilter.connect(compressor);
-    compressor.connect(analyser);
+    // Каскадная цепочка: source -> analyser -> gainNode -> additionalGain -> destination
+    source.connect(analyser);
     analyser.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+    gainNode.connect(additionalGain);
+    additionalGain.connect(audioContext.destination);
     
-    console.log('Connected enhanced audio chain: source -> highPassFilter -> compressor -> analyser -> gainNode -> destination');
+    console.log('Connected cascaded audio chain: source -> analyser -> gainNode -> additionalGain -> destination');
     
-    return { compressor, highPassFilter };
+    return { additionalGain };
   };
 
   // Обработчик для уведомления о выходе при закрытии вкладки
@@ -2532,7 +2522,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
           if (!isIndividuallyMuted) {
             const individualVolume = volumes.get(peerId) || 100;
-            const gainValue = (individualVolume / 100.0) * 10.0;
+            const gainValue = (individualVolume / 100.0) * 20.0;
             gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
           } else {
             gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
@@ -2589,7 +2579,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     if (gainNode) {
       if (!newIsIndividuallyMuted) {
         // Восстанавливаем предыдущий уровень громкости
-        const gainValue = (newVolume / 100.0) * 10.0;
+        const gainValue = (newVolume / 100.0) * 20.0;
         gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
         console.log('Set gain to', gainValue, 'and unmuted peer:', peerId);
       } else {
@@ -2626,8 +2616,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
      const gainNode = gainNodesRef.current.get(peerId);
      
      if (gainNode) {
-       // Слайдер 0-100% соответствует 0-1000% усиления (0.0-10.0 gain)
-       const gainValue = (newVolume / 100.0) * 10.0;
+       // Слайдер 0-100% соответствует 0-2000% усиления (0.0-20.0 gain)
+       const gainValue = (newVolume / 100.0) * 20.0;
        gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
        
        console.log('Set gain node value to', gainValue, 'for peer:', peerId);
@@ -4126,7 +4116,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         if (newState) {
           // При включении восстанавливаем индивидуальный уровень громкости
           const individualVolume = volumes.get(peerId) || 100;
-                     const gainValue = (individualVolume / 100.0) * 10.0; // 0-100% слайдера -> 0.0-10.0 gain
+                     const gainValue = (individualVolume / 100.0) * 20.0; // 0-100% слайдера -> 0.0-20.0 gain
           gainNode.gain.value = gainValue;
         } else {
           // При выключении мутим всех
