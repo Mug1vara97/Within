@@ -23,10 +23,20 @@
 .replied-message-content {
     font-size: 0.9em;
     color: var(--textSecondary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     max-width: 300px;
+}
+
+.replied-message-content img {
+    max-width: 100%;
+    max-height: 150px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.replied-message-content video {
+    max-width: 100%;
+    max-height: 150px;
+    border-radius: 4px;
 }
 
 .input-container.replying {
@@ -83,9 +93,19 @@
 .reply-content {
     color: var(--textMuted);
     font-size: 0.9em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+}
+
+.reply-content img {
+    max-width: 100%;
+    max-height: 80px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.reply-content video {
+    max-width: 100%;
+    max-height: 80px;
+    border-radius: 4px;
 }
 
 .cancel-reply-button {

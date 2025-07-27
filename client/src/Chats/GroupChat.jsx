@@ -613,7 +613,9 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
                     <div className="replied-message-header">
                       <strong>{msg.repliedMessage.senderUsername}</strong>
                     </div>
-                    <div className="replied-message-content">{processLinks(msg.repliedMessage.content)}</div>
+                    <div className="replied-message-content">
+                      <MediaMessage content={msg.repliedMessage.content} />
+                    </div>
                   </div>
                 )}
                 {msg.forwardedMessage && (
@@ -708,7 +710,9 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
                 <strong>{replyingToMessage.senderUsername}</strong>
                 <span>Ответ на сообщение</span>
               </div>
-              <div className="reply-content">{processLinks(replyingToMessage.content)}</div>
+              <div className="reply-content">
+                <MediaMessage content={replyingToMessage.content} />
+              </div>
             </div>
             <button onClick={() => setReplyingToMessage(null)} className="cancel-reply-button">
               ×
