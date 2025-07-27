@@ -1308,7 +1308,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       });
 
       socketRef.current.on('peerMuteStateChanged', ({ peerId, isMuted }) => {
-        // Не изменяем громкость при изменении состояния мьюта другого пользователя
+        // НЕ изменяем громкость при изменении состояния мьюта другого пользователя
         // Громкость должна сохраняться индивидуально для каждого пользователя
         
         if (isMuted) {
