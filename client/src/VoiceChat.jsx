@@ -1283,8 +1283,31 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         try {
           await audioContextRef.current.resume();
           console.log('AudioContext resumed successfully');
+          
+          // Дополнительная проверка после возобновления
+          if (audioContextRef.current.state === 'running') {
+            console.log('AudioContext is now running');
+          } else {
+            console.warn('AudioContext state after resume:', audioContextRef.current.state);
+          }
         } catch (error) {
           console.error('Failed to resume AudioContext:', error);
+          
+          // Попытка пересоздать AudioContext если не удалось возобновить
+          try {
+            console.log('Attempting to recreate AudioContext...');
+            if (audioContextRef.current) {
+              audioContextRef.current.close();
+            }
+            audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)({
+              sampleRate: 48000,
+              latencyHint: 'balanced'
+            });
+            await audioContextRef.current.resume();
+            console.log('AudioContext recreated and resumed successfully');
+          } catch (recreateError) {
+            console.error('Failed to recreate AudioContext:', recreateError);
+          }
         }
       }
     };
@@ -1298,6 +1321,99 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       document.removeEventListener('keydown', handleInteraction);
     };
 
+    // Обработчик для поддержания AudioContext активным при переключении вкладок
+    const handleVisibilityChange = async () => {
+      if (!document.hidden && audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        console.log('Page became visible, resuming AudioContext...');
+        try {
+          await audioContextRef.current.resume();
+          console.log('AudioContext resumed on visibility change');
+        } catch (error) {
+          console.error('Failed to resume AudioContext on visibility change:', error);
+        }
+      }
+      
+      // Также поддерживаем активность при скрытии вкладки
+      if (document.hidden && audioContextRef.current && audioContextRef.current.state === 'running') {
+        console.log('Page hidden, ensuring AudioContext stays active...');
+        // Создаем тихий звуковой сигнал для поддержания активности
+        try {
+          const oscillator = audioContextRef.current.createOscillator();
+          const gainNode = audioContextRef.current.createGain();
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContextRef.current.destination);
+          gainNode.gain.setValueAtTime(0.0001, audioContextRef.current.currentTime); // Очень тихий звук
+          oscillator.frequency.setValueAtTime(20, audioContextRef.current.currentTime); // Низкая частота
+          oscillator.start(audioContextRef.current.currentTime);
+          oscillator.stop(audioContextRef.current.currentTime + 0.05);
+        } catch (error) {
+          console.error('Failed to create keep-alive audio:', error);
+        }
+      }
+    };
+
+    // Обработчик для поддержания AudioContext активным при фокусе окна
+    const handleWindowFocus = async () => {
+      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        console.log('Window focused, resuming AudioContext...');
+        try {
+          await audioContextRef.current.resume();
+          console.log('AudioContext resumed on window focus');
+        } catch (error) {
+          console.error('Failed to resume AudioContext on window focus:', error);
+        }
+      }
+    };
+
+    // Обработчик для предотвращения приостановки при потере фокуса
+    const handleWindowBlur = () => {
+      if (audioContextRef.current && audioContextRef.current.state === 'running') {
+        console.log('Window lost focus, ensuring AudioContext stays active...');
+        // Создаем тихий звуковой сигнал для поддержания активности
+        try {
+          const oscillator = audioContextRef.current.createOscillator();
+          const gainNode = audioContextRef.current.createGain();
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContextRef.current.destination);
+          gainNode.gain.setValueAtTime(0.0001, audioContextRef.current.currentTime); // Очень тихий звук
+          oscillator.frequency.setValueAtTime(20, audioContextRef.current.currentTime); // Низкая частота
+          oscillator.start(audioContextRef.current.currentTime);
+          oscillator.stop(audioContextRef.current.currentTime + 0.05);
+        } catch (error) {
+          console.error('Failed to create keep-alive audio on blur:', error);
+        }
+      }
+    };
+
+    // Обработчик для поддержания AudioContext активным при активности
+    const handleUserActivity = async () => {
+      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        console.log('User activity detected, resuming AudioContext...');
+        try {
+          await audioContextRef.current.resume();
+          console.log('AudioContext resumed on user activity');
+        } catch (error) {
+          console.error('Failed to resume AudioContext on user activity:', error);
+        }
+      }
+    };
+
+    // Обработчик для предотвращения приостановки при потере фокуса
+    const handleBeforeUnload = () => {
+      if (audioContextRef.current && audioContextRef.current.state === 'running') {
+        console.log('Page unloading, ensuring AudioContext stays active...');
+        // Создаем короткий звуковой сигнал для поддержания активности
+        const oscillator = audioContextRef.current.createOscillator();
+        const gainNode = audioContextRef.current.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContextRef.current.destination);
+        gainNode.gain.setValueAtTime(0.001, audioContextRef.current.currentTime); // Очень тихий звук
+        oscillator.frequency.setValueAtTime(20, audioContextRef.current.currentTime); // Низкая частота
+        oscillator.start(audioContextRef.current.currentTime);
+        oscillator.stop(audioContextRef.current.currentTime + 0.1);
+      }
+    };
+
     if (socketRef.current) {
       socketRef.current.on('speakingStateChanged', ({ peerId, speaking }) => {
         setSpeakingStates(prev => {
@@ -1308,11 +1424,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       });
 
       socketRef.current.on('peerMuteStateChanged', ({ peerId, isMuted }) => {
-        setVolumes(prev => {
-          const newVolumes = new Map(prev);
-          newVolumes.set(peerId, isMuted ? 0 : 100);
-          return newVolumes;
-        });
+        // Не изменяем громкость при изменении состояния мьюта другого пользователя
+        // Громкость должна сохраняться индивидуально для каждого пользователя
         
         if (isMuted) {
           setSpeakingStates(prev => {
@@ -1327,11 +1440,39 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     document.addEventListener('click', handleInteraction);
     document.addEventListener('touchstart', handleInteraction);
     document.addEventListener('keydown', handleInteraction);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleWindowFocus);
+    window.addEventListener('blur', handleWindowBlur);
+    document.addEventListener('mousemove', handleUserActivity);
+    document.addEventListener('keydown', handleUserActivity);
+    document.addEventListener('scroll', handleUserActivity);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Периодическая проверка состояния AudioContext
+    const audioContextCheckInterval = setInterval(async () => {
+      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        console.log('AudioContext is suspended, attempting to resume...');
+        try {
+          await audioContextRef.current.resume();
+          console.log('AudioContext resumed by periodic check');
+        } catch (error) {
+          console.error('Failed to resume AudioContext by periodic check:', error);
+        }
+      }
+    }, 5000); // Проверяем каждые 5 секунд
 
     return () => {
       document.removeEventListener('click', handleInteraction);
       document.removeEventListener('touchstart', handleInteraction);
       document.removeEventListener('keydown', handleInteraction);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleWindowFocus);
+      window.removeEventListener('blur', handleWindowBlur);
+      document.removeEventListener('mousemove', handleUserActivity);
+      document.removeEventListener('keydown', handleUserActivity);
+      document.removeEventListener('scroll', handleUserActivity);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      clearInterval(audioContextCheckInterval);
     };
   }, []);
 
@@ -1441,11 +1582,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         isSpeaking: false // Получаем из текущего состояния
       });
       
-      setVolumes(prev => {
-        const newVolumes = new Map(prev);
-        newVolumes.set(peerId, isMuted ? 0 : 100);
-        return newVolumes;
-      });
+      // НЕ изменяем громкость при изменении состояния мьюта другого пользователя
+      // Громкость должна сохраняться индивидуально для каждого пользователя
       
       if (isMuted) {
         setSpeakingStates(prev => {
@@ -1814,7 +1952,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         // Initialize volumes for the new peer
         setVolumes(prev => {
           const newVolumes = new Map(prev);
-          newVolumes.set(peerId, isMuted ? 0 : 100); // Set volume based on mute state
+          // Новые пользователи всегда начинают с громкости 100%
+          // Состояние мьюта не влияет на громкость для других пользователей
+          newVolumes.set(peerId, 100);
           return newVolumes;
         });
 
