@@ -22,6 +22,9 @@ const MediaMessage = ({ content }) => {
         case 'png':
           return <img src={src} alt="Uploaded content" style={{ maxWidth: '100%' }} />;
         case 'wav':
+        case 'mp3':
+        case 'ogg':
+        case 'm4a':
           return <AudioMessage src={src} />;
         default:
           return <a href={src} target="_blank" rel="noopener noreferrer">Download file</a>;
@@ -54,6 +57,9 @@ const MediaMessage = ({ content }) => {
     case 'png':
       return <img src={src} alt="Uploaded content" style={{ maxWidth: '100%' }} />;
     case 'wav':
+    case 'mp3':
+    case 'ogg':
+    case 'm4a':
       return <AudioMessage src={src} />;
     default:
       return <a href={src} target="_blank" rel="noopener noreferrer">Download file</a>;

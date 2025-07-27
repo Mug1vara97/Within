@@ -3,6 +3,7 @@ import WaveSurfer from 'wavesurfer.js';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import { useAudio } from '../contexts/AudioContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const AudioMessage = ({ src }) => {
     const waveformRef = useRef(null); // Ref для контейнера waveform
@@ -12,6 +13,7 @@ const AudioMessage = ({ src }) => {
     const [currentTime, setCurrentTime] = useState(0); // Текущее время воспроизведения
     const [error, setError] = useState(null); // Состояние для ошибок
     const { setCurrentAudio } = useAudio();
+    const { colors } = useTheme();
 
     // Проверка доступности аудиофайла
     useEffect(() => {
@@ -39,9 +41,9 @@ const AudioMessage = ({ src }) => {
         // Создаем экземпляр WaveSurfer
         wavesurferRef.current = WaveSurfer.create({
             container: waveformRef.current,
-            waveColor: '#4a90e2',
-            progressColor: '#2c3e50',
-            cursorColor: '#000',
+            waveColor: colors.textSecondary,
+            progressColor: colors.primary,
+            cursorColor: colors.text,
             barWidth: 2,
             barHeight: 0.7,
             responsive: true,
@@ -57,6 +59,16 @@ const AudioMessage = ({ src }) => {
         wavesurferRef.current.on('ready', () => {
             if (isMounted) {
                 setDuration(wavesurferRef.current.getDuration());
+                // Обновляем цвета после загрузки
+                try {
+                    wavesurferRef.current.setOptions({
+                        waveColor: colors.textSecondary,
+                        progressColor: colors.primary,
+                        cursorColor: colors.text,
+                    });
+                } catch (error) {
+                    console.warn('Не удалось обновить цвета WaveSurfer после загрузки:', error);
+                }
             }
         });
 
@@ -93,6 +105,33 @@ const AudioMessage = ({ src }) => {
         };
     }, [src, error]);
 
+    // Обновление цветов WaveSurfer при смене темы
+    useEffect(() => {
+        if (wavesurferRef.current && !error) {
+            // Небольшая задержка для полного применения темы
+            const timeoutId = setTimeout(() => {
+                try {
+                    // Проверяем, что WaveSurfer готов
+                    if (wavesurferRef.current && wavesurferRef.current.isReady) {
+                        // Обновляем цвета WaveSurfer
+                        wavesurferRef.current.setOptions({
+                            waveColor: colors.textSecondary,
+                            progressColor: colors.primary,
+                            cursorColor: colors.text,
+                        });
+                        
+                        // Принудительно перерисовываем WaveSurfer
+                        wavesurferRef.current.drawBuffer();
+                    }
+                } catch (error) {
+                    console.warn('Не удалось обновить цвета WaveSurfer:', error);
+                }
+            }, 100);
+
+            return () => clearTimeout(timeoutId);
+        }
+    }, [colors, error]);
+
     // Управление воспроизведением
     const togglePlay = () => {
         if (wavesurferRef.current) {
@@ -119,9 +158,9 @@ const AudioMessage = ({ src }) => {
                 <>
                     <button onClick={togglePlay} className="play-pause-button">
                         {isPlaying ? (
-                            <PauseIcon sx={{ width: 24, height: 24, color: '#4a90e2' }} />
+                            <PauseIcon sx={{ width: 24, height: 24, color: colors.primary }} />
                         ) : (
-                            <PlayArrowIcon sx={{ width: 24, height: 24, color: '#4a90e2' }} />
+                            <PlayArrowIcon sx={{ width: 24, height: 24, color: colors.primary }} />
                         )}
                     </button>
                     <div ref={waveformRef} className="waveform-container" style={{ width: '200px', height: '40px' }} />
