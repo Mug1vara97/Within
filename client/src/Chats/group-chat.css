@@ -665,6 +665,7 @@
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
+    box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.2);
 }
 
 .voice-record-button:hover {
@@ -673,11 +674,14 @@
     box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.4);
 }
 
-.voice-record-button:active,
+.voice-record-button:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.4);
+}
+
 .voice-record-button.recording {
     background: linear-gradient(135deg, var(--danger), var(--dangerHover));
-    transform: scale(0.95);
-    box-shadow: 0 2px 8px rgba(var(--danger-rgb), 0.4);
+    animation: recording-pulse 1.5s infinite;
 }
 
 .voice-record-button.recording {
@@ -869,15 +873,25 @@
     border: none;
     color: var(--textMuted);
     cursor: pointer;
-    padding: 8px;
-    border-radius: 4px;
-    font-size: 16px;
+    padding: 10px;
+    border-radius: 50%;
+    font-size: 18px;
     transition: all 0.2s ease;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .media-button:hover {
     color: var(--text);
     background-color: var(--hover);
+    transform: scale(1.05);
+}
+
+.media-button:active {
+    transform: scale(0.95);
 }
 
 /* Стили для хедера чата */
@@ -987,31 +1001,34 @@
 /* Стили для поля ввода */
 .input-container {
     position: relative;
-    padding: 0.6045rem;
+    padding: 0.575rem;
     background-color: var(--bottom);
     border-top: 1px solid var(--border);
     display: flex;
-    align-items: flex-end;
-    gap: 8px;
+    align-items: center;
+    gap: 12px;
 }
 
 .message-input {
     flex: 1;
-    padding: 12px;
-    border-radius: 8px;
-    border: none;
+    padding: 12px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
     background-color: var(--background);
     color: var(--text);
     font-size: 14px;
-    transition: background-color 0.2s ease;
+    line-height: 1.4;
+    transition: all 0.2s ease;
     resize: none;
-    min-height: 20px;
+    min-height: 44px;
     max-height: 120px;
+    outline: none;
 }
 
 .message-input:focus {
-    outline: none;
+    border-color: var(--primary);
     background-color: var(--hover);
+    box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.1);
 }
 
 .message-input::placeholder {
@@ -1023,17 +1040,29 @@
     background-color: var(--primary);
     color: var(--text);
     border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
+    padding: 12px 20px;
+    border-radius: 20px;
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
-    transition: background-color 0.2s ease;
+    transition: all 0.2s ease;
     white-space: nowrap;
+    min-width: 80px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .send-button:hover {
     background-color: var(--primaryHover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(var(--primary-rgb), 0.3);
+}
+
+.send-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(var(--primary-rgb), 0.3);
 }
 
 /* Стили для голосовых сообщений */
@@ -1041,6 +1070,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    height: 44px;
 }
 
 /* Адаптивность для мобильных устройств */
@@ -1064,11 +1094,43 @@
     
     .input-container {
         padding: 12px;
-        gap: 6px;
+        gap: 8px;
+        min-height: 64px;
     }
     
     .message-input {
+        padding: 10px 14px;
         font-size: 16px; /* Предотвращает зум на iOS */
+        min-height: 40px;
+    }
+    
+    .send-button {
+        padding: 10px 16px;
+        min-width: 70px;
+        height: 40px;
+        font-size: 14px;
+    }
+    
+    .voice-record-button,
+    .media-button {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+    
+    .voice-message-wrapper {
+        height: 40px;
+    }
+    
+    .recording-indicator-input {
+        padding: 10px 14px;
+        height: 40px;
+    }
+    
+    .cancel-recording-button-left {
+        padding: 6px 12px;
+        height: 40px;
+        font-size: 13px;
     }
 }
 
