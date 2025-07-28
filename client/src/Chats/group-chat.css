@@ -1264,3 +1264,62 @@
     }
 }
 
+/* Стили для кнопки звонка */
+.call-button {
+    background: none;
+    border: none;
+    color: var(--textMuted);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 8px;
+}
+
+.call-button:hover {
+    background-color: var(--hover);
+    color: var(--primary);
+    transform: scale(1.1);
+}
+
+.call-button.active {
+    color: #ed4245;
+    animation: call-pulse 2s infinite;
+}
+
+.call-button.ringing {
+    color: #43b581;
+    animation: ringing-pulse 1s infinite;
+}
+
+@keyframes call-pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(237, 66, 69, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(237, 66, 69, 0);
+    }
+}
+
+@keyframes ringing-pulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(67, 181, 129, 0.7);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 0 10px rgba(67, 181, 129, 0);
+    }
+}
+
+/* Адаптивность для кнопки звонка */
+@media (max-width: 768px) {
+    .call-button {
+        padding: 6px;
+        margin-right: 4px;
+    }
+}
+

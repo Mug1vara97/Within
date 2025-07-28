@@ -13,6 +13,9 @@ import useScrollToBottom from '../hooks/useScrollToBottom';
 import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/GroupSettings';
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
+import CallButton from '../components/CallButton';
+import CallModal from '../components/CallModal';
+import useCallManager from '../hooks/useCallManager';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
   return (
@@ -96,6 +99,66 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const [forwardMessageText, setForwardMessageText] = useState('');
   const forwardTextareaRef = useRef(null);
+
+  // Обработчики для звонков
+  const handleCallStart = async (callData) => {
+    console.log('Starting call:', callData);
+    setCurrentCallData(callData);
+    setIsCallModalOpen(true);
+    
+    // Для чатов 1 на 1 определяем партнера
+    if (!isGroupChat) {
+      // Получаем информацию о партнере из members или других источников
+      const partner = members.find(member => member.id !== userId);
+      if (partner) {
+        const callRequest = {
+          ...callData,
+          partnerId: partner.id,
+          partnerName: partner.name || partner.username
+        };
+        
+        const success = await startCall(callRequest);
+        if (!success) {
+          console.error('Failed to start call');
+          setIsCallModalOpen(false);
+        }
+      }
+    }
+  };
+
+  const handleCallEnd = async () => {
+    console.log('Ending call');
+    await endCall();
+    setIsCallModalOpen(false);
+    setCurrentCallData(null);
+  };
+
+  const handleIncomingCall = (callData) => {
+    console.log('Incoming call:', callData);
+    setCurrentCallData(callData);
+    setIsIncomingCall(true);
+    setIsCallModalOpen(true);
+  };
+
+  // Эффект для обработки входящих звонков
+  useEffect(() => {
+    if (incomingCall && !isCallModalOpen) {
+      handleIncomingCall(incomingCall);
+    }
+  }, [incomingCall]);
+
+  // Состояние для звонков
+  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
+  const [currentCallData, setCurrentCallData] = useState(null);
+  const [isIncomingCall, setIsIncomingCall] = useState(false);
+  
+  // Хук для управления звонками
+  const {
+    incomingCall,
+    isInCall,
+    startCall,
+    endCall
+  } = useCallManager(userId, username);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -502,6 +565,21 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           </div>
         </div>
         <div className="header-actions">
+          {/* Кнопка звонка для чатов 1 на 1 */}
+          {!isGroupChat && (
+            <CallButton
+              chatId={chatId}
+              partnerId={members.find(member => member.id !== userId)?.id}
+              partnerName={members.find(member => member.id !== userId)?.name || members.find(member => member.id !== userId)?.username}
+              userId={userId}
+              username={username}
+              onCallStart={handleCallStart}
+              onCallEnd={handleCallEnd}
+              isInCall={isInCall}
+              isIncomingCall={isIncomingCall}
+              incomingCallData={incomingCall}
+            />
+          )}
           {isGroupChat && (
             <button
               onClick={() => setIsAddMembersModalOpen(true)}
@@ -695,6 +773,15 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         )}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Модальное окно звонка */}
+      <CallModal
+        open={isCallModalOpen}
+        onClose={() => setIsCallModalOpen(false)}
+        callData={currentCallData}
+        onCallEnd={handleCallEnd}
+        isIncomingCall={isIncomingCall}
+      />
 
       <form className={`input-container ${replyingToMessage ? 'replying' : ''}`} onSubmit={handleSendMessage}>
         {editingMessageId && (
