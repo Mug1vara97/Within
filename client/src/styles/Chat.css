@@ -256,4 +256,38 @@
 .voice-chat-controls button:disabled {
   background-color: var(--textMuted);
   cursor: not-allowed;
+}
+
+/* Стили для кнопки звонка */
+.call-button {
+    background: none;
+    border: none;
+    padding: 8px;
+    margin-right: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #8e9297;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.call-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.call-button.active {
+    background-color: #f04747;
+    color: #ffffff;
+}
+
+.call-button.active:hover {
+    background-color: #d84040;
+}
+
+.call-button svg {
+    width: 20px;
+    height: 20px;
 } 

@@ -3,6 +3,8 @@ import { HubConnectionBuilder } from '@microsoft/signalr';
 import MicIcon from '@mui/icons-material/Mic';
 import StopIcon from '@mui/icons-material/Stop';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
+import CallIcon from '@mui/icons-material/Call';
+import CallEndIcon from '@mui/icons-material/CallEnd';
 import '../styles/Chat.css';
 import './group-chat.css';
 import '../styles/links.css';
@@ -13,9 +15,7 @@ import useScrollToBottom from '../hooks/useScrollToBottom';
 import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/GroupSettings';
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
-import CallButton from '../components/CallButton';
 import VoiceChat from '../VoiceChat';
-import { useCallContext } from '../contexts/CallContext';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
   return (
@@ -61,11 +61,9 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  
-  // Глобальный контекст для управления звонками
-  const {
-    activeCall
-  } = useCallContext();
+  const [isVoiceChatActive, setIsVoiceChatActive] = useState(false);
+  const [voiceRoom, setVoiceRoom] = useState(null);
+  const voiceChatRef = useRef(null);
   const { 
     isRecording, 
     recordingTime, 
@@ -87,40 +85,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     handleLeaveGroup,
     handleAddMember
   } = useGroupSettings(chatId, userId);
-  
-  // Обработчики звонков
-  const handleCallStart = async (callData) => {
-    console.log('Начинаем звонок:', callData);
-  };
-
-  const handleCallEnd = async () => {
-    console.log('Завершаем звонок');
-  };
-  
-  // Получаем информацию о партнере для всех чатов
-  const getPartnerInfo = () => {
-    console.log('getPartnerInfo:', { members, isGroupChat, groupName, userId });
-    
-    if (!members || members.length === 0) return null;
-    
-    if (isGroupChat) {
-      // Для групповых чатов используем название группы
-      return {
-        id: chatId,
-        name: groupName
-      };
-    } else {
-      // Для чатов 1 на 1 находим партнера
-      const partner = members.find(member => member.userId !== userId);
-      console.log('Найден партнер:', partner);
-      return partner ? {
-        id: partner.userId,
-        name: partner.username
-      } : null;
-    }
-  };
-  
-  const partnerInfo = getPartnerInfo();
   const connectionRef = useRef(null);
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [replyingToMessage, setReplyingToMessage] = useState(null);
@@ -357,9 +321,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
             createdAt: msg.createdAt
           })));
           
-          // Загружаем участников чата для звонков
-          await fetchMembers();
-          
           // Сообщения теперь помечаются как прочитанные при их видимости
         }
       } catch (error) {
@@ -396,7 +357,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       
       cleanup();
     };
-  }, [chatId, isGroupChat, fetchMembers]);
+  }, [chatId]);
 
   // Подключение к ChatListHub
   useEffect(() => {
@@ -538,6 +499,42 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     }
   };
 
+  // Обработчик для начала голосового звонка
+  const handleStartVoiceCall = () => {
+    const roomData = {
+      roomId: chatId,
+      roomName: groupName,
+      userName: username,
+      userId: userId,
+      serverId: null // Для групповых чатов serverId = null
+    };
+    setVoiceRoom(roomData);
+    setIsVoiceChatActive(true);
+  };
+
+  // Обработчик для завершения голосового звонка
+  const handleEndVoiceCall = () => {
+    setVoiceRoom(null);
+    setIsVoiceChatActive(false);
+  };
+
+  // Обработчик выхода из VoiceChat
+  const handleLeaveVoiceChannel = () => {
+    setVoiceRoom(null);
+    setIsVoiceChatActive(false);
+  };
+
+  // Обработчики состояния мьюта и аудио
+  const handleMuteStateChange = (muted) => {
+    // Можно добавить логику для сохранения состояния мьюта
+    console.log('Mute state changed:', muted);
+  };
+
+  const handleAudioStateChange = (enabled) => {
+    // Можно добавить логику для сохранения состояния аудио
+    console.log('Audio state changed:', enabled);
+  };
+
   return (
     <div className="group-chat-container">
       <div className="chat-header">
@@ -547,16 +544,15 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           </div>
         </div>
         <div className="header-actions">
-          {/* Кнопка звонка для всех чатов */}
-          <CallButton
-            chatId={chatId}
-            partnerId={partnerInfo?.id || null}
-            partnerName={partnerInfo?.name || groupName}
-            userId={userId}
-            username={username}
-            onCallStart={handleCallStart}
-            onCallEnd={handleCallEnd}
-          />
+          {/* Кнопка звонка */}
+          <button
+            onClick={isVoiceChatActive ? handleEndVoiceCall : handleStartVoiceCall}
+            className={`call-button ${isVoiceChatActive ? 'active' : ''}`}
+            title={isVoiceChatActive ? 'Завершить звонок' : 'Начать звонок'}
+          >
+            {isVoiceChatActive ? <CallEndIcon /> : <CallIcon />}
+          </button>
+          
           {isGroupChat && (
             <button
               onClick={() => setIsAddMembersModalOpen(true)}
@@ -857,24 +853,25 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       </form>
       <ForwardModal />
       
-      {/* Интегрированный звонок - в чате с глобальным состоянием */}
-      {activeCall && activeCall.chatId === chatId && (
-        <div className="integrated-call-container">
-          <VoiceChat
-            roomId={`call-${chatId}`}
-            roomName={`Звонок с ${activeCall.partnerName}`}
-            userName={username}
-            userId={userId}
-            serverId={null}
-            autoJoin={true}
-            showUI={true}
-            isVisible={true}
-            onLeave={handleCallEnd}
-            onManualLeave={handleCallEnd}
-            initialMuted={false}
-            initialAudioEnabled={true}
-          />
-        </div>
+      {/* VoiceChat - отображается при активном звонке */}
+      {voiceRoom && (
+        <VoiceChat
+          ref={voiceChatRef}
+          key={`${voiceRoom.roomId}-${voiceRoom.serverId || 'direct'}-group`}
+          roomId={voiceRoom.roomId}
+          roomName={voiceRoom.roomName}
+          userName={voiceRoom.userName}
+          userId={voiceRoom.userId}
+          serverId={voiceRoom.serverId}
+          autoJoin={true}
+          showUI={true}
+          isVisible={isVoiceChatActive}
+          onLeave={handleLeaveVoiceChannel}
+          onMuteStateChange={handleMuteStateChange}
+          onAudioStateChange={handleAudioStateChange}
+          initialMuted={false}
+          initialAudioEnabled={true}
+        />
       )}
     </div>
   );

@@ -1074,7 +1074,6 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    flex-wrap: wrap;
 }
 
 .add-member-button {
@@ -1263,21 +1262,5 @@
         height: 40px;
         font-size: 13px;
     }
-}
-
-/* Стили для интегрированного звонка */
-.integrated-call-container {
-    position: relative;
-    width: 100%;
-    height: 300px;
-    background-color: var(--background);
-    border-bottom: 1px solid var(--border);
-    overflow: hidden;
-    z-index: 10;
-}
-
-.integrated-call-container .voice-chat {
-    height: 100%;
-    width: 100%;
 }
 
