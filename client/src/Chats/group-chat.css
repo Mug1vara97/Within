@@ -1307,3 +1307,14 @@
     background-color: rgba(244, 67, 54, 0.2);
 }
 
+.call-button:disabled {
+    color: var(--textSecondary);
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.call-button:disabled:hover {
+    background-color: transparent;
+    transform: none;
+}
+

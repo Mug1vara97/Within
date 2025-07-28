@@ -1169,7 +1169,7 @@ const VideoView = React.memo(({
   );
 });
 
-const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true }, ref) => {
+const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true, disableAutoRoomSwitch = false }, ref) => {
   const { addVoiceChannelParticipant, removeVoiceChannelParticipant, updateVoiceChannelParticipant } = useVoiceChannel();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -1201,6 +1201,12 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   // Обработка изменения roomId
   useEffect(() => {
     if (prevRoomIdRef.current && prevRoomIdRef.current !== roomId) {
+      // Если отключено автоматическое переключение комнат, игнорируем изменение
+      if (disableAutoRoomSwitch) {
+        console.log('Auto room switching disabled, ignoring room ID change:', roomId);
+        return;
+      }
+      
       console.log('Room ID changed, reconnecting to new room:', roomId);
       handleLeaveCall();
       // Небольшая задержка перед подключением к новому каналу
@@ -1211,7 +1217,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       }, 100);
     }
     prevRoomIdRef.current = roomId;
-  }, [roomId, autoJoin]);
+  }, [roomId, autoJoin, disableAutoRoomSwitch]);
 
   const [screenProducer, setScreenProducer] = useState(null);
   const [screenStream, setScreenStream] = useState(null);
