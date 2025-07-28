@@ -6,6 +6,18 @@ const VoiceChannelContext = createContext();
 export const VoiceChannelProvider = ({ children }) => {
   const [voiceChannels, setVoiceChannels] = useState(new Map());
   const [_socket, setSocket] = useState(null);
+  
+  // State for voice calls in group chats
+  const [activeVoiceCall, setActiveVoiceCall] = useState(() => {
+    // Restore state from localStorage
+    const saved = localStorage.getItem('activeVoiceCall');
+    try {
+      return saved ? JSON.parse(saved) : null;
+    } catch (error) {
+      console.error('Ошибка при восстановлении состояния голосового звонка:', error);
+      return null;
+    }
+  });
 
   // Инициализация WebSocket соединения для получения информации о участниках
   useEffect(() => {
@@ -228,6 +240,38 @@ export const VoiceChannelProvider = ({ children }) => {
     return channel ? channel.participants.size : 0;
   }, [voiceChannels]);
 
+  // Functions for managing voice calls
+  const saveVoiceCallState = useCallback((voiceCall) => {
+    if (voiceCall) {
+      localStorage.setItem('activeVoiceCall', JSON.stringify(voiceCall));
+    } else {
+      localStorage.removeItem('activeVoiceCall');
+    }
+  }, []);
+
+  const startVoiceCall = useCallback((roomData) => {
+    const voiceCall = {
+      ...roomData,
+      startedAt: new Date().toISOString(),
+      isActive: true
+    };
+    setActiveVoiceCall(voiceCall);
+    saveVoiceCallState(voiceCall);
+  }, [saveVoiceCallState]);
+
+  const endVoiceCall = useCallback(() => {
+    setActiveVoiceCall(null);
+    saveVoiceCallState(null);
+  }, [saveVoiceCallState]);
+
+  const isVoiceCallActive = useCallback((chatId) => {
+    return activeVoiceCall && activeVoiceCall.roomId === chatId;
+  }, [activeVoiceCall]);
+
+  const getActiveVoiceCall = useCallback(() => {
+    return activeVoiceCall;
+  }, [activeVoiceCall]);
+
   const value = {
     voiceChannels,
     updateVoiceChannelParticipants,
@@ -236,7 +280,12 @@ export const VoiceChannelProvider = ({ children }) => {
     updateVoiceChannelParticipant,
     getVoiceChannelParticipants,
     getVoiceChannelParticipantCount,
-
+    // Functions for voice calls
+    activeVoiceCall,
+    startVoiceCall,
+    endVoiceCall,
+    isVoiceCallActive,
+    getActiveVoiceCall
   };
 
   return (
