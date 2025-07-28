@@ -13,9 +13,6 @@ import useScrollToBottom from '../hooks/useScrollToBottom';
 import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/GroupSettings';
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
-import CallButton from '../components/CallButton';
-import VoiceChat from '../VoiceChat';
-import { createPortal } from 'react-dom';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
   return (
@@ -99,34 +96,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const [forwardMessageText, setForwardMessageText] = useState('');
   const forwardTextareaRef = useRef(null);
-
-    // Состояние для звонков 1 на 1
-  const [isInCall, setIsInCall] = useState(false);
-  const [callData, setCallData] = useState(null);
-
-  // Обработчики для звонков
-  const handleCallStart = async (callData) => {
-    console.log('Starting call:', callData);
-    
-    // Для чатов 1 на 1
-    if (!isGroupChat) {
-      const callRequest = {
-        ...callData,
-        chatId: chatId,
-        partnerName: callData.partnerName || 'Пользователь'
-      };
-      
-      console.log('Call request:', callRequest);
-      setCallData(callRequest);
-      setIsInCall(true);
-    }
-  };
-
-  const handleCallEnd = async () => {
-    console.log('Ending call');
-    setCallData(null);
-    setIsInCall(false);
-  };
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -533,19 +502,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           </div>
         </div>
         <div className="header-actions">
-          {/* Кнопка звонка для чатов 1 на 1 */}
-          {!isGroupChat && (
-            <CallButton
-              chatId={chatId}
-              partnerId={null}
-              partnerName="Пользователь"
-              userId={userId}
-              username={username}
-              onCallStart={handleCallStart}
-              onCallEnd={handleCallEnd}
-              isInCall={isInCall}
-            />
-          )}
           {isGroupChat && (
             <button
               onClick={() => setIsAddMembersModalOpen(true)}
@@ -632,29 +588,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           userId={userId}
           chatId={chatId}
         />
-      )}
-
-      {/* Интегрированный звонок - в чате с локальным состоянием */}
-      {isInCall && callData && callData.chatId === chatId && (
-        <div className="integrated-call-container">
-          {createPortal(
-            <VoiceChat
-              roomId={`call-${chatId}`}
-              roomName={`Звонок с ${callData.partnerName}`}
-              userName={username}
-              userId={userId}
-              serverId={null}
-              autoJoin={true}
-              showUI={true}
-              isVisible={true}
-              onLeave={handleCallEnd}
-              onManualLeave={handleCallEnd}
-              initialMuted={false}
-              initialAudioEnabled={true}
-            />,
-            document.getElementById('voice-chat-container-direct') || document.body
-          )}
-        </div>
       )}
 
   <div className="messages">
