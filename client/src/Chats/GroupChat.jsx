@@ -13,7 +13,6 @@ import useScrollToBottom from '../hooks/useScrollToBottom';
 import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/GroupSettings';
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
-import { useVoiceChannel } from '../contexts/VoiceChannelContext';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
   return (
@@ -59,12 +58,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  
-  // Используем глобальный контекст для голосовых звонков
-  const { 
-    startVoiceCall
-  } = useVoiceChannel();
-  
   const { 
     isRecording, 
     recordingTime, 
@@ -103,31 +96,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const [forwardMessageText, setForwardMessageText] = useState('');
   const forwardTextareaRef = useRef(null);
-
-  // Обработчики для голосового канала в групповом чате
-  const handleJoinVoiceChannel = () => {
-    console.log('Starting voice call for group chat:', { chatId, groupName, username, userId });
-    const roomData = {
-      roomId: chatId,
-      roomName: groupName,
-      userName: username,
-      userId: userId,
-      serverId: null // Для групповых чатов serverId = null
-    };
-    console.log('Calling startVoiceCall with:', roomData);
-    startVoiceCall(roomData);
-    console.log('Voice call started, checking container...');
-    setTimeout(() => {
-      const container = document.getElementById('voice-chat-container-group');
-      console.log('Container found:', !!container);
-    }, 100);
-  };
-
-
-
-
-
-
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -526,7 +494,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   };
 
   return (
-    <div className="group-chat-container" style={{ position: 'relative' }}>
+    <div className="group-chat-container">
       <div className="chat-header">
         <div className="header-left">
           <div className="user-info" onClick={isGroupChat ? handleSettingsClick : undefined}>
@@ -534,17 +502,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           </div>
         </div>
         <div className="header-actions">
-          {/* Кнопка голосового канала */}
-          {isGroupChat && (
-                            <button
-                  onClick={handleJoinVoiceChannel}
-                  className="voice-channel-button"
-                  title="Присоединиться к голосовому каналу"
-                >
-                  🔊
-                </button>
-          )}
-          
           {isGroupChat && (
             <button
               onClick={() => setIsAddMembersModalOpen(true)}
@@ -844,8 +801,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         )}
       </form>
       <ForwardModal />
-      
-
     </div>
   );
 };

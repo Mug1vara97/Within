@@ -118,7 +118,7 @@ const config = {
 // Add Discord-like styles with theme support
 const createStyles = (colors) => ({
   root: {
-    height: '100%', // Занимает всю высоту контейнера
+    height: '100vh', // Занимает всю высоту viewport
     display: 'flex',
     flexDirection: 'column',
     backgroundColor: colors.background,
@@ -179,7 +179,7 @@ const createStyles = (colors) => ({
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
-    height: 'calc(100% - 52px)', // Высота минус header
+    height: 'calc(100vh - 52px)', // Высота минус header
     width: '100%',
     margin: 0,
     position: 'relative',
@@ -187,9 +187,9 @@ const createStyles = (colors) => ({
   },
   videoGrid: {
     display: 'grid',
-    gridTemplateColumns: '1fr', // Одна колонка для узкой панели
-    gap: '8px',
-    padding: '12px',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '16px',
+    padding: '20px',
     width: '100%',
     flex: 1,
     margin: 0,
@@ -210,7 +210,6 @@ const createStyles = (colors) => ({
     alignItems: 'center',
     transition: 'all 0.2s ease-in-out',
     padding: '0',
-    minHeight: '120px', // Минимальная высота для узкой панели
     '&:hover': {
       transform: 'translateY(-2px)',
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
@@ -243,17 +242,17 @@ const createStyles = (colors) => ({
     }
   },
   userAvatar: {
-    width: '60px',
-    height: '60px',
+    width: '80px',
+    height: '80px',
     borderRadius: '50%',
     backgroundColor: colors.border,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     color: colors.text,
-    fontSize: '24px',
+    fontSize: '32px',
     fontWeight: 500,
-    marginBottom: '8px',
+    marginBottom: '12px',
     transition: 'transform 0.2s ease',
     '&:hover': {
       transform: 'scale(1.05)'
@@ -261,12 +260,12 @@ const createStyles = (colors) => ({
   },
   userName: {
     color: colors.text,
-    fontSize: '14px',
+    fontSize: '16px',
     fontWeight: 500,
     display: 'flex',
     alignItems: 'center',
-    gap: '6px',
-    padding: '3px 6px',
+    gap: '8px',
+    padding: '4px 8px',
     borderRadius: '4px',
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     backdropFilter: 'blur(4px)',
@@ -1214,8 +1213,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     prevRoomIdRef.current = roomId;
   }, [roomId, autoJoin]);
 
-
-
   const [screenProducer, setScreenProducer] = useState(null);
   const [screenStream, setScreenStream] = useState(null);
   const [remoteScreens, setRemoteScreens] = useState(new Map());
@@ -1695,8 +1692,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       setError('Please enter room ID and username');
       return;
     }
-
-
 
     try {
       // Set states to initial values when joining
@@ -3123,8 +3118,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const handleLeaveCall = () => {
     console.log('Leaving voice call...');
     
-
-    
     // Уведомляем сервер о выходе пользователя из голосового канала
     if (roomId && socketRef.current) {
       socketRef.current.emit('userLeftVoiceChannel', {
@@ -4461,19 +4454,19 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const getTargetContainer = () => {
     if (!isVisible) return null;
     
-    // Для всех типов звонков используем основной контейнер
-    if (!serverId) {
-      return document.getElementById('voice-chat-container-server') || document.body;
+    // Только для серверных голосовых каналов создаем портал
+    if (serverId) {
+      return document.getElementById('voice-chat-container-server');
     }
     
-    // Для серверных звонков не используем Portal
+    // Для личных сообщений не создаем портал (работаем в фоне)
     return null;
   };
 
   const targetContainer = getTargetContainer();
   
-  // Если видимый и есть контейнер, используем портал (только для групповых звонков)
-  if (isVisible && targetContainer && !serverId) {
+  // Если видимый и есть контейнер, используем портал
+  if (isVisible && targetContainer) {
     return createPortal(ui, targetContainer);
   }
   
