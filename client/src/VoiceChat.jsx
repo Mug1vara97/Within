@@ -118,7 +118,7 @@ const config = {
 // Add Discord-like styles with theme support
 const createStyles = (colors) => ({
   root: {
-    height: '100vh', // Занимает всю высоту viewport
+    height: '100%', // Занимает всю высоту контейнера
     display: 'flex',
     flexDirection: 'column',
     backgroundColor: colors.background,
@@ -179,7 +179,7 @@ const createStyles = (colors) => ({
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
-    height: 'calc(100vh - 52px)', // Высота минус header
+    height: 'calc(100% - 52px)', // Высота минус header
     width: '100%',
     margin: 0,
     position: 'relative',
@@ -187,9 +187,9 @@ const createStyles = (colors) => ({
   },
   videoGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-    gap: '16px',
-    padding: '20px',
+    gridTemplateColumns: '1fr', // Одна колонка для узкой панели
+    gap: '8px',
+    padding: '12px',
     width: '100%',
     flex: 1,
     margin: 0,
@@ -210,6 +210,7 @@ const createStyles = (colors) => ({
     alignItems: 'center',
     transition: 'all 0.2s ease-in-out',
     padding: '0',
+    minHeight: '120px', // Минимальная высота для узкой панели
     '&:hover': {
       transform: 'translateY(-2px)',
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
@@ -242,17 +243,17 @@ const createStyles = (colors) => ({
     }
   },
   userAvatar: {
-    width: '80px',
-    height: '80px',
+    width: '60px',
+    height: '60px',
     borderRadius: '50%',
     backgroundColor: colors.border,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     color: colors.text,
-    fontSize: '32px',
+    fontSize: '24px',
     fontWeight: 500,
-    marginBottom: '12px',
+    marginBottom: '8px',
     transition: 'transform 0.2s ease',
     '&:hover': {
       transform: 'scale(1.05)'
@@ -260,12 +261,12 @@ const createStyles = (colors) => ({
   },
   userName: {
     color: colors.text,
-    fontSize: '16px',
+    fontSize: '14px',
     fontWeight: 500,
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
-    padding: '4px 8px',
+    gap: '6px',
+    padding: '3px 6px',
     borderRadius: '4px',
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     backdropFilter: 'blur(4px)',

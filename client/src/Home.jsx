@@ -294,8 +294,8 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel
                     <>
 
                         
-                        {/* Показываем GroupChat если есть выбранный чат И нет активного голосового звонка */}
-                        {selectedChat && !voiceRoom && (
+                        {/* Показываем GroupChat если есть выбранный чат */}
+                        {selectedChat && (
                             <GroupChat
                                 username={user?.username}
                                 userId={user?.userId}
@@ -417,8 +417,8 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChann
                             display: voiceRoom ? 'block' : 'none'
                         }} />
                         
-                        {/* Показываем GroupChat если есть выбранный чат И нет активного голосового звонка */}
-                        {selectedChat && !voiceRoom && (
+                        {/* Показываем GroupChat если есть выбранный чат */}
+                        {selectedChat && (
                             <GroupChat
                                 username={user?.username}
                                 userId={user?.userId}
@@ -431,8 +431,8 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChann
                             />
                         )}
                         
-                        {/* Показываем заглушку если нет выбранного чата и нет голосового чата */}
-                        {!selectedChat && !(voiceRoom && voiceRoom.serverId === serverId) && (
+                        {/* Показываем заглушку если нет выбранного чата */}
+                        {!selectedChat && (
                             <div className="no-chat-selected" style={{ 
                                 display: 'flex', 
                                 alignItems: 'center', 
