@@ -134,6 +134,41 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     console.log('Audio state changed:', enabled);
   };
 
+  // Перемещаем VoiceChat в контейнер группового чата когда он активен
+  useEffect(() => {
+    if (activeVoiceCall && isCurrentChatVoiceCallActive) {
+      const voiceChatElement = document.querySelector('.voice-chat-container');
+      const groupContainer = document.getElementById('voice-chat-container-group');
+      
+      if (voiceChatElement && groupContainer) {
+        groupContainer.appendChild(voiceChatElement);
+        console.log('VoiceChat moved to group chat container');
+      }
+    } else {
+      // Возвращаем VoiceChat в основной контейнер когда звонок неактивен
+      const voiceChatElement = document.querySelector('.voice-chat-container');
+      const mainContainer = document.querySelector('.home-container');
+      const groupContainer = document.getElementById('voice-chat-container-group');
+      
+      if (voiceChatElement && mainContainer && groupContainer && !groupContainer.contains(voiceChatElement)) {
+        mainContainer.appendChild(voiceChatElement);
+        console.log('VoiceChat returned to main container');
+      }
+    }
+
+    // Очистка при размонтировании компонента
+    return () => {
+      const voiceChatElement = document.querySelector('.voice-chat-container');
+      const mainContainer = document.querySelector('.home-container');
+      const groupContainer = document.getElementById('voice-chat-container-group');
+      
+      if (voiceChatElement && mainContainer && groupContainer && groupContainer.contains(voiceChatElement)) {
+        mainContainer.appendChild(voiceChatElement);
+        console.log('VoiceChat returned to main container on cleanup');
+      }
+    };
+  }, [activeVoiceCall, isCurrentChatVoiceCallActive]);
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       const contextMenuElement = document.querySelector('.context-menu');
@@ -531,7 +566,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   };
 
   return (
-    <div className="group-chat-container">
+    <div className="group-chat-container" style={{ position: 'relative' }}>
       <div className="chat-header">
         <div className="header-left">
           <div className="user-info" onClick={isGroupChat ? handleSettingsClick : undefined}>
@@ -852,8 +887,12 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       
       {/* Контейнер для VoiceChat в групповом чате */}
       <div id="voice-chat-container-group" style={{ 
+        position: 'absolute',
+        top: 0,
+        left: 0,
         width: '100%', 
         height: '100%',
+        zIndex: 1000,
         display: activeVoiceCall && isCurrentChatVoiceCallActive ? 'block' : 'none'
       }} />
     </div>
