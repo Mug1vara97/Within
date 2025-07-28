@@ -15,8 +15,7 @@ const CallModal = ({
   open, 
   onClose, 
   callData, 
-  onCallEnd,
-  isIncomingCall = false
+  onCallEnd
 }) => {
   const { colors } = useTheme();
   const { chatId, partnerId, partnerName, userId, username, callType = 'audio' } = callData || {};
@@ -27,77 +26,6 @@ const CallModal = ({
     }
     onClose();
   };
-
-  // Для входящего звонка показываем простой диалог
-  if (isIncomingCall) {
-    return (
-      <Dialog
-        open={open}
-        onClose={onClose}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            backgroundColor: colors.background,
-            color: colors.text,
-            borderRadius: '12px',
-            border: `1px solid ${colors.border}`
-          }
-        }}
-      >
-        <DialogContent sx={{ textAlign: 'center', py: 4 }}>
-          <Avatar
-            sx={{
-              width: 80,
-              height: 80,
-              margin: '0 auto 16px',
-              backgroundColor: colors.primary,
-              fontSize: '32px'
-            }}
-          >
-            {partnerName?.charAt(0)?.toUpperCase()}
-          </Avatar>
-          <Typography variant="h6" sx={{ color: colors.text, mb: 1 }}>
-            {partnerName}
-          </Typography>
-          <Typography variant="body2" sx={{ color: colors.textMuted, mb: 3 }}>
-            Входящий звонок...
-          </Typography>
-          
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-            <IconButton
-              onClick={handleCallEnd}
-              sx={{
-                backgroundColor: '#43b581',
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: '#3ba55c'
-                },
-                width: 56,
-                height: 56
-              }}
-            >
-              <Phone />
-            </IconButton>
-                         <IconButton
-               onClick={onClose}
-               sx={{
-                 backgroundColor: '#ed4245',
-                 color: 'white',
-                 '&:hover': {
-                   backgroundColor: '#d73d40'
-                 },
-                 width: 56,
-                 height: 56
-               }}
-             >
-               <CallEnd />
-             </IconButton>
-          </Box>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   // Для активного звонка используем VoiceChat
   return (

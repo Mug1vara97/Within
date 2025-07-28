@@ -24,13 +24,12 @@
 - Обработка входящих звонков
 
 ### 3. useCallManager (`client/src/hooks/useCallManager.js`)
-Хук для управления звонками через SignalR.
+Упрощенный хук для управления звонками.
 
 **Функции:**
-- Установка SignalR соединения
-- Обработка входящих/исходящих звонков
 - Управление состоянием звонков
 - Интеграция с VoiceChat компонентом
+- Простое начало и завершение звонков
 
 ## Интеграция в GroupChat
 
@@ -46,11 +45,9 @@ import useCallManager from '../hooks/useCallManager';
 // Состояние для звонков
 const [isCallModalOpen, setIsCallModalOpen] = useState(false);
 const [currentCallData, setCurrentCallData] = useState(null);
-const [isIncomingCall, setIsIncomingCall] = useState(false);
 
 // Хук для управления звонками
 const {
-  incomingCall,
   isInCall,
   startCall,
   endCall
@@ -65,10 +62,6 @@ const handleCallStart = async (callData) => {
 
 const handleCallEnd = async () => {
   // Логика завершения звонка
-};
-
-const handleIncomingCall = (callData) => {
-  // Обработка входящего звонка
 };
 ```
 
@@ -85,8 +78,6 @@ const handleIncomingCall = (callData) => {
     onCallStart={handleCallStart}
     onCallEnd={handleCallEnd}
     isInCall={isInCall}
-    isIncomingCall={isIncomingCall}
-    incomingCallData={incomingCall}
   />
 )}
 ```
@@ -99,7 +90,6 @@ const handleIncomingCall = (callData) => {
   onClose={() => setIsCallModalOpen(false)}
   callData={currentCallData}
   onCallEnd={handleCallEnd}
-  isIncomingCall={isIncomingCall}
 />
 ```
 
@@ -142,52 +132,23 @@ const handleIncomingCall = (callData) => {
 
 ## Требования к серверу
 
-### SignalR Hub для звонков
+На данный момент система звонков работает локально без серверной части. VoiceChat компонент использует WebRTC для прямого соединения между пользователями.
 
-Необходимо создать SignalR Hub `CallHub` со следующими методами:
+### Возможные расширения:
 
-```csharp
-public class CallHub : Hub
-{
-    // Начать звонок
-    public async Task StartCall(CallRequest request)
-    
-    // Принять звонок
-    public async Task AcceptCall(string callId)
-    
-    // Отклонить звонок
-    public async Task RejectCall(string callId)
-    
-    // Завершить звонок
-    public async Task EndCall(string callId)
-    
-    // Обновить состояние звонка
-    public async Task UpdateCallState(CallStateUpdate update)
-    
-    // Проверить доступность пользователя
-    public async Task<bool> CheckUserAvailability(string userId)
-}
-```
-
-### API Endpoints
-
-```csharp
-// Получить историю звонков
-[HttpGet("api/calls/history/{chatId}")]
-public async Task<IActionResult> GetCallHistory(string chatId)
-
-// Отправить уведомление о пропущенном звонке
-[HttpPost("api/calls/missed")]
-public async Task<IActionResult> SendMissedCallNotification(CallData callData)
-```
+В будущем можно добавить:
+- SignalR Hub для signaling звонков
+- API endpoints для истории звонков
+- Уведомления о пропущенных звонках
+- Групповые звонки
 
 ## Использование
 
 ### Для чатов 1 на 1:
 1. Кнопка звонка появляется в заголовке чата
-2. При клике начинается звонок
-3. Открывается модальное окно с VoiceChat
-4. Поддерживается входящий/исходящий звонок
+2. При клике сразу открывается модальное окно с VoiceChat
+3. VoiceChat автоматически подключается к комнате звонка
+4. Поддерживается аудио и видео звонки
 
 ### Для групповых чатов:
 - Функциональность звонков не отображается (только для чатов 1 на 1)

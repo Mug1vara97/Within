@@ -100,6 +100,17 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const [forwardMessageText, setForwardMessageText] = useState('');
   const forwardTextareaRef = useRef(null);
 
+  // Состояние для звонков
+  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
+  const [currentCallData, setCurrentCallData] = useState(null);
+  
+  // Хук для управления звонками
+  const {
+    isInCall,
+    startCall,
+    endCall
+  } = useCallManager(userId, username);
+
   // Обработчики для звонков
   const handleCallStart = async (callData) => {
     console.log('Starting call:', callData);
@@ -108,7 +119,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     
     // Для чатов 1 на 1 определяем партнера
     if (!isGroupChat) {
-      // Получаем информацию о партнере из members или других источников
       const partner = members.find(member => member.id !== userId);
       if (partner) {
         const callRequest = {
@@ -117,11 +127,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           partnerName: partner.name || partner.username
         };
         
-        const success = await startCall(callRequest);
-        if (!success) {
-          console.error('Failed to start call');
-          setIsCallModalOpen(false);
-        }
+        await startCall(callRequest);
       }
     }
   };
@@ -132,33 +138,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     setIsCallModalOpen(false);
     setCurrentCallData(null);
   };
-
-  const handleIncomingCall = (callData) => {
-    console.log('Incoming call:', callData);
-    setCurrentCallData(callData);
-    setIsIncomingCall(true);
-    setIsCallModalOpen(true);
-  };
-
-  // Эффект для обработки входящих звонков
-  useEffect(() => {
-    if (incomingCall && !isCallModalOpen) {
-      handleIncomingCall(incomingCall);
-    }
-  }, [incomingCall]);
-
-  // Состояние для звонков
-  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
-  const [currentCallData, setCurrentCallData] = useState(null);
-  const [isIncomingCall, setIsIncomingCall] = useState(false);
-  
-  // Хук для управления звонками
-  const {
-    incomingCall,
-    isInCall,
-    startCall,
-    endCall
-  } = useCallManager(userId, username);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -576,8 +555,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
               onCallStart={handleCallStart}
               onCallEnd={handleCallEnd}
               isInCall={isInCall}
-              isIncomingCall={isIncomingCall}
-              incomingCallData={incomingCall}
             />
           )}
           {isGroupChat && (
@@ -780,7 +757,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         onClose={() => setIsCallModalOpen(false)}
         callData={currentCallData}
         onCallEnd={handleCallEnd}
-        isIncomingCall={isIncomingCall}
       />
 
       <form className={`input-container ${replyingToMessage ? 'replying' : ''}`} onSubmit={handleSendMessage}>

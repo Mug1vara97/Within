@@ -11,9 +11,7 @@ const CallButton = ({
   username, 
   onCallStart, 
   onCallEnd,
-  isInCall = false,
-  isIncomingCall = false,
-  incomingCallData = null
+  isInCall = false
 }) => {
   const { colors } = useTheme();
   const [isCallActive, setIsCallActive] = useState(false);
