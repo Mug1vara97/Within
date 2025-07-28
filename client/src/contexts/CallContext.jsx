@@ -14,6 +14,7 @@ export const CallProvider = ({ children }) => {
   const [activeCall, setActiveCall] = useState(null);
 
   const startCall = useCallback((chatId, roomId, groupName, username, userId) => {
+    console.log('CallContext startCall:', { chatId, roomId, groupName, username, userId });
     setActiveCall({
       chatId,
       roomId,
@@ -25,6 +26,7 @@ export const CallProvider = ({ children }) => {
   }, []);
 
   const endCall = useCallback(() => {
+    console.log('CallContext endCall called');
     setActiveCall(null);
   }, []);
 

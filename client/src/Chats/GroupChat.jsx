@@ -505,9 +505,11 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
 
   // Функции для управления голосовым звонком
   const handleStartCall = () => {
+    console.log('handleStartCall called:', { isGroupChat, chatId, groupName, username, userId });
     if (!isGroupChat) {
       // Для чатов 1 на 1 используем chatId как roomId
       const roomId = `chat_${chatId}`;
+      console.log('Starting call with roomId:', roomId);
       startCall(chatId, roomId, groupName, username, userId);
     }
   };
