@@ -10,6 +10,9 @@
     align-items: center;
     justify-content: center;
     margin-right: 8px;
+    font-size: 20px;
+    min-width: 40px;
+    min-height: 40px;
 }
 
 .call-button:hover {

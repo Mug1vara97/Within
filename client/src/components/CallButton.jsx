@@ -8,8 +8,11 @@ const CallButton = ({ chatId, partnerId, partnerName, userId, username, onCallSt
   const [isInCall, setIsInCall] = useState(false);
 
   const handleCallClick = async () => {
+    console.log('Кнопка звонка нажата:', { chatId, partnerId, partnerName, activeCall });
+    
     if (activeCall && activeCall.chatId === chatId) {
       // Если звонок уже активен в этом чате, завершаем его
+      console.log('Завершаем активный звонок');
       await endCall();
       setIsInCall(false);
       if (onCallEnd) {
@@ -27,6 +30,7 @@ const CallButton = ({ chatId, partnerId, partnerName, userId, username, onCallSt
         roomName: `Звонок с ${partnerName}`
       };
       
+      console.log('Начинаем новый звонок:', callData);
       startCall(callData);
       setIsInCall(true);
       

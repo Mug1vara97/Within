@@ -64,9 +64,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   
   // Глобальный контекст для управления звонками
   const {
-    activeCall,
-    startCall,
-    endCall
+    activeCall
   } = useCallContext();
   const { 
     isRecording, 
@@ -99,15 +97,27 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     console.log('Завершаем звонок');
   };
   
-  // Получаем информацию о партнере для чатов 1 на 1
+  // Получаем информацию о партнере для всех чатов
   const getPartnerInfo = () => {
-    if (isGroupChat || !members || members.length === 0) return null;
+    console.log('getPartnerInfo:', { members, isGroupChat, groupName, userId });
     
-    const partner = members.find(member => member.userId !== userId);
-    return partner ? {
-      id: partner.userId,
-      name: partner.username
-    } : null;
+    if (!members || members.length === 0) return null;
+    
+    if (isGroupChat) {
+      // Для групповых чатов используем название группы
+      return {
+        id: chatId,
+        name: groupName
+      };
+    } else {
+      // Для чатов 1 на 1 находим партнера
+      const partner = members.find(member => member.userId !== userId);
+      console.log('Найден партнер:', partner);
+      return partner ? {
+        id: partner.userId,
+        name: partner.username
+      } : null;
+    }
   };
   
   const partnerInfo = getPartnerInfo();
@@ -348,9 +358,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           })));
           
           // Загружаем участников чата для звонков
-          if (!isGroupChat) {
-            await fetchMembers();
-          }
+          await fetchMembers();
           
           // Сообщения теперь помечаются как прочитанные при их видимости
         }
@@ -539,18 +547,16 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           </div>
         </div>
         <div className="header-actions">
-          {/* Кнопка звонка для чатов 1 на 1 */}
-          {!isGroupChat && partnerInfo && (
-            <CallButton
-              chatId={chatId}
-              partnerId={partnerInfo.id}
-              partnerName={partnerInfo.name}
-              userId={userId}
-              username={username}
-              onCallStart={handleCallStart}
-              onCallEnd={handleCallEnd}
-            />
-          )}
+          {/* Кнопка звонка для всех чатов */}
+          <CallButton
+            chatId={chatId}
+            partnerId={partnerInfo?.id || null}
+            partnerName={partnerInfo?.name || groupName}
+            userId={userId}
+            username={username}
+            onCallStart={handleCallStart}
+            onCallEnd={handleCallEnd}
+          />
           {isGroupChat && (
             <button
               onClick={() => setIsAddMembersModalOpen(true)}
