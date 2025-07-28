@@ -645,6 +645,26 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         />
       )}
 
+      {/* Интегрированный звонок */}
+      {isCallModalOpen && currentCallData && (
+        <div className="integrated-call-container">
+          <VoiceChat
+            roomId={`call-${chatId}`}
+            roomName={`Звонок с ${currentCallData.partnerName}`}
+            userName={username}
+            userId={userId}
+            serverId={null}
+            autoJoin={true}
+            showUI={true}
+            isVisible={true}
+            onLeave={handleCallEnd}
+            onManualLeave={handleCallEnd}
+            initialMuted={false}
+            initialAudioEnabled={true}
+          />
+        </div>
+      )}
+
   <div className="messages">
     {messages.map((msg) => (
         <div
@@ -750,26 +770,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         )}
         <div ref={messagesEndRef} />
       </div>
-
-      {/* Интегрированный звонок */}
-      {isCallModalOpen && currentCallData && (
-        <div className="integrated-call-container">
-          <VoiceChat
-            roomId={`call-${chatId}`}
-            roomName={`Звонок с ${currentCallData.partnerName}`}
-            userName={username}
-            userId={userId}
-            serverId={null}
-            autoJoin={true}
-            showUI={true}
-            isVisible={true}
-            onLeave={handleCallEnd}
-            onManualLeave={handleCallEnd}
-            initialMuted={false}
-            initialAudioEnabled={true}
-          />
-        </div>
-      )}
 
       <form className={`input-container ${replyingToMessage ? 'replying' : ''}`} onSubmit={handleSendMessage}>
         {editingMessageId && (
