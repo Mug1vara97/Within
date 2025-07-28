@@ -14,13 +14,13 @@
 - Анимации для входящих звонков
 - Интеграция с системой управления звонками
 
-### 2. CallModal (`client/src/components/CallModal.jsx`)
-Модальное окно для отображения активного звонка.
+### 2. Интегрированный VoiceChat
+VoiceChat компонент интегрирован прямо в чат.
 
 **Функции:**
-- Интеграция с VoiceChat компонентом
+- Прямая интеграция в интерфейс чата
 - Управление звонком (мут, громкость, завершение)
-- Компактный режим (только верхняя часть экрана)
+- Компактный режим (только верхняя часть чата)
 - Чат остается видимым под звонком
 
 ### 3. useCallManager (`client/src/hooks/useCallManager.js`)
@@ -36,8 +36,8 @@
 ### Добавленные импорты:
 ```javascript
 import CallButton from '../components/CallButton';
-import CallModal from '../components/CallModal';
 import useCallManager from '../hooks/useCallManager';
+import VoiceChat from '../VoiceChat';
 ```
 
 ### Добавленное состояние:
@@ -82,15 +82,27 @@ const handleCallEnd = async () => {
 )}
 ```
 
-### Модальное окно звонка:
+### Интегрированный звонок:
 ```javascript
-{/* Модальное окно звонка */}
-<CallModal
-  open={isCallModalOpen}
-  onClose={() => setIsCallModalOpen(false)}
-  callData={currentCallData}
-  onCallEnd={handleCallEnd}
-/>
+{/* Интегрированный звонок */}
+{isCallModalOpen && currentCallData && (
+  <div className="integrated-call-container">
+    <VoiceChat
+      roomId={`call-${chatId}`}
+      roomName={`Звонок с ${currentCallData.partnerName}`}
+      userName={username}
+      userId={userId}
+      serverId={null}
+      autoJoin={true}
+      showUI={true}
+      isVisible={true}
+      onLeave={handleCallEnd}
+      onManualLeave={handleCallEnd}
+      initialMuted={false}
+      initialAudioEnabled={true}
+    />
+  </div>
+)}
 ```
 
 ## Стили
@@ -127,6 +139,22 @@ const handleCallEnd = async () => {
 .call-button.ringing {
     color: #43b581;
     animation: ringing-pulse 1s infinite;
+}
+
+/* Стили для интегрированного звонка */
+.integrated-call-container {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    background-color: var(--background);
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+    z-index: 10;
+}
+
+.integrated-call-container .voice-chat {
+    height: 100%;
+    width: 100%;
 }
 ```
 

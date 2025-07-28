@@ -14,8 +14,8 @@ import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
 import CallButton from '../components/CallButton';
-import CallModal from '../components/CallModal';
 import useCallManager from '../hooks/useCallManager';
+import VoiceChat from '../VoiceChat';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
   return (
@@ -751,13 +751,25 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Модальное окно звонка */}
-      <CallModal
-        open={isCallModalOpen}
-        onClose={() => setIsCallModalOpen(false)}
-        callData={currentCallData}
-        onCallEnd={handleCallEnd}
-      />
+      {/* Интегрированный звонок */}
+      {isCallModalOpen && currentCallData && (
+        <div className="integrated-call-container">
+          <VoiceChat
+            roomId={`call-${chatId}`}
+            roomName={`Звонок с ${currentCallData.partnerName}`}
+            userName={username}
+            userId={userId}
+            serverId={null}
+            autoJoin={true}
+            showUI={true}
+            isVisible={true}
+            onLeave={handleCallEnd}
+            onManualLeave={handleCallEnd}
+            initialMuted={false}
+            initialAudioEnabled={true}
+          />
+        </div>
+      )}
 
       <form className={`input-container ${replyingToMessage ? 'replying' : ''}`} onSubmit={handleSendMessage}>
         {editingMessageId && (
