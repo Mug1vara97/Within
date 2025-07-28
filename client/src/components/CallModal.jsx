@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import {
   Dialog,
   DialogContent,
@@ -7,7 +7,7 @@ import {
   Avatar,
   IconButton
 } from '@mui/material';
-import { Phone, CallEnd } from '@mui/icons-material';
+import { CallEnd } from '@mui/icons-material';
 import { useTheme } from '../contexts/ThemeContext';
 import VoiceChat from '../VoiceChat';
 
@@ -18,7 +18,7 @@ const CallModal = ({
   onCallEnd
 }) => {
   const { colors } = useTheme();
-  const { chatId, partnerId, partnerName, userId, username, callType = 'audio' } = callData || {};
+  const { chatId, partnerName, userId, username, callType = 'audio' } = callData || {};
 
   const handleCallEnd = () => {
     if (onCallEnd) {
@@ -27,22 +27,26 @@ const CallModal = ({
     onClose();
   };
 
-  // Для активного звонка используем VoiceChat
+    // Для активного звонка используем VoiceChat
   return (
     <Dialog
       open={open}
       onClose={onClose}
       maxWidth="lg"
       fullWidth
-      fullScreen
       PaperProps={{
         sx: {
           backgroundColor: colors.background,
           color: colors.text,
           borderRadius: 0,
           border: 'none',
-          height: '100vh',
-          maxHeight: '100vh'
+          height: '300px',
+          maxHeight: '300px',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1000
         }
       }}
     >
@@ -54,7 +58,7 @@ const CallModal = ({
           left: 0,
           right: 0,
           zIndex: 10,
-          backgroundColor: 'rgba(0,0,0,0.7)',
+          backgroundColor: 'rgba(0,0,0,0.9)',
           padding: 2,
           display: 'flex',
           alignItems: 'center',
@@ -74,18 +78,18 @@ const CallModal = ({
             </Box>
           </Box>
 
-                     <IconButton
-             onClick={handleCallEnd}
-             sx={{
-               backgroundColor: '#ed4245',
-               color: 'white',
-               '&:hover': {
-                 backgroundColor: '#d73d40'
-               }
-             }}
-           >
-             <CallEnd />
-           </IconButton>
+                   <IconButton
+            onClick={handleCallEnd}
+            sx={{
+              backgroundColor: '#ed4245',
+              color: 'white',
+              '&:hover': {
+                backgroundColor: '#d73d40'
+              }
+            }}
+          >
+            <CallEnd />
+          </IconButton>
         </Box>
 
         {/* VoiceChat компонент */}
