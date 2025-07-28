@@ -3,7 +3,8 @@ import { HubConnectionBuilder } from '@microsoft/signalr';
 import MicIcon from '@mui/icons-material/Mic';
 import StopIcon from '@mui/icons-material/Stop';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
-import PhoneIcon from '@mui/icons-material/Phone';
+import CallIcon from '@mui/icons-material/Call';
+import CallEndIcon from '@mui/icons-material/CallEnd';
 import '../styles/Chat.css';
 import './group-chat.css';
 import '../styles/links.css';
@@ -14,6 +15,7 @@ import useScrollToBottom from '../hooks/useScrollToBottom';
 import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/GroupSettings';
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
+import VoiceChat from '../VoiceCall';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
   return (
@@ -52,7 +54,7 @@ const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
 };
 
 const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, userPermissions, chatListConnection,
-  isGroupChat = false, isServerOwner, onJoinVoiceChannel, onLeaveVoiceChannel, voiceRoom }) => {
+  isGroupChat = false, isServerOwner }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [connection, setConnection] = useState(null);
@@ -99,16 +101,9 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const forwardTextareaRef = useRef(null);
   
   // Состояние для голосового звонка
-  const [isInVoiceCall, setIsInVoiceCall] = useState(false);
-  
-  // Синхронизируем состояние звонка с voiceRoom
-  useEffect(() => {
-    if (voiceRoom && voiceRoom.roomId === chatId && !voiceRoom.serverId) {
-      setIsInVoiceCall(true);
-    } else {
-      setIsInVoiceCall(false);
-    }
-  }, [voiceRoom, chatId]);
+  const [isInCall, setIsInCall] = useState(false);
+  const [callRoomId, setCallRoomId] = useState(null);
+  const voiceChatRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -472,27 +467,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     await fetchMembers();
   };
 
-  // Обработчик для начала/завершения голосового звонка
-  const handleVoiceCall = () => {
-    if (isInVoiceCall) {
-      // Завершаем звонок
-      setIsInVoiceCall(false);
-      onLeaveVoiceChannel();
-      console.log('Завершение голосового звонка в чате:', chatId);
-    } else {
-      // Начинаем звонок
-      setIsInVoiceCall(true);
-      onJoinVoiceChannel({
-        roomId: chatId,
-        roomName: groupName,
-        userName: username,
-        userId: userId,
-        serverId: null // Для групповых чатов serverId = null
-      });
-      console.log('Начало голосового звонка в чате:', chatId);
-    }
-  };
-
   // Добавляем функцию поиска
   const handleSearch = async (query) => {
     setSearchQuery(query);
@@ -527,6 +501,26 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     }
   };
 
+  // Функции для управления голосовым звонком
+  const handleStartCall = () => {
+    if (!isGroupChat) {
+      // Для чатов 1 на 1 создаем уникальный roomId
+      const roomId = `private_call_${chatId}_${userId}`;
+      setCallRoomId(roomId);
+      setIsInCall(true);
+    }
+  };
+
+  const handleEndCall = () => {
+    setIsInCall(false);
+    setCallRoomId(null);
+  };
+
+  const handleCallLeave = () => {
+    setIsInCall(false);
+    setCallRoomId(null);
+  };
+
   return (
     <div className="group-chat-container">
       <div className="chat-header">
@@ -536,14 +530,16 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           </div>
         </div>
         <div className="header-actions">
-          {/* Кнопка голосового звонка */}
-          <button
-            onClick={handleVoiceCall}
-            className={`voice-call-button ${isInVoiceCall ? 'active' : ''}`}
-            title={isInVoiceCall ? 'Завершить звонок' : 'Начать звонок'}
-          >
-            <PhoneIcon style={{ fontSize: '20px' }} />
-          </button>
+          {/* Кнопка звонка для чатов 1 на 1 */}
+          {!isGroupChat && (
+            <button
+              onClick={isInCall ? handleEndCall : handleStartCall}
+              className={`call-button ${isInCall ? 'in-call' : ''}`}
+              title={isInCall ? "Завершить звонок" : "Начать звонок"}
+            >
+              {isInCall ? <CallEndIcon /> : <CallIcon />}
+            </button>
+          )}
           
           {isGroupChat && (
             <button
@@ -844,6 +840,22 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         )}
       </form>
       <ForwardModal />
+      
+      {/* Компонент голосового звонка */}
+      {isInCall && callRoomId && (
+        <VoiceChat
+          ref={voiceChatRef}
+          roomId={callRoomId}
+          roomName={`Звонок с ${groupName}`}
+          userName={username}
+          userId={userId}
+          autoJoin={true}
+          showUI={true}
+          isVisible={true}
+          onLeave={handleCallLeave}
+          onManualLeave={handleCallLeave}
+        />
+      )}
     </div>
   );
 };
