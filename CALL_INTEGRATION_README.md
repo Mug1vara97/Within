@@ -14,15 +14,15 @@
 - Анимации для входящих звонков
 - Интеграция с системой управления звонками
 
-### 2. Интегрированный VoiceChat
-VoiceChat компонент интегрирован прямо в чат.
+### 2. Глобальный VoiceChat
+VoiceChat компонент управляется глобально через CallContext.
 
 **Функции:**
-- Прямая интеграция в интерфейс чата
-- Позиционирование сразу после заголовка
+- Глобальное управление звонком (не зависит от пересоздания компонентов)
+- Фиксированное позиционирование в верхней части экрана
 - Управление звонком (мут, громкость, завершение)
-- Компактный режим (только верхняя часть чата)
-- Чат остается видимым под звонком
+- Звонок продолжается при переключении между чатами
+- Автоматическое отображение в нужном чате
 
 ### 3. CallContext (`client/src/contexts/CallContext.jsx`)
 Глобальный контекст для управления звонками.
@@ -82,20 +82,33 @@ const handleCallEnd = async () => {
 
 ### Интегрированный звонок:
 ```javascript
-{/* Интегрированный звонок - сразу после заголовка */}
+{/* Интегрированный звонок - теперь управляется глобально через CallContext */}
 {activeCall && activeCall.chatId === chatId && (
-  <div className="integrated-call-container">
+  <div className="integrated-call-container" style={{ height: '300px', backgroundColor: 'var(--background)', borderBottom: '1px solid var(--border)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--textMuted)' }}>
+      Звонок активен
+    </div>
+  </div>
+)}
+```
+
+**VoiceChat управляется глобально в CallContext:**
+```javascript
+{/* Глобальный VoiceChat компонент */}
+{activeCall && (
+  <div className="global-call-container">
     <VoiceChat
-      roomId={`call-${chatId}`}
+      ref={voiceChatRef}
+      roomId={`call-${activeCall.chatId}`}
       roomName={`Звонок с ${activeCall.partnerName}`}
-      userName={username}
-      userId={userId}
+      userName={activeCall.username}
+      userId={activeCall.userId}
       serverId={null}
       autoJoin={true}
       showUI={true}
       isVisible={true}
-      onLeave={handleCallEnd}
-      onManualLeave={handleCallEnd}
+      onLeave={endCall}
+      onManualLeave={endCall}
       initialMuted={false}
       initialAudioEnabled={true}
     />

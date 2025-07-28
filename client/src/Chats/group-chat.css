@@ -1334,9 +1334,16 @@
     z-index: 10;
 }
 
-.integrated-call-container .voice-chat {
-    height: 100%;
-    width: 100%;
+/* Глобальный звонок (управляется CallContext) */
+.global-call-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 300px;
+    z-index: 1000;
+    background-color: var(--background);
+    border-bottom: 1px solid var(--border);
 }
 
 /* Адаптивность для интегрированного звонка */
