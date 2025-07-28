@@ -3,8 +3,6 @@ import { HubConnectionBuilder } from '@microsoft/signalr';
 import MicIcon from '@mui/icons-material/Mic';
 import StopIcon from '@mui/icons-material/Stop';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
-import CallIcon from '@mui/icons-material/Call';
-import CallEndIcon from '@mui/icons-material/CallEnd';
 import '../styles/Chat.css';
 import './group-chat.css';
 import '../styles/links.css';
@@ -15,7 +13,6 @@ import useScrollToBottom from '../hooks/useScrollToBottom';
 import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/GroupSettings';
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
-import VoiceChat from '../VoiceChat';
 import { useVoiceChannel } from '../contexts/VoiceChannelContext';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
@@ -62,7 +59,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const voiceChatRef = useRef(null);
   
   // Используем глобальный контекст для голосовых звонков
   const { 
@@ -72,8 +68,9 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     isVoiceCallActive 
   } = useVoiceChannel();
   
-  // Проверяем, активен ли звонок в текущем чате
+  // Проверяем, активен ли звонок в текущем групповом чате
   const isCurrentChatVoiceCallActive = isVoiceCallActive(chatId);
+  
   const { 
     isRecording, 
     recordingTime, 
@@ -112,6 +109,30 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const [forwardMessageText, setForwardMessageText] = useState('');
   const forwardTextareaRef = useRef(null);
+
+  // Обработчики для голосового канала в групповом чате
+  const handleJoinVoiceChannel = () => {
+    const roomData = {
+      roomId: chatId,
+      roomName: groupName,
+      userName: username,
+      userId: userId,
+      serverId: null // Для групповых чатов serverId = null
+    };
+    startVoiceCall(roomData);
+  };
+
+  const handleLeaveVoiceChannel = () => {
+    endVoiceCall();
+  };
+
+  const handleMuteStateChange = (muted) => {
+    console.log('Mute state changed:', muted);
+  };
+
+  const handleAudioStateChange = (enabled) => {
+    console.log('Audio state changed:', enabled);
+  };
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -509,39 +530,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     }
   };
 
-  // Обработчик для начала голосового звонка
-  const handleStartVoiceCall = () => {
-    const roomData = {
-      roomId: chatId,
-      roomName: groupName,
-      userName: username,
-      userId: userId,
-      serverId: null // Для групповых чатов serverId = null
-    };
-    startVoiceCall(roomData);
-  };
-
-  // Обработчик для завершения голосового звонка
-  const handleEndVoiceCall = () => {
-    endVoiceCall();
-  };
-
-  // Обработчик выхода из VoiceChat
-  const handleLeaveVoiceChannel = () => {
-    endVoiceCall();
-  };
-
-  // Обработчики состояния мьюта и аудио
-  const handleMuteStateChange = (muted) => {
-    // Можно добавить логику для сохранения состояния мьюта
-    console.log('Mute state changed:', muted);
-  };
-
-  const handleAudioStateChange = (enabled) => {
-    // Можно добавить логику для сохранения состояния аудио
-    console.log('Audio state changed:', enabled);
-  };
-
   return (
     <div className="group-chat-container">
       <div className="chat-header">
@@ -551,14 +539,16 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           </div>
         </div>
         <div className="header-actions">
-          {/* Кнопка звонка */}
-          <button
-            onClick={isCurrentChatVoiceCallActive ? handleEndVoiceCall : handleStartVoiceCall}
-            className={`call-button ${isCurrentChatVoiceCallActive ? 'active' : ''}`}
-            title={isCurrentChatVoiceCallActive ? 'Завершить звонок' : 'Начать звонок'}
-          >
-            {isCurrentChatVoiceCallActive ? <CallEndIcon /> : <CallIcon />}
-          </button>
+          {/* Кнопка голосового канала */}
+          {isGroupChat && (
+            <button
+              onClick={isCurrentChatVoiceCallActive ? handleLeaveVoiceChannel : handleJoinVoiceChannel}
+              className={`voice-channel-button ${isCurrentChatVoiceCallActive ? 'active' : ''}`}
+              title={isCurrentChatVoiceCallActive ? 'Покинуть голосовой канал' : 'Присоединиться к голосовому каналу'}
+            >
+              {isCurrentChatVoiceCallActive ? '🔴' : '🔊'}
+            </button>
+          )}
           
           {isGroupChat && (
             <button
@@ -860,26 +850,12 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       </form>
       <ForwardModal />
       
-      {/* VoiceChat - отображается при активном звонке */}
-      {activeVoiceCall && isCurrentChatVoiceCallActive && (
-        <VoiceChat
-          ref={voiceChatRef}
-          key={`${activeVoiceCall.roomId}-${activeVoiceCall.serverId || 'direct'}-group`}
-          roomId={activeVoiceCall.roomId}
-          roomName={activeVoiceCall.roomName}
-          userName={activeVoiceCall.userName}
-          userId={activeVoiceCall.userId}
-          serverId={activeVoiceCall.serverId}
-          autoJoin={true}
-          showUI={true}
-          isVisible={isCurrentChatVoiceCallActive}
-          onLeave={handleLeaveVoiceChannel}
-          onMuteStateChange={handleMuteStateChange}
-          onAudioStateChange={handleAudioStateChange}
-          initialMuted={false}
-          initialAudioEnabled={true}
-        />
-      )}
+      {/* Контейнер для VoiceChat в групповом чате */}
+      <div id="voice-chat-container-group" style={{ 
+        width: '100%', 
+        height: '100%',
+        display: activeVoiceCall && isCurrentChatVoiceCallActive ? 'block' : 'none'
+      }} />
     </div>
   );
 };

@@ -8,20 +8,22 @@ import VoiceChat from './VoiceChat';
 import GroupChat from './Chats/GroupChat';
 import NotificationButton from './components/NotificationButton';
 import { useNotifications } from './hooks/useNotifications';
-import { useVoiceChannel } from './contexts/VoiceChannelContext';
 
 const Home = ({ user }) => {
     const [isDiscoverMode, setIsDiscoverMode] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
     const { initializeForUser } = useNotifications();
-    
-    // Используем глобальный контекст для голосовых звонков
-    const { 
-        activeVoiceCall, 
-        startVoiceCall, 
-        endVoiceCall
-    } = useVoiceChannel();
+    const [voiceRoom, setVoiceRoom] = useState(() => {
+        // Восстанавливаем состояние голосового чата из localStorage
+        const savedVoiceRoom = localStorage.getItem('voiceRoom');
+        try {
+            return savedVoiceRoom ? JSON.parse(savedVoiceRoom) : null;
+        } catch (error) {
+            console.error('Ошибка при восстановлении состояния голосового чата:', error);
+            return null;
+        }
+    });
     
     // Состояние для отображения сообщения о выходе из голосового канала
     const [leftVoiceChannel, setLeftVoiceChannel] = useState(false);
@@ -46,16 +48,16 @@ const Home = ({ user }) => {
         return saved ? JSON.parse(saved) : true;
     });
     
-    // Определяем, отображается ли VoiceChat в основной области (только для серверов)
+    // Определяем, отображается ли VoiceChat в основной области (для серверов и групповых чатов)
     const isVoiceChatVisible = useMemo(() => {
         console.log('isVoiceChatVisible calculation:', { 
-            activeVoiceCall: !!activeVoiceCall, 
+            voiceRoom: !!voiceRoom, 
             pathname: location.pathname,
-            activeVoiceCallData: activeVoiceCall 
+            voiceRoomData: voiceRoom 
         });
         
-        if (!activeVoiceCall) {
-            console.log('No active voice call - hiding voice chat');
+        if (!voiceRoom) {
+            console.log('No voice room - hiding voice chat');
             return false;
         }
         
@@ -77,27 +79,37 @@ const Home = ({ user }) => {
                 return false;
             }
             
-            const isVisible = chatId && String(activeVoiceCall.roomId) === String(chatId) && String(activeVoiceCall.serverId) === String(serverId);
-            console.log('Server voice chat visibility:', { serverId, chatId, activeVoiceCall, isVisible });
-            return isVisible;
+            // Для серверных голосовых каналов
+            if (voiceRoom.serverId) {
+                const isVisible = chatId && String(voiceRoom.roomId) === String(chatId) && String(voiceRoom.serverId) === String(serverId);
+                console.log('Server voice chat visibility:', { serverId, chatId, voiceRoom, isVisible });
+                return isVisible;
+            }
+            
+            // Для групповых чатов (serverId = null)
+            if (!voiceRoom.serverId) {
+                const isVisible = chatId && String(voiceRoom.roomId) === String(chatId);
+                console.log('Group chat voice chat visibility:', { chatId, voiceRoom, isVisible });
+                return isVisible;
+            }
         }
         
         console.log('Default case - hiding voice chat');
         return false;
-    }, [activeVoiceCall, location.pathname]);
+    }, [voiceRoom, location.pathname]);
     
     // Ref для VoiceChat
     const voiceChatRef = useRef(null);
     
     // Обработчик подключения к голосовому каналу
     const handleJoinVoiceChannel = (data) => {
-        startVoiceCall(data);
+        setVoiceRoom(data);
         setLeftVoiceChannel(false);
     };
     
     // Обработчик выхода из голосового канала
     const handleLeaveVoiceChannel = () => {
-        endVoiceCall();
+        setVoiceRoom(null);
         setLeftVoiceChannel(true);
         // НЕ сбрасываем состояния мьюта - сохраняем пользовательские настройки
         // setIsMuted(false);
@@ -108,7 +120,7 @@ const Home = ({ user }) => {
     
     // Функции управления мьютом для UserPanel
     const handleToggleMute = () => {
-        if (activeVoiceCall && voiceChatRef.current && voiceChatRef.current.handleMute) {
+        if (voiceRoom && voiceChatRef.current && voiceChatRef.current.handleMute) {
             // Если в голосовом чате - управляем реальным мьютом
             voiceChatRef.current.handleMute();
         } else {
@@ -118,7 +130,7 @@ const Home = ({ user }) => {
     };
     
     const handleToggleAudio = () => {
-        if (activeVoiceCall && voiceChatRef.current && voiceChatRef.current.toggleAudio) {
+        if (voiceRoom && voiceChatRef.current && voiceChatRef.current.toggleAudio) {
             // Если в голосовом чате - управляем реальным звуком
             voiceChatRef.current.toggleAudio();
         } else {
@@ -138,22 +150,31 @@ const Home = ({ user }) => {
 
 
 
+    // Сохраняем состояние голосового чата в localStorage
+    useEffect(() => {
+        if (voiceRoom) {
+            localStorage.setItem('voiceRoom', JSON.stringify(voiceRoom));
+        } else {
+            localStorage.removeItem('voiceRoom');
+        }
+    }, [voiceRoom]);
+    
     // Сохраняем локальные настройки в localStorage
     useEffect(() => {
         localStorage.setItem('localMuted', JSON.stringify(localMuted));
         // Синхронизируем с основными состояниями если не в голосовом чате
-        if (!activeVoiceCall) {
+        if (!voiceRoom) {
             setIsMuted(localMuted);
         }
-    }, [localMuted, activeVoiceCall]);
+    }, [localMuted, voiceRoom]);
     
     useEffect(() => {
         localStorage.setItem('localAudioEnabled', JSON.stringify(localAudioEnabled));
         // Синхронизируем с основными состояниями если не в голосовом чате
-        if (!activeVoiceCall) {
+        if (!voiceRoom) {
             setIsAudioEnabled(localAudioEnabled);
         }
-    }, [localAudioEnabled, activeVoiceCall]);
+    }, [localAudioEnabled, voiceRoom]);
 
     // Синхронизируем состояние с текущим маршрутом
     useEffect(() => {
@@ -197,28 +218,29 @@ const Home = ({ user }) => {
                     <>
                         <Routes>
                             <Route path="/channels/@me/:chatId?" element={
-                                <ChatListWrapper 
-                                    user={user} 
-                                    onJoinVoiceChannel={handleJoinVoiceChannel}
-                                    voiceRoom={activeVoiceCall}
-                                    leftVoiceChannel={leftVoiceChannel}
-                                    setLeftVoiceChannel={setLeftVoiceChannel}
-                                    isMuted={activeVoiceCall ? isMuted : localMuted}
-                                    isAudioEnabled={activeVoiceCall ? isAudioEnabled : localAudioEnabled}
-                                    onToggleMute={handleToggleMute}
-                                    onToggleAudio={handleToggleAudio}
-                                />
+                                                        <ChatListWrapper
+                            user={user}
+                            onJoinVoiceChannel={handleJoinVoiceChannel}
+                            voiceRoom={voiceRoom}
+                            isVoiceChatVisible={isVoiceChatVisible}
+                            leftVoiceChannel={leftVoiceChannel}
+                            setLeftVoiceChannel={setLeftVoiceChannel}
+                            isMuted={voiceRoom ? isMuted : localMuted}
+                            isAudioEnabled={voiceRoom ? isAudioEnabled : localAudioEnabled}
+                            onToggleMute={handleToggleMute}
+                            onToggleAudio={handleToggleAudio}
+                        />
                             } />
                             <Route path="/channels/:serverId/:chatId?" element={
                                 <ServerPageWrapper 
                                     user={user} 
                                     onJoinVoiceChannel={handleJoinVoiceChannel}
-                                    voiceRoom={activeVoiceCall}
+                                    voiceRoom={voiceRoom}
                                     isVoiceChatVisible={isVoiceChatVisible}
                                     leftVoiceChannel={leftVoiceChannel}
                                     setLeftVoiceChannel={setLeftVoiceChannel}
-                                    isMuted={activeVoiceCall ? isMuted : localMuted}
-                                    isAudioEnabled={activeVoiceCall ? isAudioEnabled : localAudioEnabled}
+                                    isMuted={voiceRoom ? isMuted : localMuted}
+                                    isAudioEnabled={voiceRoom ? isAudioEnabled : localAudioEnabled}
                                     onToggleMute={handleToggleMute}
                                     onToggleAudio={handleToggleAudio}
                                 />
@@ -228,15 +250,15 @@ const Home = ({ user }) => {
 
                         
                         {/* Единственный VoiceChat - позиционируется динамически */}
-                        {activeVoiceCall && (
+                        {voiceRoom && (
                             <VoiceChat
                                 ref={voiceChatRef}
-                                key={`${activeVoiceCall.roomId}-${activeVoiceCall.serverId || 'direct'}-unified`}
-                                roomId={activeVoiceCall.roomId}
-                                roomName={activeVoiceCall.roomName}
-                                userName={activeVoiceCall.userName}
-                                userId={activeVoiceCall.userId}
-                                serverId={activeVoiceCall.serverId}
+                                key={`${voiceRoom.roomId}-${voiceRoom.serverId || 'direct'}-unified`}
+                                roomId={voiceRoom.roomId}
+                                roomName={voiceRoom.roomName}
+                                userName={voiceRoom.userName}
+                                userId={voiceRoom.userId}
+                                serverId={voiceRoom.serverId}
                                 autoJoin={true}
                                 showUI={true}
                                 isVisible={isVoiceChatVisible}
@@ -255,7 +277,7 @@ const Home = ({ user }) => {
     );
 };
 
-const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
+const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
     // Компонент для отображения сообщения о выходе из голосового канала
     const LeftVoiceChannelComponent = () => (
         <div style={{
@@ -329,19 +351,20 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel
                     <>
 
                         
-                        {/* Показываем GroupChat если есть выбранный чат */}
-                        {selectedChat && (
+                        {/* Показываем GroupChat если есть выбранный чат И это НЕ голосовой канал ИЛИ голосовой канал не видимый */}
+                        {selectedChat && (!voiceRoom || !isVoiceChatVisible || !voiceRoom.serverId) && (
                             <GroupChat
                                 username={user?.username}
                                 userId={user?.userId}
                                 chatId={selectedChat.chatId}
                                 groupName={selectedChat.groupName || selectedChat.name}
                                 isServerChat={false}
+                                isGroupChat={true}
                             />
                         )}
                         
-                        {/* Показываем заглушку если нет выбранного чата */}
-                        {!selectedChat && (
+                                                {/* Показываем заглушку если нет выбранного чата и нет голосового чата */}
+                        {!selectedChat && !(voiceRoom && !voiceRoom.serverId) && (
                             <div style={{ 
                                 display: 'flex', 
                                 alignItems: 'center', 
@@ -353,6 +376,27 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel
                                 <h3>Выберите чат для начала общения</h3>
                             </div>
                         )}
+                        
+                        {/* Показываем заглушку если нет выбранного чата */}
+                        {!selectedChat && !voiceRoom && (
+                            <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                height: '100%',
+                                width: '100%',
+                                color: '#8e9297'
+                            }}>
+                                <h3>Выберите чат для начала общения</h3>
+                            </div>
+                        )}
+                        
+                        {/* Контейнер для VoiceChat в групповом чате */}
+                        <div id="voice-chat-container-group" style={{ 
+                            width: '100%', 
+                            height: '100%',
+                            display: voiceRoom && isVoiceChatVisible && !voiceRoom.serverId ? 'block' : 'none'
+                        }} />
                     </>
                 )}
             </div>
