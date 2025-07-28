@@ -872,7 +872,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       }} />
       
       {/* VoiceChat через Portal для группового чата */}
-      {activeVoiceCall && isCurrentChatVoiceCallActive && (() => {
+      {activeVoiceCall && isCurrentChatVoiceCallActive && (!activeVoiceCall.serverId || activeVoiceCall.serverId === null) && (() => {
         console.log('Rendering VoiceChat portal:', { activeVoiceCall, isCurrentChatVoiceCallActive });
         const container = document.getElementById('voice-chat-container-group');
         console.log('Container found for portal:', !!container);

@@ -193,7 +193,7 @@ const Home = ({ user }) => {
 
                         
                         {/* VoiceChat для серверных голосовых каналов */}
-                        {voiceRoom && voiceRoom.serverId && (
+                        {voiceRoom && voiceRoom.serverId && voiceRoom.serverId !== null && (
                             <VoiceChat
                                 ref={voiceChatRef}
                                 key={`${voiceRoom.roomId}-${voiceRoom.serverId}-server`}
