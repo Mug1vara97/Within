@@ -8,22 +8,20 @@ import VoiceChat from './VoiceChat';
 import GroupChat from './Chats/GroupChat';
 import NotificationButton from './components/NotificationButton';
 import { useNotifications } from './hooks/useNotifications';
+import { useVoiceChannel } from './contexts/VoiceChannelContext';
 
 const Home = ({ user }) => {
     const [isDiscoverMode, setIsDiscoverMode] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
     const { initializeForUser } = useNotifications();
-    const [voiceRoom, setVoiceRoom] = useState(() => {
-        // Восстанавливаем состояние голосового чата из localStorage
-        const savedVoiceRoom = localStorage.getItem('voiceRoom');
-        try {
-            return savedVoiceRoom ? JSON.parse(savedVoiceRoom) : null;
-        } catch (error) {
-            console.error('Ошибка при восстановлении состояния голосового чата:', error);
-            return null;
-        }
-    });
+    
+    // Используем глобальный контекст для голосовых звонков
+    const { 
+        activeVoiceCall, 
+        startVoiceCall, 
+        endVoiceCall
+    } = useVoiceChannel();
     
     // Состояние для отображения сообщения о выходе из голосового канала
     const [leftVoiceChannel, setLeftVoiceChannel] = useState(false);
@@ -51,13 +49,13 @@ const Home = ({ user }) => {
     // Определяем, отображается ли VoiceChat в основной области (только для серверов)
     const isVoiceChatVisible = useMemo(() => {
         console.log('isVoiceChatVisible calculation:', { 
-            voiceRoom: !!voiceRoom, 
+            activeVoiceCall: !!activeVoiceCall, 
             pathname: location.pathname,
-            voiceRoomData: voiceRoom 
+            activeVoiceCallData: activeVoiceCall 
         });
         
-        if (!voiceRoom) {
-            console.log('No voice room - hiding voice chat');
+        if (!activeVoiceCall) {
+            console.log('No active voice call - hiding voice chat');
             return false;
         }
         
@@ -79,27 +77,27 @@ const Home = ({ user }) => {
                 return false;
             }
             
-            const isVisible = chatId && String(voiceRoom.roomId) === String(chatId) && String(voiceRoom.serverId) === String(serverId);
-            console.log('Server voice chat visibility:', { serverId, chatId, voiceRoom, isVisible });
+            const isVisible = chatId && String(activeVoiceCall.roomId) === String(chatId) && String(activeVoiceCall.serverId) === String(serverId);
+            console.log('Server voice chat visibility:', { serverId, chatId, activeVoiceCall, isVisible });
             return isVisible;
         }
         
         console.log('Default case - hiding voice chat');
         return false;
-    }, [voiceRoom, location.pathname]);
+    }, [activeVoiceCall, location.pathname]);
     
     // Ref для VoiceChat
     const voiceChatRef = useRef(null);
     
     // Обработчик подключения к голосовому каналу
     const handleJoinVoiceChannel = (data) => {
-        setVoiceRoom(data);
+        startVoiceCall(data);
         setLeftVoiceChannel(false);
     };
     
     // Обработчик выхода из голосового канала
     const handleLeaveVoiceChannel = () => {
-        setVoiceRoom(null);
+        endVoiceCall();
         setLeftVoiceChannel(true);
         // НЕ сбрасываем состояния мьюта - сохраняем пользовательские настройки
         // setIsMuted(false);
@@ -110,7 +108,7 @@ const Home = ({ user }) => {
     
     // Функции управления мьютом для UserPanel
     const handleToggleMute = () => {
-        if (voiceRoom && voiceChatRef.current && voiceChatRef.current.handleMute) {
+        if (activeVoiceCall && voiceChatRef.current && voiceChatRef.current.handleMute) {
             // Если в голосовом чате - управляем реальным мьютом
             voiceChatRef.current.handleMute();
         } else {
@@ -120,7 +118,7 @@ const Home = ({ user }) => {
     };
     
     const handleToggleAudio = () => {
-        if (voiceRoom && voiceChatRef.current && voiceChatRef.current.toggleAudio) {
+        if (activeVoiceCall && voiceChatRef.current && voiceChatRef.current.toggleAudio) {
             // Если в голосовом чате - управляем реальным звуком
             voiceChatRef.current.toggleAudio();
         } else {
@@ -140,31 +138,22 @@ const Home = ({ user }) => {
 
 
 
-    // Сохраняем состояние голосового чата в localStorage
-    useEffect(() => {
-        if (voiceRoom) {
-            localStorage.setItem('voiceRoom', JSON.stringify(voiceRoom));
-        } else {
-            localStorage.removeItem('voiceRoom');
-        }
-    }, [voiceRoom]);
-    
     // Сохраняем локальные настройки в localStorage
     useEffect(() => {
         localStorage.setItem('localMuted', JSON.stringify(localMuted));
         // Синхронизируем с основными состояниями если не в голосовом чате
-        if (!voiceRoom) {
+        if (!activeVoiceCall) {
             setIsMuted(localMuted);
         }
-    }, [localMuted, voiceRoom]);
+    }, [localMuted, activeVoiceCall]);
     
     useEffect(() => {
         localStorage.setItem('localAudioEnabled', JSON.stringify(localAudioEnabled));
         // Синхронизируем с основными состояниями если не в голосовом чате
-        if (!voiceRoom) {
+        if (!activeVoiceCall) {
             setIsAudioEnabled(localAudioEnabled);
         }
-    }, [localAudioEnabled, voiceRoom]);
+    }, [localAudioEnabled, activeVoiceCall]);
 
     // Синхронизируем состояние с текущим маршрутом
     useEffect(() => {
@@ -211,11 +200,11 @@ const Home = ({ user }) => {
                                 <ChatListWrapper 
                                     user={user} 
                                     onJoinVoiceChannel={handleJoinVoiceChannel}
-                                    voiceRoom={voiceRoom}
+                                    voiceRoom={activeVoiceCall}
                                     leftVoiceChannel={leftVoiceChannel}
                                     setLeftVoiceChannel={setLeftVoiceChannel}
-                                    isMuted={voiceRoom ? isMuted : localMuted}
-                                    isAudioEnabled={voiceRoom ? isAudioEnabled : localAudioEnabled}
+                                    isMuted={activeVoiceCall ? isMuted : localMuted}
+                                    isAudioEnabled={activeVoiceCall ? isAudioEnabled : localAudioEnabled}
                                     onToggleMute={handleToggleMute}
                                     onToggleAudio={handleToggleAudio}
                                 />
@@ -224,12 +213,12 @@ const Home = ({ user }) => {
                                 <ServerPageWrapper 
                                     user={user} 
                                     onJoinVoiceChannel={handleJoinVoiceChannel}
-                                    voiceRoom={voiceRoom}
+                                    voiceRoom={activeVoiceCall}
                                     isVoiceChatVisible={isVoiceChatVisible}
                                     leftVoiceChannel={leftVoiceChannel}
                                     setLeftVoiceChannel={setLeftVoiceChannel}
-                                    isMuted={voiceRoom ? isMuted : localMuted}
-                                    isAudioEnabled={voiceRoom ? isAudioEnabled : localAudioEnabled}
+                                    isMuted={activeVoiceCall ? isMuted : localMuted}
+                                    isAudioEnabled={activeVoiceCall ? isAudioEnabled : localAudioEnabled}
                                     onToggleMute={handleToggleMute}
                                     onToggleAudio={handleToggleAudio}
                                 />
@@ -239,15 +228,15 @@ const Home = ({ user }) => {
 
                         
                         {/* Единственный VoiceChat - позиционируется динамически */}
-                        {voiceRoom && (
+                        {activeVoiceCall && (
                             <VoiceChat
                                 ref={voiceChatRef}
-                                key={`${voiceRoom.roomId}-${voiceRoom.serverId || 'direct'}-unified`}
-                                roomId={voiceRoom.roomId}
-                                roomName={voiceRoom.roomName}
-                                userName={voiceRoom.userName}
-                                userId={voiceRoom.userId}
-                                serverId={voiceRoom.serverId}
+                                key={`${activeVoiceCall.roomId}-${activeVoiceCall.serverId || 'direct'}-unified`}
+                                roomId={activeVoiceCall.roomId}
+                                roomName={activeVoiceCall.roomName}
+                                userName={activeVoiceCall.userName}
+                                userId={activeVoiceCall.userId}
+                                serverId={activeVoiceCall.serverId}
                                 autoJoin={true}
                                 showUI={true}
                                 isVisible={isVoiceChatVisible}
