@@ -15,7 +15,7 @@ import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
 import CallButton from '../components/CallButton';
 import VoiceChat from '../VoiceChat';
-import { useCallContext } from '../contexts/CallContext';
+import { createPortal } from 'react-dom';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
   return (
@@ -100,12 +100,9 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const [forwardMessageText, setForwardMessageText] = useState('');
   const forwardTextareaRef = useRef(null);
 
-    // Глобальный контекст для управления звонками
-  const {
-    activeCall,
-    startCall,
-    endCall
-  } = useCallContext();
+    // Состояние для звонков 1 на 1
+  const [isInCall, setIsInCall] = useState(false);
+  const [callData, setCallData] = useState(null);
 
   // Обработчики для звонков
   const handleCallStart = async (callData) => {
@@ -120,13 +117,15 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       };
       
       console.log('Call request:', callRequest);
-      startCall(callRequest);
+      setCallData(callRequest);
+      setIsInCall(true);
     }
   };
 
   const handleCallEnd = async () => {
     console.log('Ending call');
-    endCall();
+    setCallData(null);
+    setIsInCall(false);
   };
 
   useEffect(() => {
@@ -544,7 +543,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
               username={username}
               onCallStart={handleCallStart}
               onCallEnd={handleCallEnd}
-              isInCall={activeCall && activeCall.chatId === chatId}
+              isInCall={isInCall}
             />
           )}
           {isGroupChat && (
@@ -635,23 +634,26 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         />
       )}
 
-      {/* Интегрированный звонок - в чате с глобальным состоянием */}
-      {activeCall && activeCall.chatId === chatId && (
+      {/* Интегрированный звонок - в чате с локальным состоянием */}
+      {isInCall && callData && callData.chatId === chatId && (
         <div className="integrated-call-container">
-          <VoiceChat
-            roomId={`call-${chatId}`}
-            roomName={`Звонок с ${activeCall.partnerName}`}
-            userName={username}
-            userId={userId}
-            serverId={null}
-            autoJoin={true}
-            showUI={true}
-            isVisible={true}
-            onLeave={handleCallEnd}
-            onManualLeave={handleCallEnd}
-            initialMuted={false}
-            initialAudioEnabled={true}
-          />
+          {createPortal(
+            <VoiceChat
+              roomId={`call-${chatId}`}
+              roomName={`Звонок с ${callData.partnerName}`}
+              userName={username}
+              userId={userId}
+              serverId={null}
+              autoJoin={true}
+              showUI={true}
+              isVisible={true}
+              onLeave={handleCallEnd}
+              onManualLeave={handleCallEnd}
+              initialMuted={false}
+              initialAudioEnabled={true}
+            />,
+            document.getElementById('voice-chat-container-direct') || document.body
+          )}
         </div>
       )}
 

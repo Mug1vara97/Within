@@ -338,7 +338,12 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel
                     <LeftVoiceChannelComponent />
                 ) : (
                     <>
-
+                        {/* Контейнер для VoiceChat в личных сообщениях */}
+                        <div id="voice-chat-container-direct" style={{ 
+                            width: '100%', 
+                            height: '100%',
+                            display: 'none' // По умолчанию скрыт, показывается только при звонке
+                        }} />
                         
                         {/* Показываем GroupChat если есть выбранный чат */}
                         {selectedChat && (
