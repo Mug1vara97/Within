@@ -879,12 +879,12 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         if (container) {
           return createPortal(
             <VoiceChat
-              key={`${activeVoiceCall.roomId}-${activeVoiceCall.serverId || 'direct'}-group-portal`}
+              key={`${activeVoiceCall.roomId}-group-portal`}
               roomId={activeVoiceCall.roomId}
               roomName={activeVoiceCall.roomName}
               userName={activeVoiceCall.userName}
               userId={activeVoiceCall.userId}
-              serverId={activeVoiceCall.serverId}
+              serverId={null}
               autoJoin={true}
               showUI={true}
               isVisible={true}

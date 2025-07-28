@@ -192,11 +192,11 @@ const Home = ({ user }) => {
                         
 
                         
-                        {/* Единственный VoiceChat - позиционируется динамически (только для серверов) */}
+                        {/* VoiceChat для серверных голосовых каналов */}
                         {voiceRoom && voiceRoom.serverId && (
                             <VoiceChat
                                 ref={voiceChatRef}
-                                key={`${voiceRoom.roomId}-${voiceRoom.serverId}-unified`}
+                                key={`${voiceRoom.roomId}-${voiceRoom.serverId}-server`}
                                 roomId={voiceRoom.roomId}
                                 roomName={voiceRoom.roomName}
                                 userName={voiceRoom.userName}

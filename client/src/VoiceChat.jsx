@@ -1205,13 +1205,28 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       handleLeaveCall();
       // Небольшая задержка перед подключением к новому каналу
       setTimeout(() => {
-        if (autoJoin) {
+        if (autoJoin && shouldConnect) {
           handleJoin();
         }
       }, 100);
     }
     prevRoomIdRef.current = roomId;
-  }, [roomId, autoJoin]);
+  }, [roomId, autoJoin, shouldConnect]);
+
+  // Проверяем, должен ли этот экземпляр VoiceChat подключаться к звонку
+  const shouldConnect = useMemo(() => {
+    // Если это серверный VoiceChat (Home.jsx), подключаемся только к серверным звонкам
+    if (serverId) {
+      return true; // Серверный VoiceChat подключается к серверным звонкам
+    }
+    
+    // Если это групповой VoiceChat (GroupChat.jsx), подключаемся только к групповым звонкам
+    if (!serverId) {
+      return true; // Групповой VoiceChat подключается к групповым звонкам
+    }
+    
+    return false;
+  }, [serverId]);
 
   const [screenProducer, setScreenProducer] = useState(null);
   const [screenStream, setScreenStream] = useState(null);
@@ -1690,6 +1705,12 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const handleJoin = async () => {
     if (!roomId || !userName) {
       setError('Please enter room ID and username');
+      return;
+    }
+
+    // Проверяем, должен ли этот экземпляр подключаться к звонку
+    if (!shouldConnect) {
+      console.log('VoiceChat: Skipping join - this instance should not connect');
       return;
     }
 
@@ -3118,6 +3139,12 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const handleLeaveCall = () => {
     console.log('Leaving voice call...');
     
+    // Проверяем, должен ли этот экземпляр подключаться к звонку
+    if (!shouldConnect) {
+      console.log('VoiceChat: Skipping leave - this instance should not connect');
+      return;
+    }
+    
     // Уведомляем сервер о выходе пользователя из голосового канала
     if (roomId && socketRef.current) {
       socketRef.current.emit('userLeftVoiceChannel', {
@@ -4205,20 +4232,20 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   };
 
   useEffect(() => {
-    if (autoJoin && roomId && userName && !isJoined) {
+    if (autoJoin && roomId && userName && !isJoined && shouldConnect) {
       handleJoin();
     }
-  }, [autoJoin, roomId, userName]);
+  }, [autoJoin, roomId, userName, shouldConnect]);
 
   // Автоматический выход при размонтировании компонента
   useEffect(() => {
     return () => {
       console.log('VoiceChat component unmounting, cleaning up...');
-      if (isJoined) {
+      if (isJoined && shouldConnect) {
         handleLeaveCall();
       }
     };
-  }, [isJoined]);
+  }, [isJoined, shouldConnect]);
 
   // Подготовка всех нужных пропсов для UI
   const ui = (

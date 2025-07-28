@@ -250,11 +250,14 @@ export const VoiceChannelProvider = ({ children }) => {
   }, []);
 
   const startVoiceCall = useCallback((roomData) => {
+    console.log('VoiceChannelContext: startVoiceCall called with:', roomData);
     const voiceCall = {
       ...roomData,
+      serverId: roomData.serverId || null, // Явно устанавливаем serverId
       startedAt: new Date().toISOString(),
       isActive: true
     };
+    console.log('VoiceChannelContext: Setting activeVoiceCall to:', voiceCall);
     setActiveVoiceCall(voiceCall);
     saveVoiceCallState(voiceCall);
   }, [saveVoiceCallState]);
@@ -265,7 +268,9 @@ export const VoiceChannelProvider = ({ children }) => {
   }, [saveVoiceCallState]);
 
   const isVoiceCallActive = useCallback((chatId) => {
-    return activeVoiceCall && activeVoiceCall.roomId === chatId;
+    const isActive = activeVoiceCall && activeVoiceCall.roomId === chatId;
+    console.log('VoiceChannelContext: isVoiceCallActive check:', { chatId, activeVoiceCall, isActive });
+    return isActive;
   }, [activeVoiceCall]);
 
   const getActiveVoiceCall = useCallback(() => {
