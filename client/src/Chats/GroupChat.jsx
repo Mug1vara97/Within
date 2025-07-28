@@ -13,6 +13,9 @@ import useScrollToBottom from '../hooks/useScrollToBottom';
 import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/GroupSettings';
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
+import CallButton from '../components/CallButton';
+import VoiceChat from '../VoiceChat';
+import { useCallContext } from '../contexts/CallContext';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
   return (
@@ -58,6 +61,13 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  
+  // Глобальный контекст для управления звонками
+  const {
+    activeCall,
+    startCall,
+    endCall
+  } = useCallContext();
   const { 
     isRecording, 
     recordingTime, 
@@ -79,6 +89,28 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     handleLeaveGroup,
     handleAddMember
   } = useGroupSettings(chatId, userId);
+  
+  // Обработчики звонков
+  const handleCallStart = async (callData) => {
+    console.log('Начинаем звонок:', callData);
+  };
+
+  const handleCallEnd = async () => {
+    console.log('Завершаем звонок');
+  };
+  
+  // Получаем информацию о партнере для чатов 1 на 1
+  const getPartnerInfo = () => {
+    if (isGroupChat || !members || members.length === 0) return null;
+    
+    const partner = members.find(member => member.userId !== userId);
+    return partner ? {
+      id: partner.userId,
+      name: partner.username
+    } : null;
+  };
+  
+  const partnerInfo = getPartnerInfo();
   const connectionRef = useRef(null);
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [replyingToMessage, setReplyingToMessage] = useState(null);
@@ -315,6 +347,11 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
             createdAt: msg.createdAt
           })));
           
+          // Загружаем участников чата для звонков
+          if (!isGroupChat) {
+            await fetchMembers();
+          }
+          
           // Сообщения теперь помечаются как прочитанные при их видимости
         }
       } catch (error) {
@@ -351,7 +388,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       
       cleanup();
     };
-  }, [chatId]);
+  }, [chatId, isGroupChat, fetchMembers]);
 
   // Подключение к ChatListHub
   useEffect(() => {
@@ -502,6 +539,18 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           </div>
         </div>
         <div className="header-actions">
+          {/* Кнопка звонка для чатов 1 на 1 */}
+          {!isGroupChat && partnerInfo && (
+            <CallButton
+              chatId={chatId}
+              partnerId={partnerInfo.id}
+              partnerName={partnerInfo.name}
+              userId={userId}
+              username={username}
+              onCallStart={handleCallStart}
+              onCallEnd={handleCallEnd}
+            />
+          )}
           {isGroupChat && (
             <button
               onClick={() => setIsAddMembersModalOpen(true)}
@@ -801,6 +850,26 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         )}
       </form>
       <ForwardModal />
+      
+      {/* Интегрированный звонок - в чате с глобальным состоянием */}
+      {activeCall && activeCall.chatId === chatId && (
+        <div className="integrated-call-container">
+          <VoiceChat
+            roomId={`call-${chatId}`}
+            roomName={`Звонок с ${activeCall.partnerName}`}
+            userName={username}
+            userId={userId}
+            serverId={null}
+            autoJoin={true}
+            showUI={true}
+            isVisible={true}
+            onLeave={handleCallEnd}
+            onManualLeave={handleCallEnd}
+            initialMuted={false}
+            initialAudioEnabled={true}
+          />
+        </div>
+      )}
     </div>
   );
 };
