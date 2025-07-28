@@ -3,6 +3,7 @@ import { HubConnectionBuilder } from '@microsoft/signalr';
 import MicIcon from '@mui/icons-material/Mic';
 import StopIcon from '@mui/icons-material/Stop';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
+import PhoneIcon from '@mui/icons-material/Phone';
 import '../styles/Chat.css';
 import './group-chat.css';
 import '../styles/links.css';
@@ -51,7 +52,7 @@ const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
 };
 
 const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, userPermissions, chatListConnection,
-  isGroupChat = false, isServerOwner }) => {
+  isGroupChat = false, isServerOwner, onJoinVoiceChannel, onLeaveVoiceChannel, voiceRoom }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [connection, setConnection] = useState(null);
@@ -96,6 +97,18 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const [forwardMessageText, setForwardMessageText] = useState('');
   const forwardTextareaRef = useRef(null);
+  
+  // Состояние для голосового звонка
+  const [isInVoiceCall, setIsInVoiceCall] = useState(false);
+  
+  // Синхронизируем состояние звонка с voiceRoom
+  useEffect(() => {
+    if (voiceRoom && voiceRoom.roomId === chatId && !voiceRoom.serverId) {
+      setIsInVoiceCall(true);
+    } else {
+      setIsInVoiceCall(false);
+    }
+  }, [voiceRoom, chatId]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -459,6 +472,27 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     await fetchMembers();
   };
 
+  // Обработчик для начала/завершения голосового звонка
+  const handleVoiceCall = () => {
+    if (isInVoiceCall) {
+      // Завершаем звонок
+      setIsInVoiceCall(false);
+      onLeaveVoiceChannel();
+      console.log('Завершение голосового звонка в чате:', chatId);
+    } else {
+      // Начинаем звонок
+      setIsInVoiceCall(true);
+      onJoinVoiceChannel({
+        roomId: chatId,
+        roomName: groupName,
+        userName: username,
+        userId: userId,
+        serverId: null // Для групповых чатов serverId = null
+      });
+      console.log('Начало голосового звонка в чате:', chatId);
+    }
+  };
+
   // Добавляем функцию поиска
   const handleSearch = async (query) => {
     setSearchQuery(query);
@@ -502,6 +536,15 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           </div>
         </div>
         <div className="header-actions">
+          {/* Кнопка голосового звонка */}
+          <button
+            onClick={handleVoiceCall}
+            className={`voice-call-button ${isInVoiceCall ? 'active' : ''}`}
+            title={isInVoiceCall ? 'Завершить звонок' : 'Начать звонок'}
+          >
+            <PhoneIcon style={{ fontSize: '20px' }} />
+          </button>
+          
           {isGroupChat && (
             <button
               onClick={() => setIsAddMembersModalOpen(true)}

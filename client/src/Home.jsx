@@ -211,6 +211,7 @@ const Home = ({ user }) => {
                                 <ChatListWrapper 
                                     user={user} 
                                     onJoinVoiceChannel={handleJoinVoiceChannel}
+                                    onLeaveVoiceChannel={handleLeaveVoiceChannel}
                                     voiceRoom={voiceRoom}
                                     leftVoiceChannel={leftVoiceChannel}
                                     setLeftVoiceChannel={setLeftVoiceChannel}
@@ -266,7 +267,7 @@ const Home = ({ user }) => {
     );
 };
 
-const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
+const ChatListWrapper = ({ user, onJoinVoiceChannel, onLeaveVoiceChannel, voiceRoom, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
     // Компонент для отображения сообщения о выходе из голосового канала
     const LeftVoiceChannelComponent = () => (
         <div style={{
@@ -348,6 +349,9 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel
                                 chatId={selectedChat.chatId}
                                 groupName={selectedChat.groupName || selectedChat.name}
                                 isServerChat={false}
+                                onJoinVoiceChannel={onJoinVoiceChannel}
+                                onLeaveVoiceChannel={onLeaveVoiceChannel}
+                                voiceRoom={voiceRoom}
                             />
                         )}
                         
