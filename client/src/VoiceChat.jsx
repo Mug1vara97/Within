@@ -4460,13 +4460,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const getTargetContainer = () => {
     if (!isVisible) return null;
     
-    // Только для серверных голосовых каналов создаем портал
-    if (serverId) {
-      return document.getElementById('voice-chat-container-server');
-    }
-    
-    // Для личных сообщений не создаем портал (работаем в фоне)
-    return null;
+    // Для всех типов звонков используем основной контейнер
+    return document.getElementById('voice-chat-container-server') || document.body;
   };
 
   const targetContainer = getTargetContainer();

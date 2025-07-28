@@ -192,11 +192,11 @@ const Home = ({ user }) => {
                         
 
                         
-                        {/* VoiceChat для серверных голосовых каналов */}
-                        {voiceRoom && voiceRoom.serverId && voiceRoom.serverId !== null && (
+                        {/* Единый VoiceChat для всех типов звонков */}
+                        {voiceRoom && (
                             <VoiceChat
                                 ref={voiceChatRef}
-                                key={`${voiceRoom.roomId}-${voiceRoom.serverId}-server`}
+                                key={`${voiceRoom.roomId}-${voiceRoom.serverId || 'group'}-unified`}
                                 roomId={voiceRoom.roomId}
                                 roomName={voiceRoom.roomName}
                                 userName={voiceRoom.userName}
@@ -294,8 +294,8 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel
                     <>
 
                         
-                        {/* Показываем GroupChat если есть выбранный чат */}
-                        {selectedChat && (
+                        {/* Показываем GroupChat если есть выбранный чат И нет активного голосового звонка */}
+                        {selectedChat && !voiceRoom && (
                             <GroupChat
                                 username={user?.username}
                                 userId={user?.userId}
@@ -410,15 +410,15 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChann
                     <LeftVoiceChannelComponent />
                 ) : (
                     <>
-                        {/* Контейнер для VoiceChat на сервере */}
+                        {/* Единый контейнер для VoiceChat */}
                         <div id="voice-chat-container-server" style={{ 
                             width: '100%', 
                             height: '100%',
-                            display: voiceRoom && voiceRoom.serverId === serverId ? 'block' : 'none'
+                            display: voiceRoom ? 'block' : 'none'
                         }} />
                         
-                        {/* Показываем GroupChat если есть выбранный чат И это НЕ голосовой канал ИЛИ голосовой канал не видимый */}
-                        {selectedChat && (!voiceRoom || voiceRoom.serverId !== serverId) && (
+                        {/* Показываем GroupChat если есть выбранный чат И нет активного голосового звонка */}
+                        {selectedChat && !voiceRoom && (
                             <GroupChat
                                 username={user?.username}
                                 userId={user?.userId}

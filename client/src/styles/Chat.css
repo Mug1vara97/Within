@@ -288,8 +288,8 @@
     background-color: #d84040;
 }
 
-/* Контейнер для VoiceChat в групповом чате */
-#voice-chat-container-group {
+/* Единый контейнер для VoiceChat */
+#voice-chat-container-server {
     position: absolute;
     top: 0;
     left: 0;
@@ -300,37 +300,12 @@
     overflow: hidden;
 }
 
-/* Стили для VoiceChat внутри контейнера группового чата */
-#voice-chat-container-group .voice-chat-container {
+/* Стили для VoiceChat внутри контейнера */
+#voice-chat-container-server .voice-chat-container {
     position: absolute !important;
     width: 100% !important;
     height: 100% !important;
     top: 0 !important;
     left: 0 !important;
     z-index: 1000 !important;
-}
-
-/* Позиционирование VoiceChat для групповых чатов */
-.group-chat-container .voice-chat-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1000;
-}
-
-/* Позиционирование VoiceChat в контейнере группового чата */
-#voice-chat-container-group .voice-chat-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1000;
-}
-
-/* Скрываем VoiceChat в основном контейнере для групповых чатов */
-.group-chat-container ~ .voice-chat-container {
-    display: none;
 }

@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import MicIcon from '@mui/icons-material/Mic';
 import StopIcon from '@mui/icons-material/Stop';
@@ -15,7 +14,6 @@ import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
 import { useVoiceChannel } from '../contexts/VoiceChannelContext';
-import VoiceChat from '../VoiceChat';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
   return (
@@ -64,14 +62,8 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   
   // Используем глобальный контекст для голосовых звонков
   const { 
-    activeVoiceCall, 
-    startVoiceCall, 
-    endVoiceCall, 
-    isVoiceCallActive 
+    startVoiceCall
   } = useVoiceChannel();
-  
-  // Проверяем, активен ли звонок в текущем групповом чате
-  const isCurrentChatVoiceCallActive = isVoiceCallActive(chatId);
   
   const { 
     isRecording, 
@@ -131,17 +123,9 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     }, 100);
   };
 
-  const handleLeaveVoiceChannel = () => {
-    endVoiceCall();
-  };
 
-  const handleMuteStateChange = (muted) => {
-    console.log('Mute state changed:', muted);
-  };
 
-  const handleAudioStateChange = (enabled) => {
-    console.log('Audio state changed:', enabled);
-  };
+
 
 
 
@@ -552,13 +536,13 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         <div className="header-actions">
           {/* Кнопка голосового канала */}
           {isGroupChat && (
-            <button
-              onClick={isCurrentChatVoiceCallActive ? handleLeaveVoiceChannel : handleJoinVoiceChannel}
-              className={`voice-channel-button ${isCurrentChatVoiceCallActive ? 'active' : ''}`}
-              title={isCurrentChatVoiceCallActive ? 'Покинуть голосовой канал' : 'Присоединиться к голосовому каналу'}
-            >
-              {isCurrentChatVoiceCallActive ? '🔴' : '🔊'}
-            </button>
+                            <button
+                  onClick={handleJoinVoiceChannel}
+                  className="voice-channel-button"
+                  title="Присоединиться к голосовому каналу"
+                >
+                  🔊
+                </button>
           )}
           
           {isGroupChat && (
@@ -861,45 +845,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       </form>
       <ForwardModal />
       
-      {/* Контейнер для VoiceChat через Portal */}
-      <div id="voice-chat-container-group" style={{ 
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%', 
-        height: '100%',
-        zIndex: 1000
-      }} />
-      
-      {/* VoiceChat через Portal для группового чата */}
-      {activeVoiceCall && isCurrentChatVoiceCallActive && (!activeVoiceCall.serverId || activeVoiceCall.serverId === null) && (() => {
-        console.log('Rendering VoiceChat portal:', { activeVoiceCall, isCurrentChatVoiceCallActive });
-        const container = document.getElementById('voice-chat-container-group');
-        console.log('Container found for portal:', !!container);
-        if (container) {
-          return createPortal(
-            <VoiceChat
-              key={`${activeVoiceCall.roomId}-group-portal`}
-              roomId={activeVoiceCall.roomId}
-              roomName={activeVoiceCall.roomName}
-              userName={activeVoiceCall.userName}
-              userId={activeVoiceCall.userId}
-              serverId={null}
-              autoJoin={true}
-              showUI={true}
-              isVisible={true}
-              onLeave={handleLeaveVoiceChannel}
-              onMuteStateChange={handleMuteStateChange}
-              onAudioStateChange={handleAudioStateChange}
-              initialMuted={false}
-              initialAudioEnabled={true}
-            />,
-            container
-          );
-        }
-        console.log('Container not found, not rendering VoiceChat');
-        return null;
-      })()}
+
     </div>
   );
 };
