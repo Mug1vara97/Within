@@ -1169,7 +1169,7 @@ const VideoView = React.memo(({
   );
 });
 
-const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true, disableAutoRoomSwitch = false }, ref) => {
+const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true }, ref) => {
   const { addVoiceChannelParticipant, removeVoiceChannelParticipant, updateVoiceChannelParticipant } = useVoiceChannel();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -1201,9 +1201,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   // Обработка изменения roomId
   useEffect(() => {
     if (prevRoomIdRef.current && prevRoomIdRef.current !== roomId) {
-      // Если отключено автоматическое переключение комнат, игнорируем изменение
-      if (disableAutoRoomSwitch) {
-        console.log('Auto room switching disabled, ignoring room ID change:', roomId);
+      // Для личных звонков (без serverId) не переключаемся автоматически
+      if (!serverId) {
+        console.log('Private call detected, ignoring room ID change:', roomId);
         return;
       }
       
@@ -1217,7 +1217,15 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       }, 100);
     }
     prevRoomIdRef.current = roomId;
-  }, [roomId, autoJoin, disableAutoRoomSwitch]);
+  }, [roomId, autoJoin, serverId]);
+
+  // Обработка изменения serverId - для личных звонков не отключаемся
+  useEffect(() => {
+    if (prevRoomIdRef.current && !serverId && isJoined) {
+      console.log('Server ID changed but private call is active, keeping connection');
+      return;
+    }
+  }, [serverId, isJoined]);
 
   const [screenProducer, setScreenProducer] = useState(null);
   const [screenStream, setScreenStream] = useState(null);
@@ -1270,10 +1278,18 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (roomId && userId && socketRef.current) {
-        socketRef.current.emit('userLeftVoiceChannel', {
-          channelId: roomId,
-          userId: userId
-        });
+        // Для личных звонков отправляем специальное уведомление
+        if (!serverId) {
+          socketRef.current.emit('userLeftPrivateCall', {
+            channelId: roomId,
+            userId: userId
+          });
+        } else {
+          socketRef.current.emit('userLeftVoiceChannel', {
+            channelId: roomId,
+            userId: userId
+          });
+        }
       }
     };
 
@@ -1281,7 +1297,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [roomId, userId]);
+  }, [roomId, userId, serverId]);
 
   useEffect(() => {
     const resumeAudioContext = async () => {
@@ -1496,23 +1512,31 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
       // Уведомляем сервер о выходе текущего пользователя из голосового канала
       if (socketRef.current) {
-        socketRef.current.emit('userLeftVoiceChannel', {
-          channelId: roomId,
-          userId: userId
-        });
-        
-        // Запрашиваем обновленные данные о участниках несколько раз с интервалом
-        setTimeout(() => {
-          socketRef.current.emit('getVoiceChannelParticipants');
-        }, 500);
-        
-        setTimeout(() => {
-          socketRef.current.emit('getVoiceChannelParticipants');
-        }, 1500);
-        
-        setTimeout(() => {
-          socketRef.current.emit('getVoiceChannelParticipants');
-        }, 3000);
+        // Для личных звонков отправляем специальное уведомление
+        if (!serverId) {
+          socketRef.current.emit('userLeftPrivateCall', {
+            channelId: roomId,
+            userId: userId
+          });
+        } else {
+          socketRef.current.emit('userLeftVoiceChannel', {
+            channelId: roomId,
+            userId: userId
+          });
+          
+          // Запрашиваем обновленные данные о участниках несколько раз с интервалом
+          setTimeout(() => {
+            socketRef.current.emit('getVoiceChannelParticipants');
+          }, 500);
+          
+          setTimeout(() => {
+            socketRef.current.emit('getVoiceChannelParticipants');
+          }, 1500);
+          
+          setTimeout(() => {
+            socketRef.current.emit('getVoiceChannelParticipants');
+          }, 3000);
+        }
       }
     }
     
@@ -1753,15 +1777,28 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
         // Уведомляем сервер о выходе пользователя из голосового канала при отключении
         if (roomId && userId) {
-          socket.emit('userLeftVoiceChannel', {
-            channelId: roomId,
-            userId: userId
-          });
+          // Для личных звонков отправляем специальное уведомление
+          if (!serverId) {
+            socket.emit('userLeftPrivateCall', {
+              channelId: roomId,
+              userId: userId
+            });
+          } else {
+            socket.emit('userLeftVoiceChannel', {
+              channelId: roomId,
+              userId: userId
+            });
+          }
         }
 
-        setIsJoined(false);
-        setPeers(new Map());
-        cleanup();
+        // Для личных звонков не очищаем состояние при отключении сокета
+        if (serverId) {
+          setIsJoined(false);
+          setPeers(new Map());
+          cleanup();
+        } else {
+          console.log('Private call active, not cleaning up on socket disconnect');
+        }
       });
 
       // Add handlers for peer events
@@ -4220,11 +4257,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   useEffect(() => {
     return () => {
       console.log('VoiceChat component unmounting, cleaning up...');
-      if (isJoined) {
+      // Для личных звонков не отключаемся автоматически при размонтировании
+      if (isJoined && serverId) {
         handleLeaveCall();
+      } else if (isJoined && !serverId) {
+        console.log('Private call active, not auto-disconnecting on unmount');
       }
     };
-  }, [isJoined]);
+  }, [isJoined, serverId]);
 
   // Подготовка всех нужных пропсов для UI
   const ui = (
@@ -4471,14 +4511,17 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   const targetContainer = getTargetContainer();
   
+  // Для личных звонков всегда показываем UI, даже при переходе на серверы
+  const shouldShowUI = isVisible || (!serverId && isJoined);
+  
   // Если видимый и есть контейнер, используем портал
-  if (isVisible && targetContainer) {
+  if (shouldShowUI && targetContainer) {
     return createPortal(ui, targetContainer);
   }
   
   // Если не видимый или нет контейнера, возвращаем ui напрямую со скрытием
   return (
-    <div style={{ display: isVisible ? 'block' : 'none' }}>
+    <div style={{ display: shouldShowUI ? 'block' : 'none' }}>
       {ui}
     </div>
   );

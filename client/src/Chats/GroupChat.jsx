@@ -104,7 +104,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const [isInCall, setIsInCall] = useState(false);
   const [callRoomId, setCallRoomId] = useState(null);
   const voiceChatRef = useRef(null);
-  const [isPrivateCallActive, setIsPrivateCallActive] = useState(false);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -509,30 +508,18 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       const roomId = `chat_${chatId}`;
       setCallRoomId(roomId);
       setIsInCall(true);
-      setIsPrivateCallActive(true);
     }
   };
 
   const handleEndCall = () => {
     setIsInCall(false);
     setCallRoomId(null);
-    setIsPrivateCallActive(false);
   };
 
   const handleCallLeave = () => {
     setIsInCall(false);
     setCallRoomId(null);
-    setIsPrivateCallActive(false);
   };
-
-  // Сброс состояния личного звонка при размонтировании компонента
-  useEffect(() => {
-    return () => {
-      if (isPrivateCallActive) {
-        setIsPrivateCallActive(false);
-      }
-    };
-  }, [isPrivateCallActive]);
 
   return (
     <div className="group-chat-container">
@@ -549,7 +536,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
               onClick={isInCall ? handleEndCall : handleStartCall}
               className={`call-button ${isInCall ? 'in-call' : ''}`}
               title={isInCall ? "Завершить звонок" : "Начать звонок"}
-              disabled={isPrivateCallActive && !isInCall}
             >
               {isInCall ? <CallEndIcon /> : <CallIcon />}
             </button>
@@ -868,8 +854,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           isVisible={true}
           onLeave={handleCallLeave}
           onManualLeave={handleCallLeave}
-          // Отключаем автоматическое переключение комнат для личных звонков
-          disableAutoRoomSwitch={isPrivateCallActive}
         />
       )}
     </div>
