@@ -14,8 +14,8 @@ import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
 import CallButton from '../components/CallButton';
-import useCallManager from '../hooks/useCallManager';
 import VoiceChat from '../VoiceChat';
+import { useCallContext } from '../contexts/CallContext';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
   return (
@@ -100,22 +100,16 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const [forwardMessageText, setForwardMessageText] = useState('');
   const forwardTextareaRef = useRef(null);
 
-  // Состояние для звонков
-  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
-  const [currentCallData, setCurrentCallData] = useState(null);
-  
-  // Хук для управления звонками
+    // Глобальный контекст для управления звонками
   const {
-    isInCall,
+    activeCall,
     startCall,
     endCall
-  } = useCallManager(userId, username);
+  } = useCallContext();
 
   // Обработчики для звонков
   const handleCallStart = async (callData) => {
     console.log('Starting call:', callData);
-    setCurrentCallData(callData);
-    setIsCallModalOpen(true);
     
     // Для чатов 1 на 1 определяем партнера
     if (!isGroupChat) {
@@ -127,16 +121,14 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           partnerName: partner.name || partner.username
         };
         
-        await startCall(callRequest);
+        startCall(callRequest);
       }
     }
   };
 
   const handleCallEnd = async () => {
     console.log('Ending call');
-    await endCall();
-    setIsCallModalOpen(false);
-    setCurrentCallData(null);
+    endCall();
   };
 
   useEffect(() => {
@@ -554,7 +546,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
               username={username}
               onCallStart={handleCallStart}
               onCallEnd={handleCallEnd}
-              isInCall={isInCall}
+              isInCall={activeCall && activeCall.chatId === chatId}
             />
           )}
           {isGroupChat && (
@@ -646,11 +638,11 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       )}
 
       {/* Интегрированный звонок */}
-      {isCallModalOpen && currentCallData && (
+      {activeCall && activeCall.chatId === chatId && (
         <div className="integrated-call-container">
           <VoiceChat
             roomId={`call-${chatId}`}
-            roomName={`Звонок с ${currentCallData.partnerName}`}
+            roomName={`Звонок с ${activeCall.partnerName}`}
             userName={username}
             userId={userId}
             serverId={null}

@@ -24,11 +24,12 @@ VoiceChat компонент интегрирован прямо в чат.
 - Компактный режим (только верхняя часть чата)
 - Чат остается видимым под звонком
 
-### 3. useCallManager (`client/src/hooks/useCallManager.js`)
-Упрощенный хук для управления звонками.
+### 3. CallContext (`client/src/contexts/CallContext.jsx`)
+Глобальный контекст для управления звонками.
 
 **Функции:**
-- Управление состоянием звонков
+- Глобальное состояние звонков
+- Сохранение звонка при переключении чатов
 - Интеграция с VoiceChat компонентом
 - Простое начало и завершение звонков
 
@@ -37,22 +38,18 @@ VoiceChat компонент интегрирован прямо в чат.
 ### Добавленные импорты:
 ```javascript
 import CallButton from '../components/CallButton';
-import useCallManager from '../hooks/useCallManager';
 import VoiceChat from '../VoiceChat';
+import { useCallContext } from '../contexts/CallContext';
 ```
 
 ### Добавленное состояние:
 ```javascript
-// Состояние для звонков
-const [isCallModalOpen, setIsCallModalOpen] = useState(false);
-const [currentCallData, setCurrentCallData] = useState(null);
-
-// Хук для управления звонками
+// Глобальный контекст для управления звонками
 const {
-  isInCall,
+  activeCall,
   startCall,
   endCall
-} = useCallManager(userId, username);
+} = useCallContext();
 ```
 
 ### Обработчики звонков:
@@ -86,11 +83,11 @@ const handleCallEnd = async () => {
 ### Интегрированный звонок:
 ```javascript
 {/* Интегрированный звонок - сразу после заголовка */}
-{isCallModalOpen && currentCallData && (
+{activeCall && activeCall.chatId === chatId && (
   <div className="integrated-call-container">
     <VoiceChat
       roomId={`call-${chatId}`}
-      roomName={`Звонок с ${currentCallData.partnerName}`}
+      roomName={`Звонок с ${activeCall.partnerName}`}
       userName={username}
       userId={userId}
       serverId={null}
@@ -175,9 +172,10 @@ const handleCallEnd = async () => {
 
 ### Для чатов 1 на 1:
 1. Кнопка звонка появляется в заголовке чата
-2. При клике сразу открывается модальное окно с VoiceChat
+2. При клике сразу открывается VoiceChat в верхней части чата
 3. VoiceChat автоматически подключается к комнате звонка
-4. Поддерживается аудио и видео звонки
+4. Звонок продолжается при переключении между чатами
+5. Поддерживается аудио и видео звонки
 
 ### Для групповых чатов:
 - Функциональность звонков не отображается (только для чатов 1 на 1)
