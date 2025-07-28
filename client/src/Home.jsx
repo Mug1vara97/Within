@@ -478,10 +478,10 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVis
                     </>
                 )}
             </div>
+            
+            {/* Глобальное отображение активного звонка */}
+            <GlobalCallDisplay />
         </div>
-        
-        {/* Глобальное отображение активного звонка */}
-        <GlobalCallDisplay />
     );
 };
 
