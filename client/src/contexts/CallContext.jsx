@@ -18,7 +18,6 @@ export const CallProvider = ({ children }) => {
     console.log('CallContext: Starting call:', callData);
     setActiveCall(callData);
     setIsInCall(true);
-    console.log('CallContext: Active call set to:', callData);
   }, []);
 
   const endCall = useCallback(() => {

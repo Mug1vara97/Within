@@ -110,25 +110,17 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   // Обработчики для звонков
   const handleCallStart = async (callData) => {
     console.log('Starting call:', callData);
-    console.log('Current chatId:', chatId);
-    console.log('Is group chat:', isGroupChat);
-    console.log('Members:', members);
     
-    // Для чатов 1 на 1 определяем партнера
+    // Для чатов 1 на 1
     if (!isGroupChat) {
-      const partner = members.find(member => member.id !== userId);
-      console.log('Found partner:', partner);
-      if (partner) {
-        const callRequest = {
-          ...callData,
-          chatId: chatId,
-          partnerId: partner.id,
-          partnerName: partner.name || partner.username
-        };
-        
-        console.log('Call request:', callRequest);
-        startCall(callRequest);
-      }
+      const callRequest = {
+        ...callData,
+        chatId: chatId,
+        partnerName: callData.partnerName || 'Пользователь'
+      };
+      
+      console.log('Call request:', callRequest);
+      startCall(callRequest);
     }
   };
 
@@ -546,8 +538,8 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           {!isGroupChat && (
             <CallButton
               chatId={chatId}
-              partnerId={members.find(member => member.id !== userId)?.id}
-              partnerName={members.find(member => member.id !== userId)?.name || members.find(member => member.id !== userId)?.username}
+              partnerId={null}
+              partnerName="Пользователь"
               userId={userId}
               username={username}
               onCallStart={handleCallStart}
@@ -644,10 +636,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       )}
 
       {/* Интегрированный звонок */}
-      {(() => {
-        console.log('Checking call display:', { activeCall, chatId, shouldShow: activeCall && activeCall.chatId === chatId });
-        return activeCall && activeCall.chatId === chatId;
-      })() && (
+      {activeCall && activeCall.chatId === chatId && (
         <div className="integrated-call-container">
           <VoiceChat
             roomId={`call-${chatId}`}
