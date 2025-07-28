@@ -504,8 +504,8 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   // Функции для управления голосовым звонком
   const handleStartCall = () => {
     if (!isGroupChat) {
-      // Для чатов 1 на 1 создаем уникальный roomId
-      const roomId = `private_call_${chatId}_${userId}`;
+      // Для чатов 1 на 1 используем chatId как roomId
+      const roomId = `chat_${chatId}`;
       setCallRoomId(roomId);
       setIsInCall(true);
     }
@@ -846,7 +846,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         <VoiceChat
           ref={voiceChatRef}
           roomId={callRoomId}
-          roomName={`Звонок с ${groupName}`}
+          roomName={`Звонок в чате: ${groupName}`}
           userName={username}
           userId={userId}
           autoJoin={true}
