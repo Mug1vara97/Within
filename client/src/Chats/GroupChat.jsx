@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import MicIcon from '@mui/icons-material/Mic';
 import StopIcon from '@mui/icons-material/Stop';
@@ -134,40 +135,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     console.log('Audio state changed:', enabled);
   };
 
-  // Перемещаем VoiceChat в контейнер группового чата когда он активен
-  useEffect(() => {
-    if (activeVoiceCall && isCurrentChatVoiceCallActive) {
-      const voiceChatElement = document.querySelector('.voice-chat-container');
-      const groupContainer = document.getElementById('voice-chat-container-group');
-      
-      if (voiceChatElement && groupContainer) {
-        groupContainer.appendChild(voiceChatElement);
-        console.log('VoiceChat moved to group chat container');
-      }
-    } else {
-      // Возвращаем VoiceChat в основной контейнер когда звонок неактивен
-      const voiceChatElement = document.querySelector('.voice-chat-container');
-      const mainContainer = document.querySelector('.home-container');
-      const groupContainer = document.getElementById('voice-chat-container-group');
-      
-      if (voiceChatElement && mainContainer && groupContainer && !groupContainer.contains(voiceChatElement)) {
-        mainContainer.appendChild(voiceChatElement);
-        console.log('VoiceChat returned to main container');
-      }
-    }
 
-    // Очистка при размонтировании компонента
-    return () => {
-      const voiceChatElement = document.querySelector('.voice-chat-container');
-      const mainContainer = document.querySelector('.home-container');
-      const groupContainer = document.getElementById('voice-chat-container-group');
-      
-      if (voiceChatElement && mainContainer && groupContainer && groupContainer.contains(voiceChatElement)) {
-        mainContainer.appendChild(voiceChatElement);
-        console.log('VoiceChat returned to main container on cleanup');
-      }
-    };
-  }, [activeVoiceCall, isCurrentChatVoiceCallActive]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -885,16 +853,36 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       </form>
       <ForwardModal />
       
-      {/* Контейнер для VoiceChat в групповом чате */}
+      {/* Контейнер для VoiceChat через Portal */}
       <div id="voice-chat-container-group" style={{ 
         position: 'absolute',
         top: 0,
         left: 0,
         width: '100%', 
         height: '100%',
-        zIndex: 1000,
-        display: activeVoiceCall && isCurrentChatVoiceCallActive ? 'block' : 'none'
+        zIndex: 1000
       }} />
+      
+      {/* VoiceChat через Portal для группового чата */}
+      {activeVoiceCall && isCurrentChatVoiceCallActive && createPortal(
+        <VoiceChat
+          key={`${activeVoiceCall.roomId}-${activeVoiceCall.serverId || 'direct'}-group-portal`}
+          roomId={activeVoiceCall.roomId}
+          roomName={activeVoiceCall.roomName}
+          userName={activeVoiceCall.userName}
+          userId={activeVoiceCall.userId}
+          serverId={activeVoiceCall.serverId}
+          autoJoin={true}
+          showUI={true}
+          isVisible={true}
+          onLeave={handleLeaveVoiceChannel}
+          onMuteStateChange={handleMuteStateChange}
+          onAudioStateChange={handleAudioStateChange}
+          initialMuted={false}
+          initialAudioEnabled={true}
+        />,
+        document.getElementById('voice-chat-container-group') || document.body
+      )}
     </div>
   );
 };

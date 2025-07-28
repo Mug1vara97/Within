@@ -302,11 +302,12 @@
 
 /* Стили для VoiceChat внутри контейнера группового чата */
 #voice-chat-container-group .voice-chat-container {
-    position: relative !important;
+    position: absolute !important;
     width: 100% !important;
     height: 100% !important;
     top: 0 !important;
     left: 0 !important;
+    z-index: 1000 !important;
 }
 
 /* Позиционирование VoiceChat для групповых чатов */
