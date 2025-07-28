@@ -7,7 +7,6 @@ import { Routes, Route, useParams, useLocation, useNavigate } from 'react-router
 import VoiceChat from './VoiceChat';
 import GroupChat from './Chats/GroupChat';
 import NotificationButton from './components/NotificationButton';
-import GlobalCallDisplay from './components/GlobalCallDisplay';
 import { useNotifications } from './hooks/useNotifications';
 
 const Home = ({ user }) => {
@@ -263,7 +262,6 @@ const Home = ({ user }) => {
                     </>
                 )}
             </div>
-            
         </div>
     );
 };
@@ -478,9 +476,6 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVis
                     </>
                 )}
             </div>
-            
-            {/* Глобальное отображение активного звонка */}
-            <GlobalCallDisplay />
         </div>
     );
 };

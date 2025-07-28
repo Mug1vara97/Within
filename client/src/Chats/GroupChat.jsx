@@ -16,7 +16,6 @@ import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
 import VoiceChat from '../VoiceCall';
-import { useCallContext } from '../contexts/CallContext';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
   return (
@@ -102,10 +101,9 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const forwardTextareaRef = useRef(null);
   
   // Состояние для голосового звонка
-  const { startCall, endCall, isCallActive } = useCallContext();
-  
-  // Получаем информацию о текущем звонке
-  const isInCall = isCallActive(chatId);
+  const [isInCall, setIsInCall] = useState(false);
+  const [callRoomId, setCallRoomId] = useState(null);
+  const voiceChatRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -505,17 +503,22 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
 
   // Функции для управления голосовым звонком
   const handleStartCall = () => {
-    console.log('handleStartCall called:', { isGroupChat, chatId, groupName, username, userId });
     if (!isGroupChat) {
       // Для чатов 1 на 1 используем chatId как roomId
       const roomId = `chat_${chatId}`;
-      console.log('Starting call with roomId:', roomId);
-      startCall(chatId, roomId, groupName, username, userId);
+      setCallRoomId(roomId);
+      setIsInCall(true);
     }
   };
 
   const handleEndCall = () => {
-    endCall();
+    setIsInCall(false);
+    setCallRoomId(null);
+  };
+
+  const handleCallLeave = () => {
+    setIsInCall(false);
+    setCallRoomId(null);
   };
 
   return (
@@ -838,7 +841,21 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       </form>
       <ForwardModal />
       
-      {/* Компонент голосового звонка теперь отображается глобально через GlobalCallDisplay */}
+      {/* Компонент голосового звонка */}
+      {isInCall && callRoomId && (
+        <VoiceChat
+          ref={voiceChatRef}
+          roomId={callRoomId}
+          roomName={`Звонок в чате: ${groupName}`}
+          userName={username}
+          userId={userId}
+          autoJoin={true}
+          showUI={true}
+          isVisible={true}
+          onLeave={handleCallLeave}
+          onManualLeave={handleCallLeave}
+        />
+      )}
     </div>
   );
 };
