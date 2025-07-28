@@ -15,6 +15,7 @@ import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
 import { useVoiceChannel } from '../contexts/VoiceChannelContext';
+import VoiceChat from '../VoiceChat';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
   return (
@@ -113,6 +114,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
 
   // Обработчики для голосового канала в групповом чате
   const handleJoinVoiceChannel = () => {
+    console.log('Starting voice call for group chat:', { chatId, groupName, username, userId });
     const roomData = {
       roomId: chatId,
       roomName: groupName,
@@ -120,7 +122,13 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       userId: userId,
       serverId: null // Для групповых чатов serverId = null
     };
+    console.log('Calling startVoiceCall with:', roomData);
     startVoiceCall(roomData);
+    console.log('Voice call started, checking container...');
+    setTimeout(() => {
+      const container = document.getElementById('voice-chat-container-group');
+      console.log('Container found:', !!container);
+    }, 100);
   };
 
   const handleLeaveVoiceChannel = () => {
@@ -864,25 +872,34 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       }} />
       
       {/* VoiceChat через Portal для группового чата */}
-      {activeVoiceCall && isCurrentChatVoiceCallActive && createPortal(
-        <VoiceChat
-          key={`${activeVoiceCall.roomId}-${activeVoiceCall.serverId || 'direct'}-group-portal`}
-          roomId={activeVoiceCall.roomId}
-          roomName={activeVoiceCall.roomName}
-          userName={activeVoiceCall.userName}
-          userId={activeVoiceCall.userId}
-          serverId={activeVoiceCall.serverId}
-          autoJoin={true}
-          showUI={true}
-          isVisible={true}
-          onLeave={handleLeaveVoiceChannel}
-          onMuteStateChange={handleMuteStateChange}
-          onAudioStateChange={handleAudioStateChange}
-          initialMuted={false}
-          initialAudioEnabled={true}
-        />,
-        document.getElementById('voice-chat-container-group') || document.body
-      )}
+      {activeVoiceCall && isCurrentChatVoiceCallActive && (() => {
+        console.log('Rendering VoiceChat portal:', { activeVoiceCall, isCurrentChatVoiceCallActive });
+        const container = document.getElementById('voice-chat-container-group');
+        console.log('Container found for portal:', !!container);
+        if (container) {
+          return createPortal(
+            <VoiceChat
+              key={`${activeVoiceCall.roomId}-${activeVoiceCall.serverId || 'direct'}-group-portal`}
+              roomId={activeVoiceCall.roomId}
+              roomName={activeVoiceCall.roomName}
+              userName={activeVoiceCall.userName}
+              userId={activeVoiceCall.userId}
+              serverId={activeVoiceCall.serverId}
+              autoJoin={true}
+              showUI={true}
+              isVisible={true}
+              onLeave={handleLeaveVoiceChannel}
+              onMuteStateChange={handleMuteStateChange}
+              onAudioStateChange={handleAudioStateChange}
+              initialMuted={false}
+              initialAudioEnabled={true}
+            />,
+            container
+          );
+        }
+        console.log('Container not found, not rendering VoiceChat');
+        return null;
+      })()}
     </div>
   );
 };
