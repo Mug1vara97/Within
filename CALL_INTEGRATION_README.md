@@ -155,11 +155,17 @@ const handleCallEnd = async () => {
 
 ## Интеграция с VoiceChat
 
-Система использует существующий компонент `VoiceChat` для обработки медиа потоков:
+Система использует существующий компонент `VoiceChat` для обработки медиа потоков. VoiceChat уже имеет свой сервер для WebRTC signaling.
+
+### Логика комнат:
+
+- **Общая комната**: `call-${chatId}` - все участники чата попадают в одну комнату
+- **Автоматическое подключение**: VoiceChat автоматически подключается к комнате при открытии
+- **WebRTC соединение**: Прямое соединение между пользователями через существующий сервер VoiceChat
 
 ```javascript
 <VoiceChat
-  roomId={`call-${chatId}-${userId}-${partnerId}`}
+  roomId={`call-${chatId}`}
   roomName={`Звонок с ${partnerName}`}
   userName={username}
   userId={userId}

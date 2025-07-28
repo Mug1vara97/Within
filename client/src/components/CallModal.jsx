@@ -91,7 +91,7 @@ const CallModal = ({
         {/* VoiceChat компонент */}
         <Box sx={{ height: '100%', pt: 8 }}>
           <VoiceChat
-            roomId={`call-${chatId}-${userId}-${partnerId}`}
+            roomId={`call-${chatId}`}
             roomName={`Звонок с ${partnerName}`}
             userName={username}
             userId={userId}
