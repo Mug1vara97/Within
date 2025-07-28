@@ -293,10 +293,11 @@
     position: absolute;
     top: 0;
     left: 0;
-    z-index: 1000;
+    z-index: 10;
     width: 100%;
     height: 100%;
     pointer-events: none; /* Позволяет кликам проходить через контейнер */
+    overflow: hidden;
 }
 
 /* VoiceChat внутри контейнера должен принимать события */
@@ -310,6 +311,7 @@
     background-color: var(--surface);
     border-left: 1px solid var(--border);
     box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
+    z-index: 1;
 }
 
 /* Стили для VoiceChat внутри контейнера */
