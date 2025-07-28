@@ -48,7 +48,7 @@ const Home = ({ user }) => {
         return saved ? JSON.parse(saved) : true;
     });
     
-    // Определяем, отображается ли VoiceChat в основной области (только для серверов)
+    // Определяем, отображается ли VoiceChat в основной области
     const isVoiceChatVisible = useMemo(() => {
         console.log('isVoiceChatVisible calculation:', { 
             voiceRoom: !!voiceRoom, 
@@ -61,10 +61,15 @@ const Home = ({ user }) => {
             return false;
         }
         
-        // В личных сообщениях голосовой чат всегда скрыт (даже если подключен к серверному каналу)
+        // Для личных сообщений (групповых чатов) показываем VoiceChat если есть активный звонок
         if (location.pathname.startsWith('/channels/@me')) {
-            console.log('Personal messages - hiding voice chat');
-            return false;
+            const pathParts = location.pathname.split('/');
+            const chatId = pathParts[3];
+            
+            // Показываем VoiceChat если звонок активен в текущем чате
+            const isVisible = chatId && String(voiceRoom.roomId) === String(chatId) && !voiceRoom.serverId;
+            console.log('Personal messages voice chat visibility:', { chatId, voiceRoom, isVisible });
+            return isVisible;
         }
         
         // На серверах проверяем соответствие маршрута голосовому каналу
@@ -339,7 +344,12 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, onLeaveVoiceChannel, voiceR
                     <LeftVoiceChannelComponent />
                 ) : (
                     <>
-
+                        {/* Контейнер для VoiceChat в групповых чатах */}
+                        <div id="voice-chat-container-server" style={{ 
+                            width: '100%', 
+                            height: '100%',
+                            display: voiceRoom && !voiceRoom.serverId ? 'block' : 'none'
+                        }} />
                         
                         {/* Показываем GroupChat если есть выбранный чат */}
                         {selectedChat && (
