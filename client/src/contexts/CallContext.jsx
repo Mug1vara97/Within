@@ -1,5 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
-import VoiceChat from '../VoiceChat';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 
 const CallContext = createContext();
 
@@ -14,7 +13,6 @@ export const useCallContext = () => {
 export const CallProvider = ({ children }) => {
   const [activeCall, setActiveCall] = useState(null);
   const [isInCall, setIsInCall] = useState(false);
-  const voiceChatRef = useRef(null);
 
   const startCall = useCallback((callData) => {
     console.log('CallContext: Starting call:', callData);
@@ -32,33 +30,12 @@ export const CallProvider = ({ children }) => {
     activeCall,
     isInCall,
     startCall,
-    endCall,
-    voiceChatRef
+    endCall
   };
 
   return (
     <CallContext.Provider value={value}>
       {children}
-      {/* Глобальный VoiceChat компонент */}
-      {activeCall && (
-        <div className="global-call-container">
-          <VoiceChat
-            ref={voiceChatRef}
-            roomId={`call-${activeCall.chatId}`}
-            roomName={`Звонок с ${activeCall.partnerName}`}
-            userName={activeCall.username}
-            userId={activeCall.userId}
-            serverId={null}
-            autoJoin={true}
-            showUI={true}
-            isVisible={true}
-            onLeave={endCall}
-            onManualLeave={endCall}
-            initialMuted={false}
-            initialAudioEnabled={true}
-          />
-        </div>
-      )}
     </CallContext.Provider>
   );
 }; 

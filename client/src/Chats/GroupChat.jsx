@@ -14,6 +14,7 @@ import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
 import CallButton from '../components/CallButton';
+import VoiceChat from '../VoiceChat';
 import { useCallContext } from '../contexts/CallContext';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
@@ -634,12 +635,23 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         />
       )}
 
-      {/* Интегрированный звонок - теперь управляется глобально через CallContext */}
+      {/* Интегрированный звонок - в чате с глобальным состоянием */}
       {activeCall && activeCall.chatId === chatId && (
-        <div className="integrated-call-container" style={{ height: '300px', backgroundColor: 'var(--background)', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--textMuted)' }}>
-            Звонок активен
-          </div>
+        <div className="integrated-call-container">
+          <VoiceChat
+            roomId={`call-${chatId}`}
+            roomName={`Звонок с ${activeCall.partnerName}`}
+            userName={username}
+            userId={userId}
+            serverId={null}
+            autoJoin={true}
+            showUI={true}
+            isVisible={true}
+            onLeave={handleCallEnd}
+            onManualLeave={handleCallEnd}
+            initialMuted={false}
+            initialAudioEnabled={true}
+          />
         </div>
       )}
 

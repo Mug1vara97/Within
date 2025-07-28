@@ -14,12 +14,12 @@
 - Анимации для входящих звонков
 - Интеграция с системой управления звонками
 
-### 2. Глобальный VoiceChat
-VoiceChat компонент управляется глобально через CallContext.
+### 2. Интегрированный VoiceChat
+VoiceChat компонент интегрирован в чат с глобальным состоянием.
 
 **Функции:**
-- Глобальное управление звонком (не зависит от пересоздания компонентов)
-- Фиксированное позиционирование в верхней части экрана
+- Глобальное состояние звонка (не зависит от пересоздания компонентов)
+- Интеграция в чат (не поверх всего приложения)
 - Управление звонком (мут, громкость, завершение)
 - Звонок продолжается при переключении между чатами
 - Автоматическое отображение в нужном чате
@@ -82,33 +82,20 @@ const handleCallEnd = async () => {
 
 ### Интегрированный звонок:
 ```javascript
-{/* Интегрированный звонок - теперь управляется глобально через CallContext */}
+{/* Интегрированный звонок - в чате с глобальным состоянием */}
 {activeCall && activeCall.chatId === chatId && (
-  <div className="integrated-call-container" style={{ height: '300px', backgroundColor: 'var(--background)', borderBottom: '1px solid var(--border)' }}>
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--textMuted)' }}>
-      Звонок активен
-    </div>
-  </div>
-)}
-```
-
-**VoiceChat управляется глобально в CallContext:**
-```javascript
-{/* Глобальный VoiceChat компонент */}
-{activeCall && (
-  <div className="global-call-container">
+  <div className="integrated-call-container">
     <VoiceChat
-      ref={voiceChatRef}
-      roomId={`call-${activeCall.chatId}`}
+      roomId={`call-${chatId}`}
       roomName={`Звонок с ${activeCall.partnerName}`}
-      userName={activeCall.username}
-      userId={activeCall.userId}
+      userName={username}
+      userId={userId}
       serverId={null}
       autoJoin={true}
       showUI={true}
       isVisible={true}
-      onLeave={endCall}
-      onManualLeave={endCall}
+      onLeave={handleCallEnd}
+      onManualLeave={handleCallEnd}
       initialMuted={false}
       initialAudioEnabled={true}
     />
