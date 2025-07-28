@@ -7,7 +7,7 @@ import {
   Avatar,
   IconButton
 } from '@mui/material';
-import { Phone, PhoneOff } from '@mui/icons-material';
+import { Phone, CallEnd } from '@mui/icons-material';
 import { useTheme } from '../contexts/ThemeContext';
 import VoiceChat from '../VoiceChat';
 
@@ -79,20 +79,20 @@ const CallModal = ({
             >
               <Phone />
             </IconButton>
-            <IconButton
-              onClick={onClose}
-              sx={{
-                backgroundColor: '#ed4245',
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: '#d73d40'
-                },
-                width: 56,
-                height: 56
-              }}
-            >
-              <PhoneOff />
-            </IconButton>
+                         <IconButton
+               onClick={onClose}
+               sx={{
+                 backgroundColor: '#ed4245',
+                 color: 'white',
+                 '&:hover': {
+                   backgroundColor: '#d73d40'
+                 },
+                 width: 56,
+                 height: 56
+               }}
+             >
+               <CallEnd />
+             </IconButton>
           </Box>
         </DialogContent>
       </Dialog>
@@ -146,18 +146,18 @@ const CallModal = ({
             </Box>
           </Box>
 
-          <IconButton
-            onClick={handleCallEnd}
-            sx={{
-              backgroundColor: '#ed4245',
-              color: 'white',
-              '&:hover': {
-                backgroundColor: '#d73d40'
-              }
-            }}
-          >
-            <PhoneOff />
-          </IconButton>
+                     <IconButton
+             onClick={handleCallEnd}
+             sx={{
+               backgroundColor: '#ed4245',
+               color: 'white',
+               '&:hover': {
+                 backgroundColor: '#d73d40'
+               }
+             }}
+           >
+             <CallEnd />
+           </IconButton>
         </Box>
 
         {/* VoiceChat компонент */}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, PhoneOff, PhoneInTalk } from '@mui/icons-material';
+import { Phone, CallEnd, PhoneInTalk } from '@mui/icons-material';
 import { IconButton, Tooltip, Badge } from '@mui/material';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -52,7 +52,7 @@ const CallButton = ({
       return <PhoneInTalk />;
     }
     if (isCallActive) {
-      return <PhoneOff />;
+      return <CallEnd />;
     }
     return <Phone />;
   };
