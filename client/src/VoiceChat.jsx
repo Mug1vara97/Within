@@ -2832,7 +2832,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           sampleRate: 48000,
           sampleSize: 16,
           latency: 0,
-          volume: 4.0, // Усиление через volume вместо Web Audio узлов
+          volume: 10.0, // Усиление через volume вместо Web Audio узлов
           enabled: true // Ensure audio starts enabled
         },
         video: false
