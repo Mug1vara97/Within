@@ -2820,7 +2820,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   const createLocalStream = async () => {
     try {
-      console.log('Creating local stream with amplification via getUserMedia settings...');
+      console.log('Creating local stream with gain node amplification...');
       
       // Always start with audio enabled
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -2832,7 +2832,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           sampleRate: 48000,
           sampleSize: 16,
           latency: 0,
-          volume: 10.0, // Усиление через volume вместо Web Audio узлов
+          volume: 1.0, // Возвращаем к стандартному значению
           enabled: true // Ensure audio starts enabled
         },
         video: false
@@ -2858,7 +2858,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       // Ensure track settings are applied
       const settings = track.getSettings();
       console.log('Final audio track settings:', settings);
-      console.log('Audio processing order: getUserMedia (4x volume) -> noise suppression -> output');
 
       // Set track enabled state based on initial mute state
       track.enabled = !initialMuted; // Track enabled opposite of mute state
@@ -2882,10 +2881,17 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         throw new Error('Producer transport not initialized');
       }
 
-      // Add analyzer for voice activity detection
+      // Add analyzer for voice activity detection with gain amplification
       const source = audioContextRef.current.createMediaStreamSource(processedStream);
+      const gainNode = audioContextRef.current.createGain();
+      gainNode.gain.value = 10.0; // Усиление в 10 раз
       const analyser = createAudioAnalyser(audioContextRef.current);
-      source.connect(analyser);
+      
+      // Подключаем цепочку: source -> gain -> analyser
+      source.connect(gainNode);
+      gainNode.connect(analyser);
+      
+      console.log('Audio processing order: getUserMedia -> noise suppression -> gain amplification (10x) -> analyser');
 
       // Store analyser reference
       analyserNodesRef.current.set(socketRef.current.id, analyser);
