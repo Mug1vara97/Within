@@ -46,6 +46,7 @@ import {
 import { Device } from 'mediasoup-client';
 import { io } from 'socket.io-client';
 import { NoiseSuppressionManager } from './utils/noiseSuppression';
+import AudioAmplifier from './utils/audioAmplifier';
 import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
 
 
@@ -1223,6 +1224,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const [noiseSuppressionMode, setNoiseSuppressionMode] = useState('rnnoise');
   const [noiseSuppressMenuAnchor, setNoiseSuppressMenuAnchor] = useState(null);
   const noiseSuppressionRef = useRef(null);
+  const audioAmplifierRef = useRef(null);
   const isAudioEnabledRef = useRef(isAudioEnabled);
   const individualMutedPeersRef = useRef(new Map());
   const previousVolumesRef = useRef(new Map()); // Хранит предыдущие уровни громкости для восстановления
@@ -1281,30 +1283,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     const resumeAudioContext = async () => {
       if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
         try {
-          // Добавляем защиту от частых вызовов
-          if (audioContextRef.current._resuming) {
-            console.log('AudioContext resume already in progress, skipping...');
-            return;
-          }
-          
-          audioContextRef.current._resuming = true;
           await audioContextRef.current.resume();
           console.log('AudioContext resumed successfully');
-          
-          // Сбрасываем флаг через небольшую задержку
-          setTimeout(() => {
-            if (audioContextRef.current) {
-              audioContextRef.current._resuming = false;
-            }
-          }, 100);
         } catch (error) {
           console.error('Failed to resume AudioContext:', error);
-          if (audioContextRef.current) {
-            audioContextRef.current._resuming = false;
-          }
         }
-      } else if (audioContextRef.current) {
-        console.log('AudioContext already running, state:', audioContextRef.current.state);
       }
     };
 
@@ -1701,6 +1684,12 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         noiseSuppressionRef.current = null;
       }
 
+      // Cleanup AudioAmplifier
+      if (audioAmplifierRef.current) {
+        audioAmplifierRef.current.dispose();
+        audioAmplifierRef.current = null;
+      }
+
     } catch (error) {
       console.error('Cleanup error:', error);
     }
@@ -1946,27 +1935,19 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
               setVolumes(volumesMap);
             }
 
-            // Initialize Web Audio API context with optimized settings
+            // Initialize Web Audio API context
             if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
-              console.log('Creating new AudioContext with optimized settings...');
+              console.log('Creating new AudioContext...');
               audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)({
-                sampleRate: 48000, // Правильная частота дискретизации
-                latencyHint: 'interactive',
-                // Дополнительные оптимизации
-                sampleSize: 16,
-                channelCount: 1
+                sampleRate: 48000,
+                latencyHint: 'interactive'
               });
               console.log('AudioContext created, state:', audioContextRef.current.state);
             }
             
-            // Избегаем частых suspend/resume - проверяем состояние только если нужно
-            if (audioContextRef.current.state === 'suspended') {
-              console.log('AudioContext suspended, resuming...');
-              await audioContextRef.current.resume();
-              console.log('AudioContext resumed, new state:', audioContextRef.current.state);
-            } else {
-              console.log('AudioContext already running, state:', audioContextRef.current.state);
-            }
+            console.log('AudioContext state before resume:', audioContextRef.current.state);
+            await audioContextRef.current.resume();
+            console.log('AudioContext state after resume:', audioContextRef.current.state);
             
             // Проверяем политику автовоспроизведения
             if (navigator.getAutoplayPolicy) {
@@ -2450,6 +2431,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         audioTrack.enabled = !newMuteState; // Инвертируем состояние трека
         setIsMuted(newMuteState);
         
+        // Управляем AudioAmplifier
+        if (audioAmplifierRef.current) {
+          audioAmplifierRef.current.setEnabled(!newMuteState);
+        }
+        
         // Если есть обработанный поток, обновляем его трек тоже
         if (noiseSuppressionRef.current) {
           const processedTrack = noiseSuppressionRef.current.getProcessedStream().getAudioTracks()[0];
@@ -2847,7 +2833,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   const createLocalStream = async () => {
     try {
-      console.log('Creating local stream with amplification before noise suppression...');
+      console.log('Creating local stream with Tone.js amplification before noise suppression...');
       
       // Always start with audio enabled
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -2867,60 +2853,28 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
       localStreamRef.current = stream;
       
-      // Усиление через MediaRecorder API вместо Web Audio API
-      console.log('Applying amplification via MediaRecorder API...');
+      // Инициализируем AudioAmplifier с Tone.js
+      console.log('Initializing AudioAmplifier with Tone.js...');
+      const audioAmplifier = new AudioAmplifier();
+      await audioAmplifier.initialize(audioContextRef.current);
       
-      // Создаем MediaRecorder с высоким битрейтом для усиления
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus',
-        audioBitsPerSecond: 128000 // Высокий битрейт для лучшего качества
-      });
+      // Устанавливаем усиление в 4 раза (как было раньше)
+      audioAmplifier.setGain(4.0);
       
-      const chunks = [];
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunks.push(event.data);
-        }
-      };
+      // Обрабатываем поток через AudioAmplifier
+      console.log('Processing stream through AudioAmplifier...');
+      const amplifiedStream = await audioAmplifier.processStream(stream);
+      console.log('Applied Tone.js audio amplification to original stream');
       
-      // Создаем усиленный поток через MediaRecorder
-      const amplifiedStream = new Promise((resolve) => {
-        mediaRecorder.onstop = () => {
-          const blob = new Blob(chunks, { type: 'audio/webm' });
-          const audioUrl = URL.createObjectURL(blob);
-          
-          // Создаем новый MediaStream из усиленного аудио
-          const audioElement = new Audio(audioUrl);
-          audioElement.volume = 4.0; // Усиление в 4 раза
-          
-          // Создаем MediaStream из аудио элемента
-          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-          const source = audioContext.createMediaElementSource(audioElement);
-          const destination = audioContext.createMediaStreamDestination();
-          
-          source.connect(destination);
-          audioElement.play();
-          
-          resolve(destination.stream);
-        };
-        
-        mediaRecorder.start();
-        setTimeout(() => {
-          mediaRecorder.stop();
-        }, 100); // Короткая запись для создания усиленного потока
-      });
-      
-      console.log('Applied MediaRecorder amplification to original stream');
-      
-      // Ждем создания усиленного потока
-      const finalStream = await amplifiedStream;
+      // Сохраняем ссылку на AudioAmplifier для управления
+      audioAmplifierRef.current = audioAmplifier;
       
       // Initialize audio context and noise suppression with amplified stream
       noiseSuppressionRef.current = new NoiseSuppressionManager();
       
       // Initialize noise suppression with the amplified stream
-      await noiseSuppressionRef.current.initialize(finalStream, audioContextRef.current);
-      console.log('Noise suppression initialized with MediaRecorder amplified stream');
+      await noiseSuppressionRef.current.initialize(amplifiedStream, audioContextRef.current);
+      console.log('Noise suppression initialized with Tone.js amplified stream');
       
       // Get the processed stream for the producer
       const processedStream = noiseSuppressionRef.current.getProcessedStream();
@@ -2933,7 +2887,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       // Ensure track settings are applied
       const settings = track.getSettings();
       console.log('Final audio track settings:', settings);
-      console.log('Audio processing order: getUserMedia -> WebAudio amplification (4x) -> noise suppression -> output');
+      console.log('Audio processing order: getUserMedia -> Tone.js amplification (4x) -> noise suppression -> output');
 
       // Set track enabled state based on initial mute state
       track.enabled = !initialMuted; // Track enabled opposite of mute state
@@ -4180,6 +4134,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     const newState = !isAudioEnabled;
     setIsAudioEnabled(newState);
     isAudioEnabledRef.current = newState; // Update ref immediately
+
+    // Управляем AudioAmplifier
+    if (audioAmplifierRef.current) {
+      audioAmplifierRef.current.setEnabled(newState);
+    }
 
     // Emit audio state change
     if (socketRef.current) {
