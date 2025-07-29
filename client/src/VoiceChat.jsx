@@ -1281,11 +1281,30 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     const resumeAudioContext = async () => {
       if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
         try {
+          // Добавляем защиту от частых вызовов
+          if (audioContextRef.current._resuming) {
+            console.log('AudioContext resume already in progress, skipping...');
+            return;
+          }
+          
+          audioContextRef.current._resuming = true;
           await audioContextRef.current.resume();
           console.log('AudioContext resumed successfully');
+          
+          // Сбрасываем флаг через небольшую задержку
+          setTimeout(() => {
+            if (audioContextRef.current) {
+              audioContextRef.current._resuming = false;
+            }
+          }, 100);
         } catch (error) {
           console.error('Failed to resume AudioContext:', error);
+          if (audioContextRef.current) {
+            audioContextRef.current._resuming = false;
+          }
         }
+      } else if (audioContextRef.current) {
+        console.log('AudioContext already running, state:', audioContextRef.current.state);
       }
     };
 
@@ -1927,19 +1946,27 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
               setVolumes(volumesMap);
             }
 
-            // Initialize Web Audio API context
+            // Initialize Web Audio API context with optimized settings
             if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
-              console.log('Creating new AudioContext...');
+              console.log('Creating new AudioContext with optimized settings...');
               audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)({
-                sampleRate: 48000,
-                latencyHint: 'interactive'
+                sampleRate: 48000, // Правильная частота дискретизации
+                latencyHint: 'interactive',
+                // Дополнительные оптимизации
+                sampleSize: 16,
+                channelCount: 1
               });
               console.log('AudioContext created, state:', audioContextRef.current.state);
             }
             
-            console.log('AudioContext state before resume:', audioContextRef.current.state);
-            await audioContextRef.current.resume();
-            console.log('AudioContext state after resume:', audioContextRef.current.state);
+            // Избегаем частых suspend/resume - проверяем состояние только если нужно
+            if (audioContextRef.current.state === 'suspended') {
+              console.log('AudioContext suspended, resuming...');
+              await audioContextRef.current.resume();
+              console.log('AudioContext resumed, new state:', audioContextRef.current.state);
+            } else {
+              console.log('AudioContext already running, state:', audioContextRef.current.state);
+            }
             
             // Проверяем политику автовоспроизведения
             if (navigator.getAutoplayPolicy) {
@@ -2845,6 +2872,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       const amplificationSource = audioContextRef.current.createMediaStreamSource(stream);
       const gainNode = audioContextRef.current.createGain();
       const compressor = audioContextRef.current.createDynamicsCompressor();
+      const lowpassFilter = audioContextRef.current.createBiquadFilter();
       
       // Настройки gain node с плавными переходами
       gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
@@ -2857,14 +2885,20 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       compressor.attack.value = 0.003;
       compressor.release.value = 0.25;
       
+      // Настройки lowpass фильтра для ограничения частот и предотвращения роботизации
+      lowpassFilter.type = 'lowpass';
+      lowpassFilter.frequency.value = 8000; // Ограничиваем до 8kHz
+      lowpassFilter.Q.value = 1; // Умеренная резкость
+      
       // Создаем усиленный MediaStream
       const destination = audioContextRef.current.createMediaStreamDestination();
       amplificationSource.connect(gainNode);
       gainNode.connect(compressor);
-      compressor.connect(destination);
+      compressor.connect(lowpassFilter);
+      lowpassFilter.connect(destination);
       
       const amplifiedStream = destination.stream;
-      console.log('Applied 4x audio amplification with compressor to original stream');
+      console.log('Applied 4x audio amplification with compressor and lowpass filter to original stream');
       
       // Initialize audio context and noise suppression with amplified stream
       noiseSuppressionRef.current = new NoiseSuppressionManager();
