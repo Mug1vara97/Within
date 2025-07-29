@@ -10,6 +10,7 @@ class AudioAmplifier {
     this.output = null;
     this.gainValue = 1.0;
     this.isEnabled = true;
+    this.useToneJS = true; // Флаг для использования Tone.js
   }
 
   async initialize(audioContext) {
@@ -18,6 +19,14 @@ class AudioAmplifier {
     }
 
     try {
+      // Проверяем, что Tone доступен
+      if (!Tone || !Tone.Gain) {
+        console.warn('Tone.js not available, falling back to Web Audio API');
+        this.useToneJS = false;
+        this.initializeWebAudioAPI(audioContext);
+        return;
+      }
+
       // Инициализируем Tone.js с существующим AudioContext
       await Tone.setContext(audioContext);
       
@@ -51,7 +60,29 @@ class AudioAmplifier {
       this.isInitialized = true;
       console.log('AudioAmplifier initialized with Tone.js');
     } catch (error) {
-      console.error('Failed to initialize AudioAmplifier:', error);
+      console.error('Failed to initialize AudioAmplifier with Tone.js, falling back to Web Audio API:', error);
+      this.useToneJS = false;
+      this.initializeWebAudioAPI(audioContext);
+    }
+  }
+
+  // Fallback на Web Audio API
+  initializeWebAudioAPI(audioContext) {
+    try {
+      // Создаем простой gain node
+      this.amplifier = audioContext.createGain();
+      this.amplifier.gain.value = this.gainValue;
+
+      // Создаем выходной узел
+      this.output = audioContext.createMediaStreamDestination();
+
+      // Подключаем amplifier к output
+      this.amplifier.connect(this.output);
+
+      this.isInitialized = true;
+      console.log('AudioAmplifier initialized with Web Audio API (fallback)');
+    } catch (error) {
+      console.error('Failed to initialize AudioAmplifier with Web Audio API:', error);
       throw error;
     }
   }
@@ -63,7 +94,9 @@ class AudioAmplifier {
 
     try {
       // Создаем MediaStreamSource из входного потока
-      const source = Tone.context.createMediaStreamSource(inputStream);
+      const source = this.useToneJS 
+        ? Tone.context.createMediaStreamSource(inputStream)
+        : this.amplifier.context.createMediaStreamSource(inputStream);
       
       // Подключаем источник к нашему усилителю
       source.connect(this.amplifier);
@@ -81,14 +114,18 @@ class AudioAmplifier {
       return;
     }
 
-    // Преобразуем линейное значение в децибелы
-    // gainValue от 0 до 4 (как было в Web Audio API)
-    const dbValue = Math.log10(Math.max(0.001, gainValue)) * 20;
-    
     this.gainValue = gainValue;
-    this.amplifier.gain.value = Math.max(-60, dbValue); // Минимум -60dB
-    
-    console.log(`AudioAmplifier gain set to ${gainValue} (${dbValue.toFixed(2)}dB)`);
+
+    if (this.useToneJS) {
+      // Преобразуем линейное значение в децибелы для Tone.js
+      const dbValue = Math.log10(Math.max(0.001, gainValue)) * 20;
+      this.amplifier.gain.value = Math.max(-60, dbValue);
+      console.log(`AudioAmplifier (Tone.js) gain set to ${gainValue} (${dbValue.toFixed(2)}dB)`);
+    } else {
+      // Используем линейное значение для Web Audio API
+      this.amplifier.gain.value = gainValue;
+      console.log(`AudioAmplifier (Web Audio API) gain set to ${gainValue}`);
+    }
   }
 
   setEnabled(enabled) {
@@ -96,10 +133,18 @@ class AudioAmplifier {
     
     if (this.amplifier) {
       if (enabled) {
-        const dbValue = Math.log10(Math.max(0.001, this.gainValue)) * 20;
-        this.amplifier.gain.value = Math.max(-60, dbValue);
+        if (this.useToneJS) {
+          const dbValue = Math.log10(Math.max(0.001, this.gainValue)) * 20;
+          this.amplifier.gain.value = Math.max(-60, dbValue);
+        } else {
+          this.amplifier.gain.value = this.gainValue;
+        }
       } else {
-        this.amplifier.gain.value = -60; // Полное отключение
+        if (this.useToneJS) {
+          this.amplifier.gain.value = -60; // Полное отключение
+        } else {
+          this.amplifier.gain.value = 0; // Полное отключение
+        }
       }
     }
   }
@@ -114,44 +159,59 @@ class AudioAmplifier {
 
   // Метод для получения статистики обработки
   getStats() {
-    if (!this.compressor || !this.limiter) {
+    if (!this.amplifier) {
       return null;
     }
 
-    return {
+    const stats = {
       gain: this.gainValue,
-      gainDb: Math.log10(Math.max(0.001, this.gainValue)) * 20,
-      compressorReduction: this.compressor.reduction,
-      limiterReduction: this.limiter.reduction,
-      isEnabled: this.isEnabled
+      isEnabled: this.isEnabled,
+      useToneJS: this.useToneJS
     };
+
+    if (this.useToneJS && this.compressor && this.limiter) {
+      stats.gainDb = Math.log10(Math.max(0.001, this.gainValue)) * 20;
+      stats.compressorReduction = this.compressor.reduction;
+      stats.limiterReduction = this.limiter.reduction;
+    } else {
+      stats.currentGain = this.amplifier.gain.value;
+    }
+
+    return stats;
   }
 
   // Очистка ресурсов
   dispose() {
     if (this.amplifier) {
-      this.amplifier.dispose();
+      this.amplifier.disconnect();
       this.amplifier = null;
     }
     
-    if (this.compressor) {
-      this.compressor.dispose();
-      this.compressor = null;
-    }
-    
-    if (this.limiter) {
-      this.limiter.dispose();
-      this.limiter = null;
-    }
-    
-    if (this.input) {
-      this.input.dispose();
-      this.input = null;
-    }
-    
-    if (this.output) {
-      this.output.dispose();
-      this.output = null;
+    if (this.useToneJS) {
+      if (this.compressor) {
+        this.compressor.dispose();
+        this.compressor = null;
+      }
+      
+      if (this.limiter) {
+        this.limiter.dispose();
+        this.limiter = null;
+      }
+      
+      if (this.input) {
+        this.input.dispose();
+        this.input = null;
+      }
+      
+      if (this.output) {
+        this.output.dispose();
+        this.output = null;
+      }
+    } else {
+      if (this.output) {
+        this.output.disconnect();
+        this.output = null;
+      }
     }
     
     this.isInitialized = false;
