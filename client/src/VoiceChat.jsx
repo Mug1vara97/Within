@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, useContext, forwardRef, useImperativeHandle } from 'react';
 import { useVoiceChannel } from './contexts/VoiceChannelContext';
+import { useTheme } from './contexts/ThemeContext';
 import { createPortal } from 'react-dom';
 import {
   Container,
@@ -114,14 +115,14 @@ const config = {
   }
 };
 
-// Add Discord-like styles
-const styles = {
+// Add Discord-like styles with theme support
+const createStyles = (colors) => ({
   root: {
     height: '100vh', // Занимает всю высоту viewport
     display: 'flex',
     flexDirection: 'column',
-    backgroundColor: '#36393f',
-    color: '#dcddde',
+    backgroundColor: colors.background,
+    color: colors.textSecondary,
     width: '100%',
     overflow: 'hidden',
     position: 'relative',
@@ -138,9 +139,9 @@ const styles = {
     }
   },
   appBar: {
-    backgroundColor: '#36393f',
+    backgroundColor: colors.background,
     boxShadow: 'none',
-    borderBottom: '1px solid #202225',
+    borderBottom: `1px solid ${colors.borderBottom}`,
     position: 'relative',
     width: '100%',
     flexShrink: 0,
@@ -159,10 +160,10 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    color: '#ffffff',
+    color: colors.text,
     height: '100%',
     '& .MuiSvgIcon-root': {
-      color: '#72767d',
+      color: colors.textMuted,
       fontSize: '20px'
     },
     '& .MuiTypography-root': {
@@ -198,7 +199,7 @@ const styles = {
     boxSizing: 'border-box'
   },
   videoItem: {
-    backgroundColor: '#2B2D31',
+    backgroundColor: colors.surface,
     borderRadius: '8px',
     overflow: 'hidden',
     position: 'relative',
@@ -221,7 +222,7 @@ const styles = {
         left: 0,
         right: 0,
         bottom: 0,
-        border: '2px solid #3ba55c',
+        border: `2px solid ${colors.success}`,
         borderRadius: '8px',
         animation: 'pulse 2s infinite',
         pointerEvents: 'none',
@@ -244,11 +245,11 @@ const styles = {
     width: '80px',
     height: '80px',
     borderRadius: '50%',
-    backgroundColor: '#404249',
+    backgroundColor: colors.border,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: '#ffffff',
+    color: colors.text,
     fontSize: '32px',
     fontWeight: 500,
     marginBottom: '12px',
@@ -258,7 +259,7 @@ const styles = {
     }
   },
   userName: {
-    color: '#ffffff',
+    color: colors.text,
     fontSize: '16px',
     fontWeight: 500,
     display: 'flex',
@@ -275,7 +276,7 @@ const styles = {
   },
   userStatus: {
     fontSize: '14px',
-    color: '#949BA4',
+    color: colors.textMuted,
     marginTop: '4px',
     display: 'flex',
     alignItems: 'center',
@@ -318,23 +319,23 @@ const styles = {
     }
   },
   paper: {
-    backgroundColor: '#2f3136',
-    color: '#dcddde',
+    backgroundColor: colors.surface,
+    color: colors.textSecondary,
     boxShadow: 'none',
-    border: '1px solid #202225'
+    border: `1px solid ${colors.borderBottom}`
   },
   listItem: {
     borderRadius: '4px',
     margin: '2px 0',
     '&:hover': {
-      backgroundColor: '#32353b'
+      backgroundColor: colors.hover
     },
     '@media (max-width: 600px)': {
       padding: '8px',
     }
   },
   username: {
-    color: '#ffffff',
+    color: colors.text,
     fontSize: '1rem',
     '@media (max-width: 600px)': {
       fontSize: '0.9rem',
@@ -345,14 +346,14 @@ const styles = {
     gap: '8px'
   },
   iconButton: {
-    color: '#ffffff',
+    color: colors.text,
     '&:hover': {
-      backgroundColor: '#40444b'
+      backgroundColor: colors.hover
     }
   },
   joinPaper: {
-    backgroundColor: '#2f3136',
-    color: '#dcddde',
+    backgroundColor: colors.surface,
+    color: colors.textSecondary,
     padding: '24px',
     '@media (max-width: 600px)': {
       padding: '16px',
@@ -360,34 +361,34 @@ const styles = {
   },
   textField: {
     '& .MuiOutlinedInput-root': {
-      color: '#dcddde',
+      color: colors.textSecondary,
       '& fieldset': {
-        borderColor: '#40444b'
+        borderColor: colors.border
       },
       '&:hover fieldset': {
-        borderColor: '#72767d'
+        borderColor: colors.textMuted
       },
       '&.Mui-focused fieldset': {
-        borderColor: '#5865f2'
+        borderColor: colors.primary
       }
     },
     '& .MuiInputLabel-root': {
-      color: '#72767d'
+      color: colors.textMuted
     }
   },
   joinButton: {
-    backgroundColor: '#5865f2',
-    color: '#ffffff',
+    backgroundColor: colors.primary,
+    color: colors.text,
     '&:hover': {
-      backgroundColor: '#4752c4'
+      backgroundColor: colors.primaryHover
     }
   },
   divider: {
-    backgroundColor: '#40444b',
+    backgroundColor: colors.border,
     margin: '8px 0'
   },
   bottomBar: {
-    backgroundColor: '#2B2D31',
+    backgroundColor: colors.bottom,
     padding: '12px 60px', // Increased side padding, reduced vertical padding
     display: 'flex',
     alignItems: 'center',
@@ -414,7 +415,7 @@ const styles = {
     alignItems: 'center'
   },
   controlGroup: {
-    backgroundColor: '#383A40',
+    backgroundColor: colors.hover,
     borderRadius: '8px',
     padding: '6px', // Reduced padding
     display: 'flex',
@@ -434,19 +435,19 @@ const styles = {
     gap: '8px',
     padding: '8px 12px',
     borderRadius: '8px',
-    backgroundColor: '#383A40',
+    backgroundColor: colors.hover,
     '@media (max-width: 600px)': {
       padding: '4px',
       gap: '4px',
     }
   },
   leaveButton: {
-    backgroundColor: '#f04747',
-    color: '#ffffff',
+    backgroundColor: colors.danger,
+    color: colors.text,
     borderRadius: '8px',
     padding: '6px 12px', // Reduced padding
     '&:hover': {
-      backgroundColor: '#d84040'
+      backgroundColor: colors.dangerHover
     },
     minWidth: '100px', // Reduced min-width
     fontSize: '14px' // Reduced font size
@@ -463,7 +464,7 @@ const styles = {
     position: 'relative',
     width: '100%',
     height: '300px',
-    backgroundColor: '#202225',
+    backgroundColor: colors.serverListBackground,
     marginBottom: '16px',
     borderRadius: '4px',
     overflow: 'hidden'
@@ -532,7 +533,7 @@ const styles = {
     position: 'relative',
     width: '100%',
     height: '100%',
-    backgroundColor: '#202225',
+    backgroundColor: colors.serverListBackground,
     borderRadius: '8px',
     overflow: 'hidden',
     '& video': {
@@ -543,7 +544,7 @@ const styles = {
     position: 'absolute',
     bottom: '12px',
     left: '12px',
-    color: '#ffffff',
+    color: colors.text,
     fontSize: '14px',
     fontWeight: 500,
     padding: '4px 8px',
@@ -596,7 +597,7 @@ const styles = {
     zIndex: 10000
   },
   fullscreenButton: {
-    color: '#ffffff',
+    color: colors.text,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     '&:hover': {
       backgroundColor: 'rgba(0, 0, 0, 0.7)',
@@ -608,7 +609,7 @@ const styles = {
     position: 'absolute',
     bottom: 24,
     left: 24,
-    color: '#ffffff',
+    color: colors.text,
     fontSize: '16px',
     fontWeight: 500,
     padding: '8px 16px',
@@ -630,7 +631,7 @@ const styles = {
     justifyContent: 'flex-end',
     zIndex: 5
   }
-};
+});
 
 
 
@@ -907,6 +908,7 @@ const VideoOverlay = React.memo(({
   showVolumeSlider,
   onVolumeSliderChange,
   onToggleVolumeSlider,
+  colors,
   children
 }) => {
   const [isVolumeOff, setIsVolumeOff] = useState(isAudioMuted || volume === 0);
@@ -1057,19 +1059,19 @@ const VideoOverlay = React.memo(({
                 onChange={handleSliderChange}
                 orientation="vertical"
                 min={0}
-                max={100}
+                max={200}
                 step={1}
                 size="small"
                 sx={{
-                  color: '#7289da',
+                  color: colors.primary,
                   height: '80px',
                   '& .MuiSlider-track': {
-                    backgroundColor: '#7289da',
+                    backgroundColor: colors.primary,
                   },
                   '& .MuiSlider-thumb': {
-                    backgroundColor: '#7289da',
+                    backgroundColor: colors.primary,
                     '&:hover': {
-                      boxShadow: '0px 0px 0px 8px rgba(114, 137, 218, 0.16)',
+                      boxShadow: `0px 0px 0px 8px rgba(${colors.primaryRgb}, 0.16)`,
                     },
                   },
                   '& .MuiSlider-rail': {
@@ -1102,6 +1104,7 @@ const VideoOverlay = React.memo(({
     prevProps.volume === nextProps.volume &&
     prevProps.isAudioMuted === nextProps.isAudioMuted &&
     prevProps.showVolumeSlider === nextProps.showVolumeSlider &&
+    prevProps.colors === nextProps.colors &&
     prevProps.children === nextProps.children
   );
 });
@@ -1120,6 +1123,7 @@ const VideoView = React.memo(({
   showVolumeSlider,
   onVolumeSliderChange,
   onToggleVolumeSlider,
+  colors,
   children 
 }) => {
   return (
@@ -1144,6 +1148,7 @@ const VideoView = React.memo(({
         showVolumeSlider={showVolumeSlider}
         onVolumeSliderChange={onVolumeSliderChange}
         onToggleVolumeSlider={onToggleVolumeSlider}
+        colors={colors}
       >
         {children}
       </VideoOverlay>
@@ -1159,12 +1164,15 @@ const VideoView = React.memo(({
     prevProps.volume === nextProps.volume &&
     prevProps.isAudioMuted === nextProps.isAudioMuted &&
     prevProps.showVolumeSlider === nextProps.showVolumeSlider &&
+    prevProps.colors === nextProps.colors &&
     prevProps.children === nextProps.children
   );
 });
 
 const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true }, ref) => {
   const { addVoiceChannelParticipant, removeVoiceChannelParticipant, updateVoiceChannelParticipant } = useVoiceChannel();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [isJoined, setIsJoined] = useState(false);
 
   const [isMuted, setIsMuted] = useState(initialMuted);
@@ -1300,11 +1308,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       });
 
       socketRef.current.on('peerMuteStateChanged', ({ peerId, isMuted }) => {
-        setVolumes(prev => {
-          const newVolumes = new Map(prev);
-          newVolumes.set(peerId, isMuted ? 0 : 100);
-          return newVolumes;
-        });
+        // НЕ изменяем громкость при изменении состояния мьюта другого пользователя
+        // Громкость должна сохраняться индивидуально для каждого пользователя
         
         if (isMuted) {
           setSpeakingStates(prev => {
@@ -1433,11 +1438,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         isSpeaking: false // Получаем из текущего состояния
       });
       
-      setVolumes(prev => {
-        const newVolumes = new Map(prev);
-        newVolumes.set(peerId, isMuted ? 0 : 100);
-        return newVolumes;
-      });
+      // НЕ изменяем громкость при изменении состояния мьюта другого пользователя
+      // Громкость должна сохраняться индивидуально для каждого пользователя
       
       if (isMuted) {
         setSpeakingStates(prev => {
@@ -1806,7 +1808,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         // Initialize volumes for the new peer
         setVolumes(prev => {
           const newVolumes = new Map(prev);
-          newVolumes.set(peerId, isMuted ? 0 : 100); // Set volume based on mute state
+          // Новые пользователи всегда начинают с громкости 100%
+          // Состояние мьюта не влияет на громкость для других пользователей
+          newVolumes.set(peerId, 100);
           return newVolumes;
         });
 
@@ -2128,7 +2132,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // Initialize volume based on individual mute state and global audio state
           const isIndividuallyMutedForAudio = individualMutedPeersRef.current.get(producer.producerSocketId) ?? false;
           const individualVolume = volumes.get(producer.producerSocketId) || 100;
-          audioElement.volume = (isAudioEnabledRef.current && !isIndividuallyMutedForAudio) ? (individualVolume / 100.0) : 0.0;
+          audioElement.volume = (isAudioEnabledRef.current && !isIndividuallyMutedForAudio) ? Math.min(1.0, individualVolume / 200.0) : 0.0;
           audioElement.style.display = 'none';
           document.body.appendChild(audioElement);
           
@@ -2185,7 +2189,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // Глобальное состояние звука будет применено через эффект
           const isIndividuallyMuted = individualMutedPeersRef.current.get(producer.producerSocketId) ?? false;
           const initialVolume = isIndividuallyMuted ? 0 : 100;
-          const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 100.0) * 4.0 : 0;
+          const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 200.0) * 4.0 : 0;
           gainNode.gain.value = initialGain;
           console.log('Created gain node for peer:', producer.producerSocketId, {
             isAudioEnabled: isAudioEnabledRef.current,
@@ -2508,7 +2512,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
           if (!isIndividuallyMuted) {
             const individualVolume = volumes.get(peerId) || 100;
-            const gainValue = (individualVolume / 100.0) * 4.0;
+            const gainValue = (individualVolume / 200.0) * 4.0;
             gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
           } else {
             gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
@@ -2528,7 +2532,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
             if (!isIndividuallyMuted) {
               const individualVolume = volumes.get(peerId) || 100;
-              audioElement.volume = individualVolume / 100.0;
+              audioElement.volume = Math.min(1.0, individualVolume / 200.0);
             } else {
               audioElement.volume = 0;
             }
@@ -2565,7 +2569,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     if (gainNode) {
       if (!newIsIndividuallyMuted) {
         // Восстанавливаем предыдущий уровень громкости
-        const gainValue = (newVolume / 100.0) * 4.0;
+        const gainValue = (newVolume / 200.0) * 4.0;
         gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
         console.log('Set gain to', gainValue, 'and unmuted peer:', peerId);
       } else {
@@ -2588,8 +2592,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       if (peerAudio instanceof Map && peerAudio.has('audioElement')) {
         const audioElement = peerAudio.get('audioElement');
         if (audioElement) {
-          audioElement.volume = newVolume / 100.0;
-          console.log('Set HTML Audio volume to', newVolume / 100.0, 'for peer:', peerId);
+          // HTML Audio volume ограничен 0-1, поэтому используем min(1.0, newVolume / 200.0)
+          audioElement.volume = Math.min(1.0, newVolume / 200.0);
+          console.log('Set HTML Audio volume to', Math.min(1.0, newVolume / 200.0), 'for peer:', peerId);
         }
       }
     }
@@ -2602,8 +2607,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
      const gainNode = gainNodesRef.current.get(peerId);
      
      if (gainNode) {
-       // Слайдер 0-100% соответствует 0-400% усиления (0.0-4.0 gain)
-       const gainValue = (newVolume / 100.0) * 4.0;
+       // Слайдер 0-200% соответствует 0-400% усиления (0.0-4.0 gain)
+       // При 200% ползунка получаем 4.0 gain (максимальное усиление)
+       const gainValue = (newVolume / 200.0) * 4.0;
        gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
        
        console.log('Set gain node value to', gainValue, 'for peer:', peerId);
@@ -2616,8 +2622,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
      if (peerAudio instanceof Map && peerAudio.has('audioElement')) {
        const audioElement = peerAudio.get('audioElement');
        if (audioElement) {
-         audioElement.volume = newVolume / 100.0;
-         console.log('Set HTML Audio volume to', newVolume / 100.0, 'for peer:', peerId);
+         // HTML Audio volume ограничен 0-1, поэтому используем min(1.0, newVolume / 200.0)
+         audioElement.volume = Math.min(1.0, newVolume / 200.0);
+         console.log('Set HTML Audio volume to', Math.min(1.0, newVolume / 200.0), 'for peer:', peerId);
        }
      }
      
@@ -2661,7 +2668,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const handlePeerJoined = useCallback(({ peerId }) => {
     // Инициализируем состояние - не замучен индивидуально
     individualMutedPeersRef.current.set(peerId, false);
-    // Инициализируем предыдущий уровень громкости
+    // Инициализируем предыдущий уровень громкости (100% в новом диапазоне = 50% в старом)
     previousVolumesRef.current.set(peerId, 100);
          setVolumes(prev => {
        const newVolumes = new Map(prev);
@@ -2813,7 +2820,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   const createLocalStream = async () => {
     try {
-      console.log('Creating local stream...');
+      console.log('Creating local stream with amplification before noise suppression...');
       
       // Always start with audio enabled
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -2833,11 +2840,38 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
       localStreamRef.current = stream;
       
-      // Initialize audio context and noise suppression
+      // Сначала усиливаем исходный поток
+      console.log('Applying audio amplification to original stream...');
+      const amplificationSource = audioContextRef.current.createMediaStreamSource(stream);
+      const gainNode = audioContextRef.current.createGain();
+      const compressor = audioContextRef.current.createDynamicsCompressor();
+      
+      // Настройки gain node с плавными переходами
+      gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
+      gainNode.gain.linearRampToValueAtTime(4.0, audioContextRef.current.currentTime + 0.05);
+      
+      // Настройки компрессора для предотвращения клиппинга
+      compressor.threshold.value = -24;
+      compressor.knee.value = 30;
+      compressor.ratio.value = 4;
+      compressor.attack.value = 0.003;
+      compressor.release.value = 0.25;
+      
+      // Создаем усиленный MediaStream
+      const destination = audioContextRef.current.createMediaStreamDestination();
+      amplificationSource.connect(gainNode);
+      gainNode.connect(compressor);
+      compressor.connect(destination);
+      
+      const amplifiedStream = destination.stream;
+      console.log('Applied 4x audio amplification with compressor to original stream');
+      
+      // Initialize audio context and noise suppression with amplified stream
       noiseSuppressionRef.current = new NoiseSuppressionManager();
       
-      // Initialize noise suppression with the stream
-      await noiseSuppressionRef.current.initialize(stream, audioContextRef.current);
+      // Initialize noise suppression with the amplified stream
+      await noiseSuppressionRef.current.initialize(amplifiedStream, audioContextRef.current);
+      console.log('Noise suppression initialized with amplified stream');
       
       // Get the processed stream for the producer
       const processedStream = noiseSuppressionRef.current.getProcessedStream();
@@ -2850,6 +2884,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       // Ensure track settings are applied
       const settings = track.getSettings();
       console.log('Final audio track settings:', settings);
+      console.log('Audio processing order: getUserMedia -> WebAudio amplification (4x) -> noise suppression -> output');
 
       // Set track enabled state based on initial mute state
       track.enabled = !initialMuted; // Track enabled opposite of mute state
@@ -2864,6 +2899,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         const enableResult = await noiseSuppressionRef.current.enable(noiseSuppressionMode);
         if (!enableResult) {
           console.warn('Failed to enable noise suppression, continuing without it');
+        } else {
+          console.log(`Noise suppression enabled with mode: ${noiseSuppressionMode}`);
         }
       }
 
@@ -2872,9 +2909,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       }
 
       // Add analyzer for voice activity detection
-      const source = audioContextRef.current.createMediaStreamSource(processedStream);
+      const analyserSource = audioContextRef.current.createMediaStreamSource(processedStream);
       const analyser = createAudioAnalyser(audioContextRef.current);
-      source.connect(analyser);
+      analyserSource.connect(analyser);
 
       // Store analyser reference
       analyserNodesRef.current.set(socketRef.current.id, analyser);
@@ -3731,7 +3768,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                 audioLevel: report.audioLevel,
                 totalAudioEnergy: report.totalAudioEnergy,
                 jitter: report.jitter,
-                fractionLost: report.fractionLost
+                fractionLost: report.fractionLost,
+                timestamp: report.timestamp
               });
             }
           });
@@ -4018,7 +4056,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // Глобальное состояние звука будет применено через эффект
           const isIndividuallyMuted = individualMutedPeersRef.current.get(producer.producerSocketId) ?? false;
           const initialVolume = isIndividuallyMuted ? 0 : 100;
-          const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 100.0) * 4.0 : 0;
+          const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 200.0) * 4.0 : 0;
           gainNode.gain.value = initialGain;
           console.log('handleConsume: Created gain node for peer:', producer.producerSocketId, {
             isAudioEnabled: isAudioEnabledRef.current,
@@ -4105,7 +4143,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         if (newState) {
           // При включении восстанавливаем индивидуальный уровень громкости
           const individualVolume = volumes.get(peerId) || 100;
-          const gainValue = (individualVolume / 100.0) * 4.0; // 0-100% слайдера -> 0.0-4.0 gain
+          const gainValue = (individualVolume / 200.0) * 4.0; // 0-200% слайдера -> 0.0-4.0 gain
           gainNode.gain.value = gainValue;
         } else {
           // При выключении мутим всех
@@ -4249,6 +4287,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                       isAudioEnabled={isAudioEnabled}
                       isLocal={true}
                       isAudioMuted={isMuted}
+                      colors={colors}
                     />
                   ) : (
                     <div style={{ 
@@ -4270,6 +4309,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                         isAudioEnabled={isAudioEnabled}
                         isLocal={true}
                         isAudioMuted={isMuted}
+                        colors={colors}
                       />
                     </div>
                   )}
@@ -4292,6 +4332,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                         showVolumeSlider={showVolumeSliders.get(peer.id) || false}
                         onVolumeSliderChange={(newVolume) => handleVolumeSliderChange(peer.id, newVolume)}
                         onToggleVolumeSlider={() => toggleVolumeSlider(peer.id)}
+                        colors={colors}
                       />
                     ) : (
                       <div style={{ 
@@ -4318,6 +4359,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                           showVolumeSlider={showVolumeSliders.get(peer.id) || false}
                           onVolumeSliderChange={(newVolume) => handleVolumeSliderChange(peer.id, newVolume)}
                           onToggleVolumeSlider={() => toggleVolumeSlider(peer.id)}
+                          colors={colors}
                         />
                       </div>
                     )}
