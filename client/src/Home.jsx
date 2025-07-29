@@ -306,35 +306,33 @@ const Home = ({ user }) => {
                             } />
                         </Routes>
                         
-                        {/* VoiceChat компонент */}
+
+                        
+                        {/* Единственный VoiceChat - позиционируется динамически */}
                         {voiceRoom && (
                             <VoiceChat
                                 ref={voiceChatRef}
+                                key={`${voiceRoom.roomId}-${voiceRoom.serverId || 'direct'}-unified`}
                                 roomId={voiceRoom.roomId}
                                 roomName={voiceRoom.roomName}
                                 userName={voiceRoom.userName}
                                 userId={voiceRoom.userId}
                                 serverId={voiceRoom.serverId}
                                 autoJoin={true}
-                                showUI={false}
+                                showUI={true}
                                 isVisible={isVoiceChatVisible}
                                 onLeave={handleLeaveVoiceChannel}
-                                onManualLeave={handleLeaveVoiceChannel}
                                 onMuteStateChange={handleMuteStateChange}
                                 onAudioStateChange={handleAudioStateChange}
-                                initialMuted={voiceRoom ? isMuted : localMuted}
-                                initialAudioEnabled={voiceRoom ? isAudioEnabled : localAudioEnabled}
+                                initialMuted={localMuted}
+                                initialAudioEnabled={localAudioEnabled}
                             />
-                        )}
-                        
-                        {/* NotificationButton */}
-                        <NotificationButton />
-                        
-                        {/* HotkeyHint для глобального отображения подсказок */}
-                        <HotkeyHint />
+                        )}                       
+
                     </>
                 )}
             </div>
+            <HotkeyHint />
         </div>
     );
 };

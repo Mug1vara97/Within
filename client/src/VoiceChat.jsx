@@ -1242,34 +1242,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     speakingStatesRef.current = speakingStates;
   }, [speakingStates]);
 
-  // Обработчик горячих клавиш
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      // Ctrl + ~ для переключения микрофона
-      if (event.ctrlKey && event.key === '`') {
-        event.preventDefault();
-        handleMute();
-        console.log('Горячая клавиша: переключение микрофона');
-      }
-      
-      // Ctrl + F1 для переключения наушников
-      if (event.ctrlKey && event.key === 'F1') {
-        event.preventDefault();
-        toggleAudio();
-        console.log('Горячая клавиша: переключение наушников');
-      }
-    };
-
-    // Добавляем обработчик только если компонент видим
-    if (isVisible) {
-      document.addEventListener('keydown', handleKeyDown);
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isVisible, handleMute, toggleAudio]);
-
   const socketRef = useRef();
   const deviceRef = useRef();
   const producerTransportRef = useRef();
@@ -4149,6 +4121,34 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       onAudioStateChange(newState);
     }
   }, [isAudioEnabled, onAudioStateChange, volumes]);
+
+  // Обработчик горячих клавиш
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Ctrl + ~ для переключения микрофона
+      if (event.ctrlKey && event.key === '`') {
+        event.preventDefault();
+        handleMute();
+        console.log('Горячая клавиша: переключение микрофона');
+      }
+      
+      // Ctrl + F1 для переключения наушников
+      if (event.ctrlKey && event.key === 'F1') {
+        event.preventDefault();
+        toggleAudio();
+        console.log('Горячая клавиша: переключение наушников');
+      }
+    };
+
+    // Добавляем обработчик только если компонент видим
+    if (isVisible) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isVisible, handleMute, toggleAudio]);
 
   // Предоставляем внешним компонентам доступ к функциям управления
   useImperativeHandle(ref, () => ({
