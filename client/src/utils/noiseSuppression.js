@@ -84,31 +84,31 @@ export class NoiseSuppressionManager {
 
       this.rnnWorkletNode = new RnnoiseWorkletNode(this.audioContext, {
         wasmBinary: this.wasmBinaries.rnnoise,
-        maxChannels: 1, // Изменено с 2 на 1 для моно
-        vadOffset: 0.15, // Уменьшено с 0.25 для менее агрессивного VAD
-        gainOffset: -15, // Уменьшено с -25 для лучшего качества
+        maxChannels: 2,
+        vadOffset: 0.25,
+        gainOffset: -25,
         enableVAD: true
       });
 
       this.speexWorkletNode = new SpeexWorkletNode(this.audioContext, {
         wasmBinary: this.wasmBinaries.speex,
-        maxChannels: 1, // Изменено с 2 на 1 для моно
+        maxChannels: 2,
         denoise: true,
-        aggressiveness: 10, // Уменьшено с 15 для менее агрессивной обработки
-        vadOffset: 1.0, // Уменьшено с 1.5
+        aggressiveness: 15,
+        vadOffset: 1.5,
         enableVAD: true,
-        gainOffset: -10 // Уменьшено с -15 для лучшего качества
+        gainOffset: -15
       });
 
       this.noiseGateNode = new NoiseGateWorkletNode(this.audioContext, {
-        openThreshold: -60, // Уменьшено с -65 для менее агрессивного гейта
-        closeThreshold: -65, // Уменьшено с -70
-        holdMs: 100, // Уменьшено с 150 для более быстрой реакции
-        maxChannels: 1 // Изменено с 2 на 1 для моно
+        openThreshold: -65,
+        closeThreshold: -70,
+        holdMs: 150,
+        maxChannels: 2
       });
 
       this.gainNode = this.audioContext.createGain();
-      this.gainNode.gain.value = 0.5; // Увеличено с 0.3 для лучшей слышимости
+      this.gainNode.gain.value = 0.3;
 
       this.sourceNode.connect(this.gainNode);
       this.gainNode.connect(this.destinationNode);
