@@ -2820,7 +2820,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   const createLocalStream = async () => {
     try {
-      console.log('Creating local stream with direct track amplification...');
+      console.log('Creating local stream with amplification before noise suppression...');
       
       // Always start with audio enabled
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -2832,20 +2832,53 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           sampleRate: 48000,
           sampleSize: 16,
           latency: 0,
-          volume: 1.0,
-          enabled: true // Ensure audio starts enabled
+          volume: 10.0, // Максимальное усиление через volume
+          enabled: true, // Ensure audio starts enabled
+          // Дополнительные настройки для усиления
+          googAutoGainControl: true,
+          googAutoGainControl2: true,
+          googEchoCancellation: true,
+          googEchoCancellation2: true,
+          googNoiseSuppression: true,
+          googNoiseSuppression2: true,
+          googHighpassFilter: true,
+          googTypingNoiseDetection: true,
+          googAudioMirroring: false,
+          googDucking: true,
+          googNoiseReduction: true,
+          googExperimentalAutoGainControl: true,
+          googExperimentalNoiseSuppression: true,
+          googBeamforming: true,
+          googArrayGeometry: true,
+          googAudioNetworkAdaptator: true,
+          googDAEchoCancellation: true,
+          googExperimentalEchoCancellation: true
         },
         video: false
       });
 
       localStreamRef.current = stream;
       
-      // Initialize audio context and noise suppression
+      // Сначала усиливаем исходный поток
+      console.log('Applying audio amplification to original stream...');
+      const amplificationSource = audioContextRef.current.createMediaStreamSource(stream);
+      const gainNode = audioContextRef.current.createGain();
+      gainNode.gain.value = 4.0; // Усиление в 4 раза
+      
+      // Создаем усиленный MediaStream
+      const destination = audioContextRef.current.createMediaStreamDestination();
+      amplificationSource.connect(gainNode);
+      gainNode.connect(destination);
+      
+      const amplifiedStream = destination.stream;
+      console.log('Applied 4x audio amplification to original stream');
+      
+      // Initialize audio context and noise suppression with amplified stream
       noiseSuppressionRef.current = new NoiseSuppressionManager();
       
-      // Initialize noise suppression with the stream
-      await noiseSuppressionRef.current.initialize(stream, audioContextRef.current);
-      console.log('Noise suppression initialized with stream');
+      // Initialize noise suppression with the amplified stream
+      await noiseSuppressionRef.current.initialize(amplifiedStream, audioContextRef.current);
+      console.log('Noise suppression initialized with amplified stream');
       
       // Get the processed stream for the producer
       const processedStream = noiseSuppressionRef.current.getProcessedStream();
@@ -2855,9 +2888,25 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         throw new Error('No audio track in processed stream');
       }
       
+      // Попробуем усилить трек через applyConstraints
+      try {
+        await track.applyConstraints({
+          volume: 10.0,
+          sampleRate: 48000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        });
+        console.log('Applied constraints to audio track for amplification');
+      } catch (constraintError) {
+        console.warn('Failed to apply constraints for amplification:', constraintError);
+      }
+      
       // Ensure track settings are applied
       const settings = track.getSettings();
       console.log('Final audio track settings:', settings);
+      console.log('Audio processing order: getUserMedia -> WebAudio amplification (4x) -> noise suppression -> output');
 
       // Set track enabled state based on initial mute state
       track.enabled = !initialMuted; // Track enabled opposite of mute state
@@ -2882,9 +2931,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       }
 
       // Add analyzer for voice activity detection
-      const source = audioContextRef.current.createMediaStreamSource(processedStream);
+      const analyserSource = audioContextRef.current.createMediaStreamSource(processedStream);
       const analyser = createAudioAnalyser(audioContextRef.current);
-      source.connect(analyser);
+      analyserSource.connect(analyser);
 
       // Store analyser reference
       analyserNodesRef.current.set(socketRef.current.id, analyser);
@@ -2892,25 +2941,29 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       // Start voice detection
       detectSpeaking(analyser, socketRef.current.id);
       
-      console.log('Creating audio producer with enhanced settings...');
+      console.log('Creating audio producer...');
       const producer = await producerTransportRef.current.produce({ 
         track,
         codecOptions: {
           opusStereo: true,
-          opusDtx: true,
+          opusDtx: false, // Отключаем DTX для постоянной передачи
           opusFec: true,
           opusNack: true,
-          // Попробуем усилить через настройки кодека
+          // Более агрессивные настройки для усиления
           opusMaxPlaybackRate: 48000,
-          opusMaxAverageBitrate: 128000,
+          opusMaxAverageBitrate: 256000, // Увеличиваем битрейт еще больше
           opusComplexity: 10, // Максимальная сложность для лучшего качества
           opusSignal: 'voice',
-          opusApplication: 'voip'
+          opusApplication: 'voip',
+          opusPacketLoss: 0, // Минимальные потери пакетов
+          opusUseInBandFec: true,
+          opusUseDtx: false
         },
         encodings: [
           {
-            maxBitrate: 128000, // Увеличиваем битрейт
-            dtx: false // Отключаем DTX для постоянной передачи
+            maxBitrate: 256000, // Увеличиваем битрейт до максимума
+            dtx: false, // Отключаем DTX для постоянной передачи
+            scaleResolutionDownBy: 1.0 // Максимальное разрешение
           }
         ],
         appData: {
@@ -3753,7 +3806,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                 audioLevel: report.audioLevel,
                 totalAudioEnergy: report.totalAudioEnergy,
                 jitter: report.jitter,
-                fractionLost: report.fractionLost
+                fractionLost: report.fractionLost,
+                timestamp: report.timestamp
               });
             }
           });
