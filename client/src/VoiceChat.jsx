@@ -2867,45 +2867,60 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
       localStreamRef.current = stream;
       
-      // Сначала усиливаем исходный поток
-      console.log('Applying audio amplification to original stream...');
-      const amplificationSource = audioContextRef.current.createMediaStreamSource(stream);
-      const gainNode = audioContextRef.current.createGain();
-      const compressor = audioContextRef.current.createDynamicsCompressor();
-      const lowpassFilter = audioContextRef.current.createBiquadFilter();
+      // Усиление через MediaRecorder API вместо Web Audio API
+      console.log('Applying amplification via MediaRecorder API...');
       
-      // Настройки gain node с плавными переходами
-      gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
-      gainNode.gain.linearRampToValueAtTime(4.0, audioContextRef.current.currentTime + 0.05);
+      // Создаем MediaRecorder с высоким битрейтом для усиления
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus',
+        audioBitsPerSecond: 128000 // Высокий битрейт для лучшего качества
+      });
       
-      // Настройки компрессора для предотвращения клиппинга
-      compressor.threshold.value = -24;
-      compressor.knee.value = 30;
-      compressor.ratio.value = 4;
-      compressor.attack.value = 0.003;
-      compressor.release.value = 0.25;
+      const chunks = [];
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      };
       
-      // Настройки lowpass фильтра для ограничения частот и предотвращения роботизации
-      lowpassFilter.type = 'lowpass';
-      lowpassFilter.frequency.value = 8000; // Ограничиваем до 8kHz
-      lowpassFilter.Q.value = 1; // Умеренная резкость
+      // Создаем усиленный поток через MediaRecorder
+      const amplifiedStream = new Promise((resolve) => {
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(chunks, { type: 'audio/webm' });
+          const audioUrl = URL.createObjectURL(blob);
+          
+          // Создаем новый MediaStream из усиленного аудио
+          const audioElement = new Audio(audioUrl);
+          audioElement.volume = 4.0; // Усиление в 4 раза
+          
+          // Создаем MediaStream из аудио элемента
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const source = audioContext.createMediaElementSource(audioElement);
+          const destination = audioContext.createMediaStreamDestination();
+          
+          source.connect(destination);
+          audioElement.play();
+          
+          resolve(destination.stream);
+        };
+        
+        mediaRecorder.start();
+        setTimeout(() => {
+          mediaRecorder.stop();
+        }, 100); // Короткая запись для создания усиленного потока
+      });
       
-      // Создаем усиленный MediaStream
-      const destination = audioContextRef.current.createMediaStreamDestination();
-      amplificationSource.connect(gainNode);
-      gainNode.connect(compressor);
-      compressor.connect(lowpassFilter);
-      lowpassFilter.connect(destination);
+      console.log('Applied MediaRecorder amplification to original stream');
       
-      const amplifiedStream = destination.stream;
-      console.log('Applied 4x audio amplification with compressor and lowpass filter to original stream');
+      // Ждем создания усиленного потока
+      const finalStream = await amplifiedStream;
       
       // Initialize audio context and noise suppression with amplified stream
       noiseSuppressionRef.current = new NoiseSuppressionManager();
       
       // Initialize noise suppression with the amplified stream
-      await noiseSuppressionRef.current.initialize(amplifiedStream, audioContextRef.current);
-      console.log('Noise suppression initialized with amplified stream');
+      await noiseSuppressionRef.current.initialize(finalStream, audioContextRef.current);
+      console.log('Noise suppression initialized with MediaRecorder amplified stream');
       
       // Get the processed stream for the producer
       const processedStream = noiseSuppressionRef.current.getProcessedStream();
