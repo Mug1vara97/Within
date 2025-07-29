@@ -8,6 +8,7 @@ import VoiceChat from './VoiceChat';
 import GroupChat from './Chats/GroupChat';
 import NotificationButton from './components/NotificationButton';
 import { useNotifications } from './hooks/useNotifications';
+import { useGlobalHotkeys } from './hooks/useGlobalHotkeys';
 
 // Компонент подсказки о горячих клавишах
 const HotkeyHint = () => {
@@ -227,7 +228,10 @@ const Home = ({ user }) => {
         }
     }, [user.userId, initializeForUser]);
 
-    // Глобальный обработчик горячих клавиш
+    // Используем глобальные горячие клавиши
+    useGlobalHotkeys(handleToggleMute, handleToggleAudio);
+
+    // Глобальный обработчик горячих клавиш (резервный)
     useEffect(() => {
         const handleKeyDown = (event) => {
             // Ctrl + ~ для переключения микрофона

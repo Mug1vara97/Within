@@ -9,5 +9,24 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Background Script для перехвата горячих клавиш -->
+    <script src="/background.js"></script>
+    
+    <!-- Service Worker для фоновой работы -->
+    <script>
+      // Регистрация Service Worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/hotkeys-sw.js')
+            .then(function(registration) {
+              console.log('Service Worker зарегистрирован:', registration);
+            })
+            .catch(function(error) {
+              console.log('Ошибка регистрации Service Worker:', error);
+            });
+        });
+      }
+    </script>
   </body>
 </html>
