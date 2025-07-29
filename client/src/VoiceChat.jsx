@@ -2820,7 +2820,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   const createLocalStream = async () => {
     try {
-      console.log('Creating local stream with gain node amplification...');
+      console.log('Creating local stream with direct track amplification...');
       
       // Always start with audio enabled
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -2832,7 +2832,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           sampleRate: 48000,
           sampleSize: 16,
           latency: 0,
-          volume: 1.0, // Возвращаем к стандартному значению
+          volume: 1.0,
           enabled: true // Ensure audio starts enabled
         },
         video: false
@@ -2881,17 +2881,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         throw new Error('Producer transport not initialized');
       }
 
-      // Add analyzer for voice activity detection with gain amplification
+      // Add analyzer for voice activity detection
       const source = audioContextRef.current.createMediaStreamSource(processedStream);
-      const gainNode = audioContextRef.current.createGain();
-      gainNode.gain.value = 10.0; // Усиление в 10 раз
       const analyser = createAudioAnalyser(audioContextRef.current);
-      
-      // Подключаем цепочку: source -> gain -> analyser
-      source.connect(gainNode);
-      gainNode.connect(analyser);
-      
-      console.log('Audio processing order: getUserMedia -> noise suppression -> gain amplification (10x) -> analyser');
+      source.connect(analyser);
 
       // Store analyser reference
       analyserNodesRef.current.set(socketRef.current.id, analyser);
@@ -2899,15 +2892,27 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       // Start voice detection
       detectSpeaking(analyser, socketRef.current.id);
       
-      console.log('Creating audio producer...');
+      console.log('Creating audio producer with enhanced settings...');
       const producer = await producerTransportRef.current.produce({ 
         track,
         codecOptions: {
           opusStereo: true,
           opusDtx: true,
           opusFec: true,
-          opusNack: true
+          opusNack: true,
+          // Попробуем усилить через настройки кодека
+          opusMaxPlaybackRate: 48000,
+          opusMaxAverageBitrate: 128000,
+          opusComplexity: 10, // Максимальная сложность для лучшего качества
+          opusSignal: 'voice',
+          opusApplication: 'voip'
         },
+        encodings: [
+          {
+            maxBitrate: 128000, // Увеличиваем битрейт
+            dtx: false // Отключаем DTX для постоянной передачи
+          }
+        ],
         appData: {
           streamId: processedStream.id
         }
