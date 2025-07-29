@@ -2189,7 +2189,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // Глобальное состояние звука будет применено через эффект
           const isIndividuallyMuted = individualMutedPeersRef.current.get(producer.producerSocketId) ?? false;
           const initialVolume = isIndividuallyMuted ? 0 : 100;
-          const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 200.0) * 4.0 : 0;
+          const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 200.0) * 2.0 : 0; // Уменьшено с 4.0 до 2.0
           gainNode.gain.value = initialGain;
           console.log('Created gain node for peer:', producer.producerSocketId, {
             isAudioEnabled: isAudioEnabledRef.current,
@@ -2512,7 +2512,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
           if (!isIndividuallyMuted) {
             const individualVolume = volumes.get(peerId) || 100;
-            const gainValue = (individualVolume / 200.0) * 4.0;
+            const gainValue = (individualVolume / 200.0) * 2.0; // Уменьшено с 4.0 до 2.0
             gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
           } else {
             gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
@@ -2569,7 +2569,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     if (gainNode) {
       if (!newIsIndividuallyMuted) {
         // Восстанавливаем предыдущий уровень громкости
-        const gainValue = (newVolume / 200.0) * 4.0;
+        const gainValue = (newVolume / 200.0) * 2.0; // Уменьшено с 4.0 до 2.0
         gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
         console.log('Set gain to', gainValue, 'and unmuted peer:', peerId);
       } else {
@@ -2607,9 +2607,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
      const gainNode = gainNodesRef.current.get(peerId);
      
      if (gainNode) {
-       // Слайдер 0-200% соответствует 0-400% усиления (0.0-4.0 gain)
-       // При 200% ползунка получаем 4.0 gain (максимальное усиление)
-       const gainValue = (newVolume / 200.0) * 4.0;
+       // Слайдер 0-200% соответствует 0-200% усиления (0.0-2.0 gain)
+       // При 200% ползунка получаем 2.0 gain (максимальное усиление)
+       const gainValue = (newVolume / 200.0) * 2.0; // Уменьшено с 4.0 до 2.0
        gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
        
        console.log('Set gain node value to', gainValue, 'for peer:', peerId);
@@ -2820,7 +2820,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   const createLocalStream = async () => {
     try {
-      console.log('Creating local stream with amplification before noise suppression...');
+      console.log('Creating local stream with optimized audio processing...');
       
       // Always start with audio enabled
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -2828,11 +2828,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
-          channelCount: 1,
+          channelCount: 1, // Используем моно для лучшего качества
           sampleRate: 48000,
           sampleSize: 16,
           latency: 0,
-          volume: 1.0,
+          volume: 1.0, // Уменьшено усиление
           enabled: true // Ensure audio starts enabled
         },
         video: false
@@ -2840,11 +2840,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
       localStreamRef.current = stream;
       
-      // Сначала усиливаем исходный поток
-      console.log('Applying audio amplification to original stream...');
+      // Уменьшаем усиление для предотвращения искажений
+      console.log('Applying moderate audio amplification to original stream...');
       const amplificationSource = audioContextRef.current.createMediaStreamSource(stream);
       const gainNode = audioContextRef.current.createGain();
-      gainNode.gain.value = 4.0; // Усиление в 4 раза
+      gainNode.gain.value = 1.5; // Уменьшено с 4.0 до 1.5 для лучшего качества
       
       // Создаем усиленный MediaStream
       const destination = audioContextRef.current.createMediaStreamDestination();
@@ -2852,7 +2852,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       gainNode.connect(destination);
       
       const amplifiedStream = destination.stream;
-      console.log('Applied 4x audio amplification to original stream');
+      console.log('Applied 1.5x audio amplification to original stream');
       
       // Initialize audio context and noise suppression with amplified stream
       noiseSuppressionRef.current = new NoiseSuppressionManager();
@@ -2872,7 +2872,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       // Ensure track settings are applied
       const settings = track.getSettings();
       console.log('Final audio track settings:', settings);
-      console.log('Audio processing order: getUserMedia -> WebAudio amplification (4x) -> noise suppression -> output');
+      console.log('Audio processing order: getUserMedia -> WebAudio amplification (1.5x) -> noise suppression -> output');
 
       // Set track enabled state based on initial mute state
       track.enabled = !initialMuted; // Track enabled opposite of mute state
@@ -2911,7 +2911,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       const producer = await producerTransportRef.current.produce({ 
         track,
         codecOptions: {
-          opusStereo: true,
+          opusStereo: false, // Изменено на false для моно
           opusDtx: true,
           opusFec: true,
           opusNack: true
