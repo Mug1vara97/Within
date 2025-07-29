@@ -84,7 +84,7 @@ const config = {
     autoGainControl: true,
     sampleRate: 48000,
     channelCount: 2,
-    volume: 4.0,
+    volume: 2.0,
     latency: 0,
     suppressLocalAudioPlayback: true,
     advanced: [
@@ -2189,7 +2189,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // Глобальное состояние звука будет применено через эффект
           const isIndividuallyMuted = individualMutedPeersRef.current.get(producer.producerSocketId) ?? false;
           const initialVolume = isIndividuallyMuted ? 0 : 100;
-          const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 200.0) * 4.0 : 0;
+          const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 200.0) * 2.0 : 0;
           gainNode.gain.value = initialGain;
           console.log('Created gain node for peer:', producer.producerSocketId, {
             isAudioEnabled: isAudioEnabledRef.current,
@@ -2512,7 +2512,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           const isIndividuallyMuted = individualMutedPeersRef.current.get(peerId) ?? false;
           if (!isIndividuallyMuted) {
             const individualVolume = volumes.get(peerId) || 100;
-            const gainValue = (individualVolume / 200.0) * 4.0;
+            const gainValue = (individualVolume / 200.0) * 2.0;
             gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
           } else {
             gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
@@ -2569,7 +2569,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     if (gainNode) {
       if (!newIsIndividuallyMuted) {
         // Восстанавливаем предыдущий уровень громкости
-        const gainValue = (newVolume / 200.0) * 4.0;
+        const gainValue = (newVolume / 200.0) * 2.0;
         gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
         console.log('Set gain to', gainValue, 'and unmuted peer:', peerId);
       } else {
@@ -2609,7 +2609,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
      if (gainNode) {
        // Слайдер 0-200% соответствует 0-400% усиления (0.0-4.0 gain)
        // При 200% ползунка получаем 4.0 gain (максимальное усиление)
-       const gainValue = (newVolume / 200.0) * 4.0;
+       const gainValue = (newVolume / 200.0) * 2.0;
        gainNode.gain.setValueAtTime(gainValue, audioContextRef.current.currentTime);
        
        console.log('Set gain node value to', gainValue, 'for peer:', peerId);
@@ -2832,27 +2832,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           sampleRate: 48000,
           sampleSize: 16,
           latency: 0,
-          volume: 10.0, // Максимальное усиление через volume
-          enabled: true, // Ensure audio starts enabled
-          // Дополнительные настройки для усиления
-          googAutoGainControl: true,
-          googAutoGainControl2: true,
-          googEchoCancellation: true,
-          googEchoCancellation2: true,
-          googNoiseSuppression: true,
-          googNoiseSuppression2: true,
-          googHighpassFilter: true,
-          googTypingNoiseDetection: true,
-          googAudioMirroring: false,
-          googDucking: true,
-          googNoiseReduction: true,
-          googExperimentalAutoGainControl: true,
-          googExperimentalNoiseSuppression: true,
-          googBeamforming: true,
-          googArrayGeometry: true,
-          googAudioNetworkAdaptator: true,
-          googDAEchoCancellation: true,
-          googExperimentalEchoCancellation: true
+          volume: 1.0,
+          enabled: true // Ensure audio starts enabled
         },
         video: false
       });
@@ -2863,7 +2844,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       console.log('Applying audio amplification to original stream...');
       const amplificationSource = audioContextRef.current.createMediaStreamSource(stream);
       const gainNode = audioContextRef.current.createGain();
-      gainNode.gain.value = 4.0; // Усиление в 4 раза
+      gainNode.gain.value = 2.0; // Усиление в 4 раза
       
       // Создаем усиленный MediaStream
       const destination = audioContextRef.current.createMediaStreamDestination();
@@ -2886,21 +2867,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       
       if (!track) {
         throw new Error('No audio track in processed stream');
-      }
-      
-      // Попробуем усилить трек через applyConstraints
-      try {
-        await track.applyConstraints({
-          volume: 10.0,
-          sampleRate: 48000,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        });
-        console.log('Applied constraints to audio track for amplification');
-      } catch (constraintError) {
-        console.warn('Failed to apply constraints for amplification:', constraintError);
       }
       
       // Ensure track settings are applied
@@ -2946,26 +2912,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         track,
         codecOptions: {
           opusStereo: true,
-          opusDtx: false, // Отключаем DTX для постоянной передачи
+          opusDtx: true,
           opusFec: true,
-          opusNack: true,
-          // Более агрессивные настройки для усиления
-          opusMaxPlaybackRate: 48000,
-          opusMaxAverageBitrate: 256000, // Увеличиваем битрейт еще больше
-          opusComplexity: 10, // Максимальная сложность для лучшего качества
-          opusSignal: 'voice',
-          opusApplication: 'voip',
-          opusPacketLoss: 0, // Минимальные потери пакетов
-          opusUseInBandFec: true,
-          opusUseDtx: false
+          opusNack: true
         },
-        encodings: [
-          {
-            maxBitrate: 256000, // Увеличиваем битрейт до максимума
-            dtx: false, // Отключаем DTX для постоянной передачи
-            scaleResolutionDownBy: 1.0 // Максимальное разрешение
-          }
-        ],
         appData: {
           streamId: processedStream.id
         }
@@ -3806,8 +3756,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                 audioLevel: report.audioLevel,
                 totalAudioEnergy: report.totalAudioEnergy,
                 jitter: report.jitter,
-                fractionLost: report.fractionLost,
-                timestamp: report.timestamp
+                fractionLost: report.fractionLost
               });
             }
           });
@@ -4094,7 +4043,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // Глобальное состояние звука будет применено через эффект
           const isIndividuallyMuted = individualMutedPeersRef.current.get(producer.producerSocketId) ?? false;
           const initialVolume = isIndividuallyMuted ? 0 : 100;
-          const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 200.0) * 4.0 : 0;
+          const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 200.0) * 2.0 : 0;
           gainNode.gain.value = initialGain;
           console.log('handleConsume: Created gain node for peer:', producer.producerSocketId, {
             isAudioEnabled: isAudioEnabledRef.current,
@@ -4181,7 +4130,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         if (newState) {
           // При включении восстанавливаем индивидуальный уровень громкости
           const individualVolume = volumes.get(peerId) || 100;
-          const gainValue = (individualVolume / 200.0) * 4.0; // 0-200% слайдера -> 0.0-4.0 gain
+          const gainValue = (individualVolume / 200.0) * 2.0; // 0-200% слайдера -> 0.0-4.0 gain
           gainNode.gain.value = gainValue;
         } else {
           // При выключении мутим всех
