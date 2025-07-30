@@ -1,0 +1,106 @@
+/* Специальные стили для темы Matrix Glitch */
+.matrix-glitch-theme .home-container {
+    background-color: transparent !important;
+}
+
+.matrix-glitch-theme .content-container {
+    background-color: transparent !important;
+}
+
+.matrix-glitch-theme .discover-content {
+    background-color: transparent !important;
+}
+
+.matrix-glitch-theme .group-chat-container,
+.matrix-glitch-theme .chat-page-container {
+    background-color: transparent !important;
+}
+
+.matrix-glitch-theme .server-list {
+    background-color: rgba(0, 0, 0, 0.6) !important;
+    backdrop-filter: blur(2px);
+}
+
+.matrix-glitch-theme .server-button {
+    background-color: rgba(43, 69, 57, 0.7) !important;
+    backdrop-filter: blur(2px);
+}
+
+.matrix-glitch-theme .server-button:hover {
+    background-color: rgba(97, 220, 163, 0.3) !important;
+}
+
+.matrix-glitch-theme .voice-chat-container {
+    background-color: transparent !important;
+}
+
+.matrix-glitch-theme .messages {
+    background-color: transparent !important;
+}
+
+.matrix-glitch-theme .other-message {
+    background: rgba(43, 69, 57, 0.6) !important;
+    backdrop-filter: blur(2px);
+    border: 1px solid rgba(97, 220, 163, 0.3) !important;
+}
+
+.matrix-glitch-theme .message-input {
+    background-color: rgba(0, 0, 0, 0.6) !important;
+    backdrop-filter: blur(2px);
+    border: 1px solid rgba(97, 220, 163, 0.3) !important;
+}
+
+.matrix-glitch-theme .send-button {
+    background-color: rgba(97, 220, 163, 0.8) !important;
+    backdrop-filter: blur(2px);
+}
+
+.matrix-glitch-theme .send-button:hover {
+    background-color: rgba(97, 220, 163, 1) !important;
+}
+
+/* Стили для модальных окон */
+.matrix-glitch-theme .modal-overlay {
+    background-color: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(4px);
+}
+
+.matrix-glitch-theme .create-modal {
+    background-color: rgba(43, 69, 57, 0.9) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(97, 220, 163, 0.3);
+}
+
+.matrix-glitch-theme .users-modal {
+    background-color: rgba(43, 69, 57, 0.9) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(97, 220, 163, 0.3);
+}
+
+.matrix-glitch-theme .users-table {
+    background: rgba(0, 0, 0, 0.6) !important;
+    backdrop-filter: blur(2px);
+}
+
+.matrix-glitch-theme .users-table th {
+    background: rgba(43, 69, 57, 0.8) !important;
+}
+
+.matrix-glitch-theme .users-table tr:hover {
+    background-color: rgba(97, 220, 163, 0.2) !important;
+}
+
+/* Категории каналов */
+.matrix-glitch-theme .category-header {
+    background-color: rgba(43, 69, 57, 0.7) !important;
+    backdrop-filter: blur(2px);
+}
+
+.matrix-glitch-theme .channel:hover {
+    background-color: rgba(97, 220, 163, 0.2) !important;
+}
+
+.matrix-glitch-theme .channel.active {
+    background-color: rgba(97, 220, 163, 0.4) !important;
+    backdrop-filter: blur(2px);
+}
