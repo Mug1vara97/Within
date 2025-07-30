@@ -202,11 +202,14 @@ const LetterGlitch = ({
   }, [glitchSpeed, smooth]);
 
   const containerStyle = {
-    position: 'relative',
+    position: 'absolute',
+    top: 0,
+    left: 0,
     width: '100%',
     height: '100%',
     backgroundColor: '#000000',
     overflow: 'hidden',
+    zIndex: -1,
   };
 
   const canvasStyle = {
