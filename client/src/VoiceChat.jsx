@@ -47,6 +47,7 @@ import { Device } from 'mediasoup-client';
 import { io } from 'socket.io-client';
 import { NoiseSuppressionManager } from './utils/noiseSuppression';
 import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
+import VideoGrid from './components/VideoGrid';
 
 
 
@@ -4264,105 +4265,66 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           </Typography>
         )}
         <Box sx={styles.container}>
-          <Box sx={styles.videoGrid}>
-            {/* Only render video grid when not in fullscreen mode */}
-            {fullscreenShare === null && (
-              <>
-                {/* Local user */}
-                <Box sx={styles.videoItem} className={speakingStates.get(socketRef.current?.id) ? 'speaking' : ''}>
-                  {isVideoEnabled && videoStream ? (
-                    <VideoView 
-                      stream={videoStream} 
-                      peerName={userName}
-                      isMuted={isMuted}
-                      isSpeaking={speakingStates.get(socketRef.current?.id)}
-                      isAudioEnabled={isAudioEnabled}
-                      isLocal={true}
-                      isAudioMuted={isMuted}
-                      colors={colors}
-                    />
-                  ) : (
-                    <div style={{ 
-                      position: 'relative', 
-                      width: '100%', 
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
-                      alignItems: 'center'
-                    }}>
-                      <Box sx={styles.userAvatar}>
-                        {userName[0].toUpperCase()}
-                      </Box>
-                      <VideoOverlay
-                        peerName={userName}
-                        isMuted={isMuted}
-                        isSpeaking={speakingStates.get(socketRef.current?.id)}
-                        isAudioEnabled={isAudioEnabled}
-                        isLocal={true}
-                        isAudioMuted={isMuted}
-                        colors={colors}
-                      />
-                    </div>
-                  )}
-                </Box>
+          {/* Используем новый компонент VideoGrid */}
+          {fullscreenShare === null && (
+            <VideoGrid
+              participants={[
+                // Локальный пользователь
+                {
+                  id: socketRef.current?.id,
+                  name: userName,
+                  stream: isVideoEnabled ? videoStream : null,
+                  isMuted: isMuted,
+                  isSpeaking: speakingStates.get(socketRef.current?.id),
+                  isAudioEnabled: isAudioEnabled,
+                  isLocal: true,
+                  isAudioMuted: isMuted,
+                  onVolumeClick: null,
+                  volume: 100,
+                  showVolumeSlider: false,
+                  onVolumeSliderChange: null,
+                  onToggleVolumeSlider: null
+                },
+                // Удаленные пользователи
+                ...Array.from(peers.values()).map((peer) => ({
+                  id: peer.id,
+                  name: peer.name,
+                  stream: remoteVideos.get(peer.id)?.stream || null,
+                  isMuted: peer.isMuted,
+                  isSpeaking: speakingStates.get(peer.id),
+                  isAudioEnabled: audioStates.get(peer.id),
+                  isLocal: false,
+                  onVolumeClick: () => handleVolumeChange(peer.id),
+                  volume: volumes.get(peer.id) || 100,
+                  isAudioMuted: individualMutedPeersRef.current.get(peer.id) || false,
+                  showVolumeSlider: showVolumeSliders.get(peer.id) || false,
+                  onVolumeSliderChange: (newVolume) => handleVolumeSliderChange(peer.id, newVolume),
+                  onToggleVolumeSlider: () => toggleVolumeSlider(peer.id)
+                }))
+              ]}
+              screenShares={[
+                // Локальная демонстрация экрана
+                ...(isScreenSharing && screenStream ? [{
+                  id: socketRef.current?.id,
+                  name: userName,
+                  stream: screenStream
+                }] : []),
+                // Удаленные демонстрации экрана
+                ...Array.from(remoteScreens.entries()).map(([peerId, screenData]) => ({
+                  id: peerId,
+                  name: peers.get(peerId)?.name || 'Unknown',
+                  stream: screenData?.stream || null
+                }))
+              ]}
+              onFullscreenToggle={handleFullscreenToggle}
+              fullscreenShare={fullscreenShare}
+              colors={colors}
+              styles={styles}
+            />
+          )}
 
-                {/* Remote users */}
-                {Array.from(peers.values()).map((peer) => (
-                  <Box key={peer.id} sx={styles.videoItem} className={speakingStates.get(peer.id) ? 'speaking' : ''}>
-                    {remoteVideos.get(peer.id)?.stream ? (
-                      <VideoView
-                        stream={remoteVideos.get(peer.id).stream}
-                        peerName={peer.name}
-                        isMuted={peer.isMuted}
-                        isSpeaking={speakingStates.get(peer.id)}
-                        isAudioEnabled={audioStates.get(peer.id)}
-                        isLocal={false}
-                        onVolumeClick={() => handleVolumeChange(peer.id)}
-                        volume={volumes.get(peer.id) || 100}
-                        isAudioMuted={individualMutedPeersRef.current.get(peer.id) || false}
-                        showVolumeSlider={showVolumeSliders.get(peer.id) || false}
-                        onVolumeSliderChange={(newVolume) => handleVolumeSliderChange(peer.id, newVolume)}
-                        onToggleVolumeSlider={() => toggleVolumeSlider(peer.id)}
-                        colors={colors}
-                      />
-                    ) : (
-                      <div style={{ 
-                        position: 'relative', 
-                        width: '100%', 
-                        height: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        alignItems: 'center'
-                      }}>
-                        <Box sx={styles.userAvatar}>
-                          {peer.name[0].toUpperCase()}
-                        </Box>
-                        <VideoOverlay
-                          peerName={peer.name}
-                          isMuted={peer.isMuted}
-                          isSpeaking={speakingStates.get(peer.id)}
-                          isAudioEnabled={audioStates.get(peer.id)}
-                          isLocal={false}
-                          onVolumeClick={() => handleVolumeChange(peer.id)}
-                          volume={volumes.get(peer.id) || 100}
-                          isAudioMuted={individualMutedPeersRef.current.get(peer.id) || false}
-                          showVolumeSlider={showVolumeSliders.get(peer.id) || false}
-                          onVolumeSliderChange={(newVolume) => handleVolumeSliderChange(peer.id, newVolume)}
-                          onToggleVolumeSlider={() => toggleVolumeSlider(peer.id)}
-                          colors={colors}
-                        />
-                      </div>
-                    )}
-                  </Box>
-                ))}
-              </>
-            )}
-
-            {/* Screen sharing */}
-            {renderScreenShares}
-          </Box>
+          {/* Полноэкранный режим для демонстрации экрана */}
+          {fullscreenShare !== null && renderScreenShares}
           <Box sx={styles.bottomBar}>
             <Box sx={styles.controlsContainer}>
               <Box sx={styles.controlGroup}>
