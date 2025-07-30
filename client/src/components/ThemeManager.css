@@ -227,80 +227,16 @@
     font-size: 16px;
 }
 
-/* Стили для секретных тем */
-.secret-theme-section {
-    margin-bottom: 30px;
-    padding: 20px;
-    background: var(--surface);
-    border-radius: 8px;
-    border: 1px solid var(--border);
-}
-
-.secret-theme-section h3 {
-    color: var(--text);
-    margin: 0 0 10px 0;
-    font-size: 16px;
-    font-weight: 600;
-}
-
-.secret-theme-section p {
-    color: var(--textSecondary);
-    margin: 0 0 15px 0;
-    font-size: 14px;
-}
-
-.secret-code-form {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
-}
-
-.secret-code-input {
-    flex: 1;
-    padding: 8px 12px;
-    background: var(--background);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--text);
-    font-size: 14px;
-    transition: border-color 0.2s;
-}
-
-.secret-code-input:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(var(--primaryRgb), 0.2);
-}
-
-.secret-code-input::placeholder {
-    color: var(--textMuted);
-}
-
-.secret-code-button {
-    padding: 8px 16px;
-    background: var(--primary);
-    color: var(--text);
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    transition: background-color 0.2s;
-}
-
-.secret-code-button:hover {
-    background: var(--primaryHover);
-}
-
 .unlock-message {
-    padding: 10px 12px;
+    padding: 15px 20px;
     background: rgba(var(--primaryRgb), 0.1);
     border: 1px solid var(--primary);
-    border-radius: 4px;
+    border-radius: 8px;
     color: var(--primary);
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 16px;
+    font-weight: 600;
     text-align: center;
+    margin: 20px 0;
     animation: fadeInOut 3s ease-in-out;
 }
 

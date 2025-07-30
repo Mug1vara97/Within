@@ -5,7 +5,6 @@ import './ThemeManager.css';
 const ThemeManager = () => {
     const { currentTheme, changeTheme, availableThemes, unlockTheme } = useTheme();
     const [isOpen, setIsOpen] = useState(false);
-    const [secretCode, setSecretCode] = useState('');
     const [showUnlockMessage, setShowUnlockMessage] = useState(false);
 
     const handleThemeChange = (themeName) => {
@@ -13,17 +12,7 @@ const ThemeManager = () => {
         setIsOpen(false);
     };
 
-    const handleSecretCodeSubmit = (e) => {
-        e.preventDefault();
-        if (secretCode.toLowerCase() === 'mug1vara') {
-            unlockTheme('glitchMatrix');
-            setShowUnlockMessage(true);
-            setSecretCode('');
-            setTimeout(() => setShowUnlockMessage(false), 3000);
-        } else {
-            setSecretCode('');
-        }
-    };
+
 
     useEffect(() => {
         // Глобальный обработчик для ввода секретного кода
@@ -157,50 +146,11 @@ const ThemeManager = () => {
                     </div>
                 </div>
 
-                <div className="secret-theme-section">
-                    <h3>Секретные темы</h3>
-                    <p>Введите секретный код для разблокировки скрытых тем:</p>
-                    <form onSubmit={handleSecretCodeSubmit} className="secret-code-form">
-                        <input
-                            type="text"
-                            value={secretCode}
-                            onChange={(e) => setSecretCode(e.target.value)}
-                            placeholder="Введите секретный код..."
-                            className="secret-code-input"
-                        />
-                        <button type="submit" className="secret-code-button">
-                            Разблокировать
-                        </button>
-                    </form>
-                    {showUnlockMessage && (
-                        <div className="unlock-message">
-                            🎉 Тема "Matrix Glitch" разблокирована!
-                        </div>
-                    )}
-                </div>
-
-                <div className="theme-info">
-                    <h3>О темах</h3>
-                    <p>Темы изменяют цветовую схему всего приложения. Ваш выбор сохраняется автоматически.</p>
-                    <div className="theme-features">
-                        <div className="feature">
-                            <span className="feature-icon">🎨</span>
-                            <span>Динамическое изменение цветов</span>
-                        </div>
-                        <div className="feature">
-                            <span className="feature-icon">💾</span>
-                            <span>Автоматическое сохранение</span>
-                        </div>
-                        <div className="feature">
-                            <span className="feature-icon">⚡</span>
-                            <span>Мгновенное применение</span>
-                        </div>
-                        <div className="feature">
-                            <span className="feature-icon">🔓</span>
-                            <span>Секретные темы</span>
-                        </div>
+                {showUnlockMessage && (
+                    <div className="unlock-message">
+                        🎉 Тема "Matrix Glitch" разблокирована!
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );
