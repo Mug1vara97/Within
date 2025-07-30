@@ -187,7 +187,6 @@ const createStyles = (colors) => ({
   },
   videoGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
     gap: '16px',
     padding: '20px',
     width: '100%',
@@ -196,20 +195,23 @@ const createStyles = (colors) => ({
     overflow: 'auto',
     minHeight: 0,
     marginBottom: '65px',
-    boxSizing: 'border-box'
+    boxSizing: 'border-box',
+    // Адаптивная сетка будет устанавливаться динамически
   },
   videoItem: {
     backgroundColor: colors.surface,
     borderRadius: '8px',
     overflow: 'hidden',
     position: 'relative',
-    aspectRatio: '16/9',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
     transition: 'all 0.2s ease-in-out',
     padding: '0',
+    width: '100%',
+    height: '100%',
+    minHeight: '200px',
     '&:hover': {
       transform: 'translateY(-2px)',
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
@@ -536,8 +538,11 @@ const createStyles = (colors) => ({
     backgroundColor: colors.serverListBackground,
     borderRadius: '8px',
     overflow: 'hidden',
+    minHeight: '200px',
     '& video': {
-      objectFit: 'contain'
+      objectFit: 'contain',
+      width: '100%',
+      height: '100%'
     }
   },
   screenShareUserName: {
@@ -4167,6 +4172,58 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     };
   }, [isJoined]);
 
+  // Функция для вычисления адаптивной сетки
+  const getAdaptiveGridStyle = useCallback((totalItems) => {
+    if (totalItems <= 2) {
+      return {
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gridTemplateRows: 'repeat(1, 1fr)',
+        aspectRatio: '2/1'
+      };
+    } else if (totalItems <= 4) {
+      return {
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gridTemplateRows: 'repeat(2, 1fr)',
+        aspectRatio: '1/1'
+      };
+    } else if (totalItems <= 6) {
+      return {
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gridTemplateRows: 'repeat(2, 1fr)',
+        aspectRatio: '3/2'
+      };
+    } else {
+      return {
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gridTemplateRows: 'repeat(3, 1fr)',
+        aspectRatio: '1/1'
+      };
+    }
+  }, []);
+
+  // Подсчет общего количества элементов в сетке
+  const totalGridItems = useMemo(() => {
+    let count = 1; // Локальный пользователь
+    
+    // Добавляем удаленных пользователей
+    count += peers.size;
+    
+    // Добавляем локальную демонстрацию экрана
+    if (isScreenSharing && screenStream) {
+      count += 1;
+    }
+    
+    // Добавляем удаленные демонстрации экрана
+    count += remoteScreens.size;
+    
+    return count;
+  }, [peers.size, isScreenSharing, screenStream, remoteScreens.size]);
+
+  // Получаем стили для адаптивной сетки
+  const adaptiveGridStyle = useMemo(() => {
+    return getAdaptiveGridStyle(totalGridItems);
+  }, [totalGridItems, getAdaptiveGridStyle]);
+
   // Подготовка всех нужных пропсов для UI
   const ui = (
     <MuteProvider socket={socketRef.current}>
@@ -4206,7 +4263,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           </Typography>
         )}
         <Box sx={styles.container}>
-          <Box sx={styles.videoGrid}>
+          <Box sx={{
+            ...styles.videoGrid,
+            ...adaptiveGridStyle
+          }}>
             {/* Only render video grid when not in fullscreen mode */}
             {fullscreenShare === null && (
               <>
