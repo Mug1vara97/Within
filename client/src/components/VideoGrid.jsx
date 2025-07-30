@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useEffect } from 'react';
 import { Box, Typography, IconButton } from '@mui/material';
 import { ScreenShare, Fullscreen, FullscreenExit } from '@mui/icons-material';
+import VideoOverlay from './VideoOverlay';
 
 // Компонент для умной сетки видеозвонков
 const VideoGrid = ({ 
@@ -146,7 +147,33 @@ const VideoGrid = ({
         padding: '8px'
       }}>
         {participants.map((participant) => (
-          <Box key={participant.id} sx={styles.videoItem}>
+          <Box key={participant.id} sx={{
+            ...styles.videoItem,
+            position: 'relative',
+            borderRadius: '8px',
+            overflow: 'hidden',
+            backgroundColor: '#202225',
+            transition: 'all 0.2s ease-in-out',
+            '&:hover': {
+              transform: 'translateY(-2px)',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+            },
+            '&.speaking': {
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                border: '2px solid #3ba55c',
+                borderRadius: '8px',
+                animation: 'pulse 2s infinite',
+                pointerEvents: 'none',
+                zIndex: 1
+              }
+            }
+          }}>
             <VideoView
               stream={participant.stream}
               peerName={participant.name}
@@ -208,7 +235,33 @@ const VideoGrid = ({
       gridTemplateColumns: gridConfig.gridTemplateColumns,
       gap: '8px',
       padding: '8px',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      '& .speaking': {
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          border: '2px solid #3ba55c',
+          borderRadius: '8px',
+          animation: 'pulse 2s infinite',
+          pointerEvents: 'none',
+          zIndex: 1
+        }
+      },
+      '@keyframes pulse': {
+        '0%': {
+          boxShadow: '0 0 0 0 rgba(59, 165, 92, 0.4)'
+        },
+        '70%': {
+          boxShadow: '0 0 0 10px rgba(59, 165, 92, 0)'
+        },
+        '100%': {
+          boxShadow: '0 0 0 0 rgba(59, 165, 92, 0)'
+        }
+      }
     }}>
       {renderScreenShares}
       {renderParticipants}
@@ -224,8 +277,14 @@ const VideoPlayer = React.memo(({ stream, style }) => {
   useEffect(() => {
     if (!stream || !videoRef.current) return;
     
-    videoRef.current.srcObject = stream;
-    videoRef.current.play().catch(console.error);
+    try {
+      videoRef.current.srcObject = stream;
+      videoRef.current.play().catch(error => {
+        console.log('Video playback error:', error);
+      });
+    } catch (error) {
+      console.error('Error setting up video:', error);
+    }
   }, [stream]);
 
   return (
@@ -236,10 +295,12 @@ const VideoPlayer = React.memo(({ stream, style }) => {
         height: '100%',
         objectFit: 'cover',
         backgroundColor: '#000',
+        borderRadius: '8px',
         ...style
       }}
       autoPlay
       playsInline
+      muted={false}
     />
   );
 });
@@ -267,7 +328,10 @@ const VideoView = React.memo(({
       height: '100%',
       display: 'flex',
       justifyContent: 'center',
-      alignItems: 'center'
+      alignItems: 'center',
+      backgroundColor: '#202225',
+      borderRadius: '8px',
+      overflow: 'hidden'
     }}>
       {stream ? (
         <VideoPlayer stream={stream} />
