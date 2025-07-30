@@ -54,6 +54,33 @@ export const themes = {
             primaryRgb: '220, 38, 38',
             dangerRgb: '220, 38, 38'
         }
+    },
+    glitchMatrix: {
+        name: 'Matrix Glitch',
+        colors: {
+            primary: '#61dca3',
+            primaryHover: '#4fb085',
+            secondary: '#61b3dc',
+            background: 'rgba(0, 0, 0, 0.7)',
+            surface: 'rgba(43, 69, 57, 0.8)',
+            serverListBackground: 'rgba(0, 0, 0, 0.9)',
+            text: '#61dca3',
+            textSecondary: '#61b3dc',
+            textMuted: '#2b4539',
+            border: 'rgba(97, 220, 163, 0.3)',
+            hover: 'rgba(97, 220, 163, 0.1)',
+            success: '#61dca3',
+            successHover: '#4fb085',
+            danger: '#dc6161',
+            dangerHover: '#b04f4f',
+            warning: '#dcb361',
+            bottom: 'rgba(0, 0, 0, 0.9)',
+            borderBottom: 'rgba(97, 220, 163, 0.2)',
+            // RGB переменные для прозрачности
+            primaryRgb: '97, 220, 163',
+            dangerRgb: '220, 97, 97'
+        },
+        hasGlitchBackground: true
     }
 };
 
