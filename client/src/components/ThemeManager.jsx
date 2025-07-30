@@ -1,15 +1,65 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import './ThemeManager.css';
 
 const ThemeManager = () => {
-    const { currentTheme, changeTheme, themes } = useTheme();
+    const { currentTheme, changeTheme, availableThemes, unlockTheme } = useTheme();
     const [isOpen, setIsOpen] = useState(false);
+    const [secretCode, setSecretCode] = useState('');
+    const [showUnlockMessage, setShowUnlockMessage] = useState(false);
 
     const handleThemeChange = (themeName) => {
         changeTheme(themeName);
         setIsOpen(false);
     };
+
+    const handleSecretCodeSubmit = (e) => {
+        e.preventDefault();
+        if (secretCode.toLowerCase() === 'mug1vara') {
+            unlockTheme('glitchMatrix');
+            setShowUnlockMessage(true);
+            setSecretCode('');
+            setTimeout(() => setShowUnlockMessage(false), 3000);
+        } else {
+            setSecretCode('');
+        }
+    };
+
+    useEffect(() => {
+        // Глобальный обработчик для ввода секретного кода
+        let buffer = '';
+        let timeout;
+
+        const handleKeyPress = (e) => {
+            // Игнорируем если фокус на input элементе
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                return;
+            }
+
+            buffer += e.key.toLowerCase();
+            
+            // Очищаем буфер через 2 секунды бездействия
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                buffer = '';
+            }, 2000);
+
+            // Проверяем секретный код
+            if (buffer.includes('mug1vara')) {
+                unlockTheme('glitchMatrix');
+                setShowUnlockMessage(true);
+                setTimeout(() => setShowUnlockMessage(false), 3000);
+                buffer = '';
+            }
+        };
+
+        document.addEventListener('keypress', handleKeyPress);
+        
+        return () => {
+            document.removeEventListener('keypress', handleKeyPress);
+            clearTimeout(timeout);
+        };
+    }, [unlockTheme]);
 
     return (
         <div className="theme-manager">
@@ -30,21 +80,21 @@ const ThemeManager = () => {
                         <div className="theme-preview-large">
                             <div 
                                 className="theme-color-preview-large"
-                                style={{ backgroundColor: themes[currentTheme].colors.primary }}
+                                style={{ backgroundColor: availableThemes[currentTheme].colors.primary }}
                             />
                             <div 
                                 className="theme-color-preview-large"
-                                style={{ backgroundColor: themes[currentTheme].colors.background }}
+                                style={{ backgroundColor: availableThemes[currentTheme].colors.background }}
                             />
                             <div 
                                 className="theme-color-preview-large"
-                                style={{ backgroundColor: themes[currentTheme].colors.surface }}
+                                style={{ backgroundColor: availableThemes[currentTheme].colors.surface }}
                             />
                         </div>
                         <div className="current-theme-info">
-                            <h4>{themes[currentTheme].name}</h4>
-                            <p>Основной цвет: {themes[currentTheme].colors.primary}</p>
-                            <p>Фон: {themes[currentTheme].colors.background}</p>
+                            <h4>{availableThemes[currentTheme].name}</h4>
+                            <p>Основной цвет: {availableThemes[currentTheme].colors.primary}</p>
+                            <p>Фон: {availableThemes[currentTheme].colors.background}</p>
                         </div>
                     </div>
                 </div>
@@ -52,7 +102,7 @@ const ThemeManager = () => {
                 <div className="available-themes">
                     <h3>Доступные темы</h3>
                     <div className="themes-grid">
-                        {Object.entries(themes).map(([key, theme]) => (
+                        {Object.entries(availableThemes).map(([key, theme]) => (
                             <div
                                 key={key}
                                 className={`theme-card ${currentTheme === key ? 'active' : ''}`}
@@ -107,6 +157,28 @@ const ThemeManager = () => {
                     </div>
                 </div>
 
+                <div className="secret-theme-section">
+                    <h3>Секретные темы</h3>
+                    <p>Введите секретный код для разблокировки скрытых тем:</p>
+                    <form onSubmit={handleSecretCodeSubmit} className="secret-code-form">
+                        <input
+                            type="text"
+                            value={secretCode}
+                            onChange={(e) => setSecretCode(e.target.value)}
+                            placeholder="Введите секретный код..."
+                            className="secret-code-input"
+                        />
+                        <button type="submit" className="secret-code-button">
+                            Разблокировать
+                        </button>
+                    </form>
+                    {showUnlockMessage && (
+                        <div className="unlock-message">
+                            🎉 Тема "Matrix Glitch" разблокирована!
+                        </div>
+                    )}
+                </div>
+
                 <div className="theme-info">
                     <h3>О темах</h3>
                     <p>Темы изменяют цветовую схему всего приложения. Ваш выбор сохраняется автоматически.</p>
@@ -122,6 +194,10 @@ const ThemeManager = () => {
                         <div className="feature">
                             <span className="feature-icon">⚡</span>
                             <span>Мгновенное применение</span>
+                        </div>
+                        <div className="feature">
+                            <span className="feature-icon">🔓</span>
+                            <span>Секретные темы</span>
                         </div>
                     </div>
                 </div>

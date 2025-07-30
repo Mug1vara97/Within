@@ -86,6 +86,10 @@ export const themes = {
 
 export const ThemeProvider = ({ children }) => {
     const [currentTheme, setCurrentTheme] = useState('default');
+    const [unlockedThemes, setUnlockedThemes] = useState(() => {
+        const saved = localStorage.getItem('unlockedThemes');
+        return saved ? JSON.parse(saved) : [];
+    });
 
     useEffect(() => {
         // Загружаем сохраненную тему из localStorage
@@ -106,16 +110,46 @@ export const ThemeProvider = ({ children }) => {
         localStorage.setItem('app-theme', currentTheme);
     }, [currentTheme]);
 
+    useEffect(() => {
+        // Сохраняем разблокированные темы в localStorage
+        localStorage.setItem('unlockedThemes', JSON.stringify(unlockedThemes));
+    }, [unlockedThemes]);
+
     const changeTheme = (themeName) => {
         if (themes[themeName]) {
+            // Если пользователь переключается с секретной темы на другую, скрываем секретную тему
+            if (currentTheme === 'glitchMatrix' && themeName !== 'glitchMatrix') {
+                setUnlockedThemes(prev => prev.filter(theme => theme !== 'glitchMatrix'));
+            }
             setCurrentTheme(themeName);
         }
+    };
+
+    const unlockTheme = (themeName) => {
+        if (themes[themeName] && !unlockedThemes.includes(themeName)) {
+            setUnlockedThemes(prev => [...prev, themeName]);
+        }
+    };
+
+    // Функция для получения доступных тем (базовые + разблокированные)
+    const getAvailableThemes = () => {
+        const availableThemes = {};
+        Object.entries(themes).forEach(([key, theme]) => {
+            // Показываем базовые темы или разблокированные
+            if (key === 'default' || key === 'redWhiteBlack' || unlockedThemes.includes(key)) {
+                availableThemes[key] = theme;
+            }
+        });
+        return availableThemes;
     };
 
     const value = {
         currentTheme,
         changeTheme,
+        unlockTheme,
         themes,
+        availableThemes: getAvailableThemes(),
+        unlockedThemes,
         colors: themes[currentTheme].colors
     };
 
