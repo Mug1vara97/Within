@@ -25,7 +25,6 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
     // Обновляем selectedChat в реальном времени когда изменяются userPermissions
     useEffect(() => {
         if (selectedChat) {
-            console.log('Real-time updating selectedChat with new permissions:', userPermissions);
             const updatedChat = {
                 ...selectedChat,
                 userPermissions,
@@ -35,11 +34,10 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
             
             // Также уведомляем родительский компонент об обновлении
             if (onChatSelected) {
-                console.log('Notifying parent about permission update:', updatedChat);
                 onChatSelected(updatedChat);
             }
         }
-    }, [userPermissions, isServerOwner, selectedChat, onChatSelected]);
+    }, [userPermissions, isServerOwner]);
 
     // Добавляем функцию для агрегации прав
     const aggregatePermissions = useCallback((roles) => {
@@ -722,8 +720,6 @@ useEffect(() => {
 
 // Обработчик выбора чата
 const handleChatSelect = (chat) => {
-    console.log('ServerPage handleChatSelect received:', chat);
-    
     // Нормализуем данные о чате
     let normalizedChat = { ...chat };
     
@@ -736,24 +732,17 @@ const handleChatSelect = (chat) => {
         normalizedChat.groupName = chat.name;
     }
     
-    console.log('Normalized chat data:', normalizedChat);
-    
     // Не добавляем userPermissions и isServerOwner здесь, 
     // так как они будут обновлены автоматически через useEffect
     const enhancedChat = {
         ...normalizedChat
     };
     
-    console.log('ServerPage enhanced chat (without permissions):', enhancedChat);
-    
     setSelectedChat(enhancedChat);
     
     // Вызываем колбэк, если он предоставлен
     if (onChatSelected) {
-        console.log('Calling onChatSelected with:', enhancedChat);
         onChatSelected(enhancedChat);
-    } else {
-        console.log('onChatSelected is not defined');
     }
 };
 

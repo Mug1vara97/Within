@@ -53,11 +53,7 @@ const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
 const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, userPermissions, chatListConnection,
   isGroupChat = false, isServerOwner }) => {
   
-  // Отладка разрешений
-  console.log('GroupChat userPermissions:', userPermissions);
-  console.log('isServerChat:', isServerChat);
-  console.log('isServerOwner:', isServerOwner);
-  console.log('GroupChat props changed, chatId:', chatId);
+
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [connection, setConnection] = useState(null);
@@ -763,15 +759,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         {!editingMessageId && (
           <>
             {/* Голосовые сообщения - кнопка записи как в Telegram */}
-            {(() => {
-              const canSendVoice = (!isServerChat || userPermissions?.sendVoiceMessages) || isServerOwner;
-              console.log('Can send voice messages:', canSendVoice, {
-                isServerChat,
-                sendVoiceMessages: userPermissions?.sendVoiceMessages,
-                isServerOwner
-              });
-              return canSendVoice;
-            })() && (
+            {((!isServerChat || userPermissions?.sendVoiceMessages) || isServerOwner) && (
                               <div className="voice-message-wrapper">
                   {isRecording && (
                     <button 
@@ -802,15 +790,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
               onChange={(e) => handleSendMedia(e.target.files[0])}
               accept="image/*, video/*, audio/*"
             />
-            {(() => {
-              const canAttachFiles = (!isServerChat || userPermissions?.attachFiles) || isServerOwner;
-              console.log('Can attach files:', canAttachFiles, {
-                isServerChat,
-                attachFiles: userPermissions?.attachFiles,
-                isServerOwner
-              });
-              return canAttachFiles;
-            })() && (
+            {((!isServerChat || userPermissions?.attachFiles) || isServerOwner) && (
               <button
                 type="button"
                 onClick={() => fileInputRef.current.click()}
