@@ -80,21 +80,21 @@ const ThemeManager = () => {
                         <div className="theme-preview-large">
                             <div 
                                 className="theme-color-preview-large"
-                                style={{ backgroundColor: availableThemes[currentTheme].colors.primary }}
+                                style={{ backgroundColor: availableThemes[currentTheme]?.colors?.primary || '#5865f2' }}
                             />
                             <div 
                                 className="theme-color-preview-large"
-                                style={{ backgroundColor: availableThemes[currentTheme].colors.background }}
+                                style={{ backgroundColor: availableThemes[currentTheme]?.colors?.background || '#36393f' }}
                             />
                             <div 
                                 className="theme-color-preview-large"
-                                style={{ backgroundColor: availableThemes[currentTheme].colors.surface }}
+                                style={{ backgroundColor: availableThemes[currentTheme]?.colors?.surface || '#2f3136' }}
                             />
                         </div>
                         <div className="current-theme-info">
-                            <h4>{availableThemes[currentTheme].name}</h4>
-                            <p>Основной цвет: {availableThemes[currentTheme].colors.primary}</p>
-                            <p>Фон: {availableThemes[currentTheme].colors.background}</p>
+                            <h4>{availableThemes[currentTheme]?.name || 'Неизвестная тема'}</h4>
+                            <p>Основной цвет: {availableThemes[currentTheme]?.colors?.primary || '#5865f2'}</p>
+                            <p>Фон: {availableThemes[currentTheme]?.colors?.background || '#36393f'}</p>
                         </div>
                     </div>
                 </div>

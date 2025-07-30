@@ -95,9 +95,15 @@ export const ThemeProvider = ({ children }) => {
         // Загружаем сохраненную тему из localStorage
         const savedTheme = localStorage.getItem('app-theme');
         if (savedTheme && themes[savedTheme]) {
-            setCurrentTheme(savedTheme);
+            // Проверяем, доступна ли сохраненная тема
+            if (savedTheme === 'default' || savedTheme === 'redWhiteBlack' || unlockedThemes.includes(savedTheme)) {
+                setCurrentTheme(savedTheme);
+            } else {
+                // Если тема недоступна, используем тему по умолчанию
+                setCurrentTheme('default');
+            }
         }
-    }, []);
+    }, [unlockedThemes]);
 
     useEffect(() => {
         // Применяем тему к CSS переменным
@@ -150,7 +156,7 @@ export const ThemeProvider = ({ children }) => {
         themes,
         availableThemes: getAvailableThemes(),
         unlockedThemes,
-        colors: themes[currentTheme].colors
+        colors: themes[currentTheme]?.colors || themes.default.colors
     };
 
     return (
