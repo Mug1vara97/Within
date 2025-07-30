@@ -187,32 +187,16 @@ const createStyles = (colors) => ({
   },
   videoGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-    gap: '12px',
-    padding: '16px',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '16px',
+    padding: '20px',
     width: '100%',
     flex: 1,
     margin: 0,
     overflow: 'auto',
     minHeight: 0,
     marginBottom: '65px',
-    boxSizing: 'border-box',
-    // Адаптивная сетка для разного количества участников
-    '@media (max-width: 768px)': {
-      gridTemplateColumns: '1fr',
-      gap: '8px',
-      padding: '12px'
-    },
-    '@media (min-width: 769px) and (max-width: 1200px)': {
-      gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-      gap: '10px',
-      padding: '14px'
-    },
-    '@media (min-width: 1201px)': {
-      gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-      gap: '16px',
-      padding: '20px'
-    }
+    boxSizing: 'border-box'
   },
   videoItem: {
     backgroundColor: colors.surface,
@@ -226,7 +210,6 @@ const createStyles = (colors) => ({
     alignItems: 'center',
     transition: 'all 0.2s ease-in-out',
     padding: '0',
-    minHeight: '200px',
     '&:hover': {
       transform: 'translateY(-2px)',
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
@@ -245,14 +228,6 @@ const createStyles = (colors) => ({
         pointerEvents: 'none',
         zIndex: 1
       }
-    },
-    // Адаптивные размеры для мобильных устройств
-    '@media (max-width: 768px)': {
-      minHeight: '150px',
-      aspectRatio: '4/3'
-    },
-    '@media (min-width: 769px) and (max-width: 1200px)': {
-      minHeight: '180px'
     }
   },
   '@keyframes pulse': {
@@ -502,27 +477,11 @@ const createStyles = (colors) => ({
   },
   screenShareGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-    gap: '12px',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '16px',
     padding: '16px',
     maxHeight: '400px',
-    overflowY: 'auto',
-    // Адаптивная сетка для демонстрации экрана
-    '@media (max-width: 768px)': {
-      gridTemplateColumns: '1fr',
-      gap: '8px',
-      padding: '12px'
-    },
-    '@media (min-width: 769px) and (max-width: 1200px)': {
-      gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-      gap: '10px',
-      padding: '14px'
-    },
-    '@media (min-width: 1201px)': {
-      gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-      gap: '16px',
-      padding: '20px'
-    }
+    overflowY: 'auto'
   },
   volumeIcon: {
     padding: '8px',
