@@ -3574,9 +3574,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     return analyser;
   };
 
-  // Обновляем renderScreenShares
+  // Обновляем renderScreenShares - теперь только для полноэкранного режима
   const renderScreenShares = useMemo(() => {
-    // If we're in fullscreen mode, render only the fullscreen share
+    // Only render fullscreen mode
     if (fullscreenShare !== null) {
       const screenData = fullscreenShare === socketRef.current?.id ? 
         { stream: screenStream, name: userName } : 
@@ -3616,66 +3616,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       );
     }
 
-    // If not in fullscreen mode, don't render anything if there are no screen shares
-    if (!isScreenSharing && remoteScreens.size === 0) {
-      return null;
-    }
-
-    // Regular grid view
-    return (
-      <Box sx={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-        gap: '8px',
-        width: '100%',
-        maxWidth: '1200px',
-        margin: '0 auto'
-      }}>
-        {isScreenSharing && screenStream && (
-          <Box sx={styles.videoItem}>
-            <Box sx={styles.screenShareItem}>
-              <VideoPlayer stream={screenStream} />
-              <Box sx={styles.screenShareControls}>
-                <IconButton
-                  onClick={() => handleFullscreenToggle(socketRef.current?.id)}
-                  sx={styles.fullscreenButton}
-                >
-                  <Fullscreen />
-                </IconButton>
-              </Box>
-              <Box sx={styles.screenShareUserName}>
-                <ScreenShare sx={{ fontSize: 16 }} />
-                {userName}
-              </Box>
-            </Box>
-          </Box>
-        )}
-        {Array.from(remoteScreens.entries()).map(([peerId, screenData]) => {
-          const peer = peers.get(peerId);
-          if (!peer) return null;
-
-          return (
-            <Box key={peerId} sx={styles.videoItem}>
-              <Box sx={styles.screenShareItem}>
-                <VideoPlayer stream={screenData?.stream || null} />
-                <Box sx={styles.screenShareControls}>
-                  <IconButton
-                    onClick={() => handleFullscreenToggle(peerId)}
-                    sx={styles.fullscreenButton}
-                  >
-                    <Fullscreen />
-                  </IconButton>
-                </Box>
-                <Box sx={styles.screenShareUserName}>
-                  <ScreenShare sx={{ fontSize: 16 }} />
-                  {peer.name}
-                </Box>
-              </Box>
-            </Box>
-          );
-        })}
-      </Box>
-    );
+    // If not in fullscreen mode, don't render anything
+    return null;
   }, [isScreenSharing, screenStream, remoteScreens, peers, userName, fullscreenShare, socketRef.current?.id]);
 
 
@@ -4307,6 +4249,27 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                   )}
                 </Box>
 
+                {/* Local screen sharing */}
+                {isScreenSharing && screenStream && (
+                  <Box sx={styles.videoItem}>
+                    <Box sx={styles.screenShareItem}>
+                      <VideoPlayer stream={screenStream} />
+                      <Box sx={styles.screenShareControls}>
+                        <IconButton
+                          onClick={() => handleFullscreenToggle(socketRef.current?.id)}
+                          sx={styles.fullscreenButton}
+                        >
+                          <Fullscreen />
+                        </IconButton>
+                      </Box>
+                      <Box sx={styles.screenShareUserName}>
+                        <ScreenShare sx={{ fontSize: 16 }} />
+                        {userName}
+                      </Box>
+                    </Box>
+                  </Box>
+                )}
+
                 {/* Remote users */}
                 {Array.from(peers.values()).map((peer) => (
                   <Box key={peer.id} sx={styles.videoItem} className={speakingStates.get(peer.id) ? 'speaking' : ''}>
@@ -4357,11 +4320,37 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                     )}
                   </Box>
                 ))}
+
+                {/* Remote screen sharing */}
+                {Array.from(remoteScreens.entries()).map(([peerId, screenData]) => {
+                  const peer = peers.get(peerId);
+                  if (!peer) return null;
+
+                  return (
+                    <Box key={peerId} sx={styles.videoItem}>
+                      <Box sx={styles.screenShareItem}>
+                        <VideoPlayer stream={screenData?.stream || null} />
+                        <Box sx={styles.screenShareControls}>
+                          <IconButton
+                            onClick={() => handleFullscreenToggle(peerId)}
+                            sx={styles.fullscreenButton}
+                          >
+                            <Fullscreen />
+                          </IconButton>
+                        </Box>
+                        <Box sx={styles.screenShareUserName}>
+                          <ScreenShare sx={{ fontSize: 16 }} />
+                          {peer.name}
+                        </Box>
+                      </Box>
+                    </Box>
+                  );
+                })}
               </>
             )}
 
-            {/* Screen sharing */}
-            {renderScreenShares}
+            {/* Fullscreen screen sharing */}
+            {fullscreenShare !== null && renderScreenShares}
           </Box>
           <Box sx={styles.bottomBar}>
             <Box sx={styles.controlsContainer}>
