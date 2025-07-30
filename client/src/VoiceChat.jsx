@@ -183,14 +183,15 @@ const createStyles = (colors) => ({
     width: '100%',
     margin: 0,
     position: 'relative',
-    boxSizing: 'border-box'
+    boxSizing: 'border-box',
+    justifyContent: 'space-between'
   },
   videoGrid: {
     display: 'grid',
     gap: '16px',
     padding: '20px',
     width: '100%',
-    flex: 1,
+    height: 'calc(100% - 65px)', // Учитываем высоту панели управления
     margin: 0,
     overflow: 'auto',
     minHeight: 0,
@@ -399,14 +400,12 @@ const createStyles = (colors) => ({
     justifyContent: 'space-between',
     borderTop: '1px solid rgba(255, 255, 255, 0.06)',
     margin: 0,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    position: 'relative',
     width: '100%',
     zIndex: 2,
     height: '65px',
-    boxSizing: 'border-box'
+    boxSizing: 'border-box',
+    flexShrink: 0
   },
   controlsGroup: {
     display: 'flex',
