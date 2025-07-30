@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Auth.css';
 import { BASE_URL } from '../config/apiConfig';
-import AshAnimation from '../components/AshAnimation';
+import LetterGlitch from '../components/LetterGlitch';
 import { FaDiscord, FaGoogle } from 'react-icons/fa';
 
 const Login = ({ onLogin }) => {
@@ -37,14 +37,19 @@ const Login = ({ onLogin }) => {
             } else {
                 setError('Invalid username or password');
             }
-        } catch (err) {
+        } catch {
             setError('Network error. Please try again.');
         }
     };
 
     return (
         <div className="login-container">
-            <AshAnimation />
+            <LetterGlitch
+                glitchSpeed={50}
+                centerVignette={true}
+                outerVignette={false}
+                smooth={true}
+            />
             <div className="login-box">
                 <div className="login-header">
                     <h2>Welcome back!</h2>

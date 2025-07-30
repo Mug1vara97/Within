@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Auth.css';
 import { BASE_URL } from '../config/apiConfig';
+import LetterGlitch from '../components/LetterGlitch';
 
 const Register = () => {
     const [username, setUsername] = useState('');
@@ -38,6 +39,12 @@ const Register = () => {
 
     return (
         <div className="login-container">
+            <LetterGlitch
+                glitchSpeed={50}
+                centerVignette={true}
+                outerVignette={false}
+                smooth={true}
+            />
             <h2>Register</h2>
             <form onSubmit={handleSubmit} className="login-form">
                 <div className="form-group">

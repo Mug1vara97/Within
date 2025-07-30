@@ -9,7 +9,16 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
     const [selectedChat, setSelectedChat] = useState(null);
     const [users, setUsers] = useState([]);
     const contextMenuRef = useRef(null);
-    const [userPermissions, setUserPermissions] = useState({});
+    const [userPermissions, setUserPermissions] = useState(() => {
+        // Загружаем разрешения из localStorage как fallback до получения актуальных через SignalR
+        try {
+            const saved = localStorage.getItem(`permissions-${serverId}`);
+            return saved ? JSON.parse(saved) : {};
+        } catch (error) {
+            console.error('Error loading permissions from localStorage:', error);
+            return {};
+        }
+    });
     const [isServerOwner, setIsServerOwner] = useState(false);
     const [connection, setConnection] = useState(null);
     const [roles, setRoles] = useState([]);
@@ -24,7 +33,10 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
 
     // Обновляем selectedChat в реальном времени когда изменяются userPermissions
     useEffect(() => {
-        if (selectedChat) {
+        if (selectedChat && (
+            JSON.stringify(selectedChat.userPermissions) !== JSON.stringify(userPermissions) ||
+            selectedChat.isServerOwner !== isServerOwner
+        )) {
             const updatedChat = {
                 ...selectedChat,
                 userPermissions,
@@ -37,7 +49,7 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
                 onChatSelected(updatedChat);
             }
         }
-    }, [userPermissions, isServerOwner]);
+    }, [userPermissions, isServerOwner, selectedChat, onChatSelected]);
 
     // Добавляем функцию для агрегации прав
     const aggregatePermissions = useCallback((roles) => {
@@ -732,10 +744,11 @@ const handleChatSelect = (chat) => {
         normalizedChat.groupName = chat.name;
     }
     
-    // Не добавляем userPermissions и isServerOwner здесь, 
-    // так как они будут обновлены автоматически через useEffect
+    // Добавляем текущие разрешения сразу при выборе чата
     const enhancedChat = {
-        ...normalizedChat
+        ...normalizedChat,
+        userPermissions,
+        isServerOwner
     };
     
     setSelectedChat(enhancedChat);
