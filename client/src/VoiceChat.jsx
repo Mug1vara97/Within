@@ -183,22 +183,19 @@ const createStyles = (colors) => ({
     width: '100%',
     margin: 0,
     position: 'relative',
-    boxSizing: 'border-box',
-    justifyContent: 'space-between'
+    boxSizing: 'border-box'
   },
   videoGrid: {
     display: 'grid',
     gap: '16px',
     padding: '20px',
     width: '100%',
-    height: 'calc(100% - 65px)', // Учитываем высоту панели управления
+    flex: 1,
     margin: 0,
     overflow: 'auto',
     minHeight: 0,
     marginBottom: '65px',
     boxSizing: 'border-box',
-    alignContent: 'start',
-    alignItems: 'start',
     // Адаптивная сетка будет устанавливаться динамически
   },
   videoItem: {
@@ -214,7 +211,6 @@ const createStyles = (colors) => ({
     padding: '0',
     width: '100%',
     aspectRatio: '16/9',
-    minHeight: '0',
     '&:hover': {
       transform: 'translateY(-2px)',
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
@@ -400,12 +396,14 @@ const createStyles = (colors) => ({
     justifyContent: 'space-between',
     borderTop: '1px solid rgba(255, 255, 255, 0.06)',
     margin: 0,
-    position: 'relative',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     width: '100%',
     zIndex: 2,
     height: '65px',
-    boxSizing: 'border-box',
-    flexShrink: 0
+    boxSizing: 'border-box'
   },
   controlsGroup: {
     display: 'flex',
@@ -4177,25 +4175,26 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     if (totalItems <= 2) {
       return {
         gridTemplateColumns: 'repeat(2, 1fr)',
-        gridTemplateRows: 'repeat(1, 1fr)'
+        gridTemplateRows: 'repeat(1, 1fr)',
+        aspectRatio: '2/1'
       };
     } else if (totalItems <= 4) {
       return {
         gridTemplateColumns: 'repeat(2, 1fr)',
         gridTemplateRows: 'repeat(2, 1fr)',
-        gridAutoRows: '1fr'
+        aspectRatio: '1/1'
       };
     } else if (totalItems <= 6) {
       return {
         gridTemplateColumns: 'repeat(3, 1fr)',
         gridTemplateRows: 'repeat(2, 1fr)',
-        gridAutoRows: '1fr'
+        aspectRatio: '3/2'
       };
     } else {
       return {
         gridTemplateColumns: 'repeat(3, 1fr)',
         gridTemplateRows: 'repeat(3, 1fr)',
-        gridAutoRows: '1fr'
+        aspectRatio: '1/1'
       };
     }
   }, []);
