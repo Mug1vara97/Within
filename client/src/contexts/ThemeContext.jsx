@@ -56,7 +56,7 @@ export const themes = {
         }
     },
     glitchMatrix: {
-        name: 'Matrix Glitch',
+        name: 'Mug1vara Bits Glitch',
         colors: {
             primary: '#61dca3',
             primaryHover: '#4fb085',

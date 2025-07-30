@@ -148,7 +148,7 @@ const ThemeManager = () => {
 
                 {showUnlockMessage && (
                     <div className="unlock-message">
-                        🎉 Тема "Matrix Glitch" разблокирована!
+                        🎉 Тема "Mug1vara Bits Glitch" разблокирована!
                     </div>
                 )}
             </div>
