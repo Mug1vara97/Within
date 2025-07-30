@@ -210,8 +210,7 @@ const createStyles = (colors) => ({
     transition: 'all 0.2s ease-in-out',
     padding: '0',
     width: '100%',
-    height: '100%',
-    minHeight: '200px',
+    aspectRatio: '16/9',
     '&:hover': {
       transform: 'translateY(-2px)',
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
@@ -534,11 +533,10 @@ const createStyles = (colors) => ({
   screenShareItem: {
     position: 'relative',
     width: '100%',
-    height: '100%',
+    aspectRatio: '16/9',
     backgroundColor: colors.serverListBackground,
     borderRadius: '8px',
     overflow: 'hidden',
-    minHeight: '200px',
     '& video': {
       objectFit: 'contain',
       width: '100%',
