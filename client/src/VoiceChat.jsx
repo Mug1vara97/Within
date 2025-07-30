@@ -196,6 +196,8 @@ const createStyles = (colors) => ({
     minHeight: 0,
     marginBottom: '65px',
     boxSizing: 'border-box',
+    alignContent: 'center',
+    alignItems: 'center',
     // Адаптивная сетка будет устанавливаться динамически
   },
   videoItem: {
@@ -211,6 +213,7 @@ const createStyles = (colors) => ({
     padding: '0',
     width: '100%',
     aspectRatio: '16/9',
+    maxHeight: 'calc((100vh - 52px - 65px - 40px) / 2)', // Учитываем header, панель управления и отступы
     '&:hover': {
       transform: 'translateY(-2px)',
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
@@ -537,6 +540,7 @@ const createStyles = (colors) => ({
     backgroundColor: colors.serverListBackground,
     borderRadius: '8px',
     overflow: 'hidden',
+    maxHeight: 'calc((100vh - 52px - 65px - 40px) / 2)', // Учитываем header, панель управления и отступы
     '& video': {
       objectFit: 'contain',
       width: '100%',
