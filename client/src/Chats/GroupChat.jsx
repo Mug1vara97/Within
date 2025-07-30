@@ -57,6 +57,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   console.log('GroupChat userPermissions:', userPermissions);
   console.log('isServerChat:', isServerChat);
   console.log('isServerOwner:', isServerOwner);
+  console.log('GroupChat props changed, chatId:', chatId);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [connection, setConnection] = useState(null);

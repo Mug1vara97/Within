@@ -26,13 +26,20 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
     useEffect(() => {
         if (selectedChat) {
             console.log('Real-time updating selectedChat with new permissions:', userPermissions);
-            setSelectedChat(prev => ({
-                ...prev,
+            const updatedChat = {
+                ...selectedChat,
                 userPermissions,
                 isServerOwner
-            }));
+            };
+            setSelectedChat(updatedChat);
+            
+            // Также уведомляем родительский компонент об обновлении
+            if (onChatSelected) {
+                console.log('Notifying parent about permission update:', updatedChat);
+                onChatSelected(updatedChat);
+            }
         }
-    }, [userPermissions, isServerOwner]);
+    }, [userPermissions, isServerOwner, selectedChat, onChatSelected]);
 
     // Добавляем функцию для агрегации прав
     const aggregatePermissions = useCallback((roles) => {
