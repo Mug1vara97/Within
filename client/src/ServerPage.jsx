@@ -22,17 +22,17 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
         });
     }, []);
 
-    // Обновляем selectedChat когда изменяются userPermissions
+    // Обновляем selectedChat в реальном времени когда изменяются userPermissions
     useEffect(() => {
-        if (selectedChat && Object.keys(userPermissions).length > 0) {
-            console.log('Updating selectedChat with new permissions:', userPermissions);
+        if (selectedChat) {
+            console.log('Real-time updating selectedChat with new permissions:', userPermissions);
             setSelectedChat(prev => ({
                 ...prev,
                 userPermissions,
                 isServerOwner
             }));
         }
-    }, [userPermissions, isServerOwner, selectedChat]);
+    }, [userPermissions, isServerOwner]);
 
     // Добавляем функцию для агрегации прав
     const aggregatePermissions = useCallback((roles) => {
@@ -716,8 +716,6 @@ useEffect(() => {
 // Обработчик выбора чата
 const handleChatSelect = (chat) => {
     console.log('ServerPage handleChatSelect received:', chat);
-    console.log('Current userPermissions state:', userPermissions);
-    console.log('Current isServerOwner state:', isServerOwner);
     
     // Нормализуем данные о чате
     let normalizedChat = { ...chat };
@@ -733,13 +731,13 @@ const handleChatSelect = (chat) => {
     
     console.log('Normalized chat data:', normalizedChat);
     
+    // Не добавляем userPermissions и isServerOwner здесь, 
+    // так как они будут обновлены автоматически через useEffect
     const enhancedChat = {
-        ...normalizedChat,
-        userPermissions,
-        isServerOwner
+        ...normalizedChat
     };
     
-    console.log('ServerPage enhanced chat:', enhancedChat);
+    console.log('ServerPage enhanced chat (without permissions):', enhancedChat);
     
     setSelectedChat(enhancedChat);
     
