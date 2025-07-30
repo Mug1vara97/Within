@@ -9,16 +9,7 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
     const [selectedChat, setSelectedChat] = useState(null);
     const [users, setUsers] = useState([]);
     const contextMenuRef = useRef(null);
-    const [userPermissions, setUserPermissions] = useState(() => {
-        // Пытаемся загрузить разрешения из localStorage при инициализации
-        try {
-            const saved = localStorage.getItem(`permissions-${serverId}`);
-            return saved ? JSON.parse(saved) : {};
-        } catch (error) {
-            console.error('Error loading permissions from localStorage:', error);
-            return {};
-        }
-    });
+    const [userPermissions, setUserPermissions] = useState({});
     const [isServerOwner, setIsServerOwner] = useState(false);
     const [connection, setConnection] = useState(null);
     const [roles, setRoles] = useState([]);
