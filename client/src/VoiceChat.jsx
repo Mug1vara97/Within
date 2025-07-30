@@ -197,6 +197,7 @@ const createStyles = (colors) => ({
     marginBottom: '65px',
     boxSizing: 'border-box',
     alignContent: 'start',
+    alignItems: 'start',
     // Адаптивная сетка будет устанавливаться динамически
   },
   videoItem: {
@@ -212,6 +213,7 @@ const createStyles = (colors) => ({
     padding: '0',
     width: '100%',
     aspectRatio: '16/9',
+    minHeight: '0',
     '&:hover': {
       transform: 'translateY(-2px)',
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
@@ -4181,17 +4183,20 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     } else if (totalItems <= 4) {
       return {
         gridTemplateColumns: 'repeat(2, 1fr)',
-        gridTemplateRows: 'repeat(2, 1fr)'
+        gridTemplateRows: 'repeat(2, 1fr)',
+        gridAutoRows: '1fr'
       };
     } else if (totalItems <= 6) {
       return {
         gridTemplateColumns: 'repeat(3, 1fr)',
-        gridTemplateRows: 'repeat(2, 1fr)'
+        gridTemplateRows: 'repeat(2, 1fr)',
+        gridAutoRows: '1fr'
       };
     } else {
       return {
         gridTemplateColumns: 'repeat(3, 1fr)',
-        gridTemplateRows: 'repeat(3, 1fr)'
+        gridTemplateRows: 'repeat(3, 1fr)',
+        gridAutoRows: '1fr'
       };
     }
   }, []);
