@@ -9,7 +9,16 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
     const [selectedChat, setSelectedChat] = useState(null);
     const [users, setUsers] = useState([]);
     const contextMenuRef = useRef(null);
-    const [userPermissions, setUserPermissions] = useState({});
+    const [userPermissions, setUserPermissions] = useState(() => {
+        // Пытаемся загрузить разрешения из localStorage при инициализации
+        try {
+            const saved = localStorage.getItem(`permissions-${serverId}`);
+            return saved ? JSON.parse(saved) : {};
+        } catch (error) {
+            console.error('Error loading permissions from localStorage:', error);
+            return {};
+        }
+    });
     const [isServerOwner, setIsServerOwner] = useState(false);
     const [connection, setConnection] = useState(null);
     const [roles, setRoles] = useState([]);
@@ -21,6 +30,18 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
             return newState;
         });
     }, []);
+
+    // Обновляем selectedChat когда изменяются userPermissions
+    useEffect(() => {
+        if (selectedChat && Object.keys(userPermissions).length > 0) {
+            console.log('Updating selectedChat with new permissions:', userPermissions);
+            setSelectedChat(prev => ({
+                ...prev,
+                userPermissions,
+                isServerOwner
+            }));
+        }
+    }, [userPermissions, isServerOwner, selectedChat]);
 
     // Добавляем функцию для агрегации прав
     const aggregatePermissions = useCallback((roles) => {
@@ -704,6 +725,8 @@ useEffect(() => {
 // Обработчик выбора чата
 const handleChatSelect = (chat) => {
     console.log('ServerPage handleChatSelect received:', chat);
+    console.log('Current userPermissions state:', userPermissions);
+    console.log('Current isServerOwner state:', isServerOwner);
     
     // Нормализуем данные о чате
     let normalizedChat = { ...chat };
