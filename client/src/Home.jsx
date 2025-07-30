@@ -8,12 +8,21 @@ import VoiceChat from './VoiceChat';
 import GroupChat from './Chats/GroupChat';
 import NotificationButton from './components/NotificationButton';
 import { useNotifications } from './hooks/useNotifications';
+import { useGlobalHotkeys } from './hooks/useGlobalHotkeys';
 
 // Компонент подсказки о горячих клавишах
 const HotkeyHint = () => {
   const [showHint, setShowHint] = useState(false);
+  const [isElectronMode, setIsElectronMode] = useState(false);
 
   useEffect(() => {
+    // Проверяем, запущено ли приложение в Electron
+    const checkElectron = () => {
+      return window.electronAPI && window.electronAPI.isElectron;
+    };
+    
+    setIsElectronMode(checkElectron());
+
     const handleKeyDown = (event) => {
       if (event.ctrlKey && (event.key === '`' || event.key === 'F1')) {
         setShowHint(true);
@@ -42,6 +51,11 @@ const HotkeyHint = () => {
     }}>
       <div>🎤 Ctrl + ~ - микрофон</div>
       <div>🎧 Ctrl + F1 - наушники</div>
+      {isElectronMode && (
+        <div style={{ marginTop: '5px', fontSize: '12px', opacity: 0.8 }}>
+          ⚡ Глобальные горячие клавиши активны
+        </div>
+      )}
       <style>{`
         @keyframes fadeInOut {
           0% { opacity: 0; transform: translateY(-10px); }
@@ -228,20 +242,24 @@ const Home = ({ user }) => {
     }, [user.userId, initializeForUser]);
 
     // Глобальный обработчик горячих клавиш
+    // Используем хук для глобальных горячих клавиш
+    const { isElectron } = useGlobalHotkeys(handleToggleMute, handleToggleAudio);
+    
+    // Локальные горячие клавиши (работают только когда приложение активно)
     useEffect(() => {
         const handleKeyDown = (event) => {
             // Ctrl + ~ для переключения микрофона
             if (event.ctrlKey && event.key === '`') {
                 event.preventDefault();
                 handleToggleMute();
-                console.log('Глобальная горячая клавиша: переключение микрофона');
+                console.log('Локальная горячая клавиша: переключение микрофона');
             }
             
             // Ctrl + F1 для переключения наушников
             if (event.ctrlKey && event.key === 'F1') {
                 event.preventDefault();
                 handleToggleAudio();
-                console.log('Глобальная горячая клавиша: переключение наушников');
+                console.log('Локальная горячая клавиша: переключение наушников');
             }
         };
 
@@ -251,6 +269,15 @@ const Home = ({ user }) => {
             document.removeEventListener('keydown', handleKeyDown);
         };
     }, [handleToggleMute, handleToggleAudio]);
+    
+    // Логируем информацию о режиме работы
+    useEffect(() => {
+        if (isElectron()) {
+            console.log('Приложение запущено в Electron - глобальные горячие клавиши доступны');
+        } else {
+            console.log('Приложение запущено в браузере - только локальные горячие клавиши');
+        }
+    }, []);
 
     const handleDiscoverModeChange = (mode) => {
         setIsDiscoverMode(mode);

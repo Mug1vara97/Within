@@ -61,4 +61,8 @@ Thumbs.db
 
 # Completely ignore mobile app
 /WithinMobile/
-WithinMobile/ 
+WithinMobile/
+
+# Electron app
+/electron/
+electron/ 
