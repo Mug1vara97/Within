@@ -125,6 +125,14 @@ const SettingsModal = ({ isOpen, onClose }) => {
         }
     };
 
+    const handleHotkeyMouseUp = (e) => {
+        // Блокируем mouseup для боковых кнопок, чтобы избежать навигации
+        if (e.button === 3 || e.button === 4) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    };
+
     const handleHotkeyReset = () => {
         if (window.confirm('Сбросить все горячие клавиши к значениям по умолчанию?')) {
             hotkeyStorage.resetToDefaults();
@@ -278,8 +286,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                                     <span>Переключить микрофон</span>
                                 </div>
                                 <p className="settings-description">
-                                    Горячая клавиша для включения/выключения микрофона<br/>
-                                    <small>Поддерживаются клавиши и боковые кнопки мыши</small>
+                                    Горячая клавиша для включения/выключения микрофона
                                 </p>
                             </div>
                             {editingHotkey === 'toggleMic' ? (
@@ -290,6 +297,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                                         value={hotkeyStorage.formatKey(tempKey)}
                                         onKeyDown={handleHotkeyKeyDown}
                                         onMouseDown={handleHotkeyMouseDown}
+                                        onMouseUp={handleHotkeyMouseUp}
                                         placeholder="Нажмите клавишу или кнопку мыши..."
                                         autoFocus
                                         readOnly
@@ -329,8 +337,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                                     <span>Переключить наушники</span>
                                 </div>
                                 <p className="settings-description">
-                                    Горячая клавиша для включения/выключения звука в наушниках<br/>
-                                    <small>Поддерживаются клавиши и боковые кнопки мыши</small>
+                                    Горячая клавиша для включения/выключения звука в наушниках
                                 </p>
                             </div>
                             {editingHotkey === 'toggleAudio' ? (
@@ -341,6 +348,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                                         value={hotkeyStorage.formatKey(tempKey)}
                                         onKeyDown={handleHotkeyKeyDown}
                                         onMouseDown={handleHotkeyMouseDown}
+                                        onMouseUp={handleHotkeyMouseUp}
                                         placeholder="Нажмите клавишу или кнопку мыши..."
                                         autoFocus
                                         readOnly

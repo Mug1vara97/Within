@@ -44,6 +44,19 @@ const useHotkeys = (actions) => {
             return;
         }
 
+        // Получаем текущие горячие клавиши
+        const hotkeys = hotkeyStorage.getHotkeys();
+        const pressedMouse = hotkeyStorage.parseMouseEvent(event);
+
+        // Проверяем, есть ли бинд на эту кнопку мыши
+        const hasBinding = Object.values(hotkeys).some(hotkey => hotkey === pressedMouse);
+        
+        // Если есть бинд на боковые кнопки (Mouse4/Mouse5), блокируем навигацию
+        if (hasBinding && (event.button === 3 || event.button === 4)) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+
         // Игнорируем, если фокус на input, textarea или contenteditable элементах
         const activeElement = document.activeElement;
         if (
@@ -54,10 +67,6 @@ const useHotkeys = (actions) => {
         ) {
             return;
         }
-
-        // Получаем текущие горячие клавиши
-        const hotkeys = hotkeyStorage.getHotkeys();
-        const pressedMouse = hotkeyStorage.parseMouseEvent(event);
 
         // Проверяем каждое действие
         Object.entries(hotkeys).forEach(([action, hotkey]) => {

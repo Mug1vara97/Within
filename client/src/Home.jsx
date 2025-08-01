@@ -10,6 +10,7 @@ import NotificationButton from './components/NotificationButton';
 import { useNotifications } from './hooks/useNotifications';
 import { useGlobalHotkeys } from './hooks/useGlobalHotkeys';
 import useHotkeys from './hooks/useHotkeys';
+import useMouseNavigationBlocker from './hooks/useMouseNavigationBlocker';
 
 // Старые компоненты подсказок удалены - теперь используются настраиваемые горячие клавиши
 
@@ -147,6 +148,9 @@ const Home = ({ user }) => {
         toggleMic: handleToggleMute,
         toggleAudio: handleToggleAudio
     });
+
+    // Блокировщик навигации для боковых кнопок мыши
+    useMouseNavigationBlocker();
 
     // Сохраняем состояние голосового чата в localStorage
     useEffect(() => {
