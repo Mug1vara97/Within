@@ -178,7 +178,13 @@ class VolumeStorage {
                 const stats = {
                     totalUsers: request.result.length,
                     oldestEntry: null,
-                    newestEntry: null
+                    newestEntry: null,
+                    entries: request.result.map(item => ({
+                        userId: item.userId,
+                        volume: item.volume,
+                        timestamp: new Date(item.timestamp),
+                        dateString: new Date(item.timestamp).toLocaleString()
+                    }))
                 };
 
                 if (request.result.length > 0) {
