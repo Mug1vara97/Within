@@ -1226,7 +1226,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const [videoProducer, setVideoProducer] = useState(null);
   const [videoStream, setVideoStream] = useState(null);
   const [remoteVideos, setRemoteVideos] = useState(new Map());
-  const [isNoiseSuppressed, setIsNoiseSuppressed] = useState(false);
+  const [isNoiseSuppressed, setIsNoiseSuppressed] = useState(() => {
+    const saved = localStorage.getItem('noiseSuppression');
+    return saved ? JSON.parse(saved) : false;
+  });
   const [noiseSuppressionMode, setNoiseSuppressionMode] = useState('rnnoise');
   const [noiseSuppressMenuAnchor, setNoiseSuppressMenuAnchor] = useState(null);
   const noiseSuppressionRef = useRef(null);
@@ -1283,6 +1286,26 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [roomId, userId]);
+
+  // Обработчик изменения настроек шумоподавления
+  useEffect(() => {
+    const handleNoiseSuppressionChanged = (event) => {
+      const { enabled } = event.detail;
+      setIsNoiseSuppressed(enabled);
+      
+      // Если шумоподавление включено и у нас есть поток, включаем его
+      if (enabled && localStreamRef.current && noiseSuppressionRef.current) {
+        noiseSuppressionRef.current.enable(noiseSuppressionMode);
+      } else if (!enabled && noiseSuppressionRef.current) {
+        noiseSuppressionRef.current.disable();
+      }
+    };
+
+    window.addEventListener('noiseSuppressionChanged', handleNoiseSuppressionChanged);
+    return () => {
+      window.removeEventListener('noiseSuppressionChanged', handleNoiseSuppressionChanged);
+    };
+  }, [noiseSuppressionMode]);
 
   useEffect(() => {
     const resumeAudioContext = async () => {
@@ -3792,6 +3815,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
       if (success) {
         setIsNoiseSuppressed(newState);
+        localStorage.setItem('noiseSuppression', JSON.stringify(newState));
         console.log('Noise suppression ' + (newState ? 'enabled' : 'disabled'));
       }
     } catch (error) {
@@ -3827,6 +3851,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       if (success) {
         setNoiseSuppressionMode(mode);
         setIsNoiseSuppressed(true);
+        localStorage.setItem('noiseSuppression', JSON.stringify(true));
         console.log('Noise suppression mode changed to:', mode);
       }
     } catch (error) {

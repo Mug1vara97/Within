@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { BASE_URL } from './config/apiConfig';
 import { Mic, MicOff, Headset, HeadsetOff } from '@mui/icons-material';
+import { IoSettings } from 'react-icons/io5';
 import statusService from './services/statusService';
 import { useStatus } from './contexts/StatusContext';
+import SettingsModal from './components/SettingsModal';
 
 const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
     const [userProfile, setUserProfile] = useState(null);
@@ -13,6 +15,7 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
     const [showAvatarEditor, setShowAvatarEditor] = useState(false);
     const [avatarInput, setAvatarInput] = useState('');
     const avatarFileInputRef = useRef(null);
+    const [showSettings, setShowSettings] = useState(false);
     
     // Используем StatusContext для синхронизации статусов
     const { getUserStatus, updateUserStatus } = useStatus();
@@ -364,6 +367,27 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
                     >
                         {isAudioEnabled ? <Headset fontSize="small" /> : <HeadsetOff fontSize="small" />}
                     </button>
+                    
+                    <button
+                        className="voice-control-button"
+                        onClick={() => setShowSettings(true)}
+                        title="Настройки"
+                        style={{
+                            background: '#40444b',
+                            border: 'none',
+                            borderRadius: '4px',
+                            width: '28px',
+                            height: '28px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            color: '#ffffff',
+                            transition: 'background-color 0.2s'
+                        }}
+                    >
+                        <IoSettings size={16} />
+                    </button>
                 </div>
         </div>
 
@@ -528,6 +552,11 @@ const UserPanel = ({ userId, username, isOpen, isMuted, isAudioEnabled, onToggle
                     <div className="profile-modal-overlay" onClick={toggleProfile}></div>
                 </div>
             )}
+            
+            <SettingsModal 
+                isOpen={showSettings} 
+                onClose={() => setShowSettings(false)} 
+            />
         </>
     );
 };
