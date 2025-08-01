@@ -1234,6 +1234,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   
   // Маппинг между producerSocketId и реальным userId
   const userIdMappingRef = useRef(new Map());
+  
+  // Маппинг между socket ID и реальным userId
+  const socketToUserIdMappingRef = useRef(new Map());
   const [noiseSuppressionMode, setNoiseSuppressionMode] = useState('rnnoise');
   const [noiseSuppressMenuAnchor, setNoiseSuppressMenuAnchor] = useState(null);
   const noiseSuppressionRef = useRef(null);
@@ -1795,6 +1798,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       // Add handlers for peer events
       socket.on('peerJoined', ({ peerId, name, isMuted, isAudioEnabled }) => {
         console.log('New peer joined:', { peerId, name, isMuted, isAudioEnabled });
+        
+        // Сохраняем маппинг между socket ID и реальным ID пользователя
+        // peerId здесь - это реальный ID пользователя
+        socketToUserIdMappingRef.current.set(socket.id, peerId);
         
         // Add participant to voice channel context
         console.log('Adding voice channel participant:', {
@@ -2733,11 +2740,18 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       return producer.appData.username;
     }
     
-    // Пытаемся найти реальный ID пользователя по producerSocketId через VoiceChannelContext
+    // Пытаемся найти реальный ID пользователя по producerSocketId через маппинг
+    const realUserId = socketToUserIdMappingRef.current.get(producer.producerSocketId);
+    if (realUserId) {
+      return realUserId;
+    }
+    
+    // Пытаемся найти участника по имени или другим характеристикам
     const participants = getVoiceChannelParticipants(roomId);
-    const participant = participants.find(p => p.id === producer.producerSocketId);
-    if (participant) {
-      return participant.id;
+    
+    // Если у нас только один участник, и это не текущий пользователь, то это он
+    if (participants.length === 1 && participants[0].id !== userId) {
+      return participants[0].id;
     }
     
     // Если не найдено, используем producerSocketId как fallback
@@ -4054,16 +4068,25 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           const gainNode = audioContext.createGain();
           
           // Получаем реальный ID пользователя
-          const realUserId = getRealUserId(producer, appData);
-          console.log(`Real user ID: ${realUserId}, Producer socket ID: ${producer.producerSocketId}`);
+          let realUserId = getRealUserId(producer, appData);
           
-          // Логируем участников для отладки
+          // Получаем участников для отладки
           const participants = getVoiceChannelParticipants(roomId);
-          console.log('Voice channel participants:', participants);
-          console.log('Looking for participant with ID:', producer.producerSocketId);
           
           // Сохраняем маппинг между producerSocketId и реальным userId
           userIdMappingRef.current.set(producer.producerSocketId, realUserId);
+          
+          // Если это первый раз, когда мы видим этого пользователя, попробуем найти его в участниках
+          if (realUserId === producer.producerSocketId && participants.length > 0) {
+            // Ищем участника, который не является текущим пользователем
+            const otherParticipant = participants.find(p => p.id !== userId);
+            if (otherParticipant) {
+              const actualRealUserId = otherParticipant.id;
+              userIdMappingRef.current.set(producer.producerSocketId, actualRealUserId);
+              // Обновляем realUserId для использования в дальнейшем
+              realUserId = actualRealUserId;
+            }
+          }
           
           // Получаем сохраненную громкость для этого пользователя
           let savedVolume = 100; // Значение по умолчанию
