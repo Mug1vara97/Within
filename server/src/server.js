@@ -85,12 +85,16 @@ function getChannelParticipants(channelId) {
     const room = rooms.get(channelId);
     if (room) {
         room.peers.forEach((peer) => {
+            // Получаем сохраненное состояние пользователя (приоритет для isMuted и isAudioDisabled)
+            const userState = userVoiceStates.get(peer.id) || {};
+            
             participants.push({
                 userId: peer.id,
                 name: peer.name,
-                isMuted: peer.isMuted(),
-                isSpeaking: peer.isSpeaking(),
-                isAudioDisabled: !peer.isAudioEnabled(),
+                // Приоритизируем сохраненное состояние микрофона и наушников
+                isMuted: userState.isMuted !== undefined ? userState.isMuted : peer.isMuted(),
+                isSpeaking: peer.isSpeaking(), // Состояние говорения только из WebRTC
+                isAudioDisabled: userState.isAudioDisabled !== undefined ? userState.isAudioDisabled : !peer.isAudioEnabled(),
                 isActive: true // Активно в WebRTC
             });
         });

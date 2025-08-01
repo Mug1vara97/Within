@@ -1179,7 +1179,6 @@ const VideoView = React.memo(({
 
 const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true }, ref) => {
   const { 
-    addVoiceChannelParticipant, 
     removeVoiceChannelParticipant, 
     updateVoiceChannelParticipant,
     joinVoiceChannel,
@@ -1804,17 +1803,12 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       socket.on('peerJoined', ({ peerId, name, isMuted, isAudioEnabled }) => {
         console.log('New peer joined:', { peerId, name, isMuted, isAudioEnabled });
         
-        // Add participant to voice channel context
-        console.log('Adding voice channel participant:', {
+        // Участник будет добавлен автоматически через voiceChannelParticipantsUpdate от сервера
+        console.log('New peer will be added via server update:', {
           roomId,
           peerId,
           name,
           isMuted: Boolean(isMuted)
-        });
-        addVoiceChannelParticipant(roomId, peerId, {
-          name: name,
-          isMuted: Boolean(isMuted),
-          isSpeaking: false
         });
 
         // Уведомляем сервер о присоединении пользователя к голосовому каналу
@@ -1912,15 +1906,12 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           try {
             console.log('Joined room, initializing connection...');
             
-            // Add current user to voice channel context
-            addVoiceChannelParticipant(roomId, userId, {
-              name: userName,
-              isMuted: initialMuted,
-              isSpeaking: false
-            });
-
-            // Обновляем глобальное состояние пользователя на сервере
+            // Обновляем глобальное состояние пользователя на сервере (сервер сам добавит в участники)
             joinVoiceChannel(roomId, userId, userName);
+            
+            // Сразу отправляем текущее состояние микрофона и наушников
+            updateUserMuteState(userId, initialMuted);
+            updateUserAudioState(userId, !initialAudioEnabled);
 
             // Уведомляем сервер о присоединении пользователя к голосовому каналу
             socket.emit('userJoinedVoiceChannel', {
@@ -1941,12 +1932,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
               const volumesMap = new Map();
               
               existingPeers.forEach(peer => {
-                // Add existing peer to voice channel context
-                addVoiceChannelParticipant(roomId, peer.id, {
-                  name: peer.name,
-                  isMuted: peer.isMuted || false,
-                  isSpeaking: false
-                });
+                // Существующие участники будут добавлены через voiceChannelParticipantsUpdate от сервера
                 
                 peersMap.set(peer.id, { 
                   id: peer.id, 
