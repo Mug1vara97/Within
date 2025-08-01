@@ -22,7 +22,7 @@ const VoiceChannelUsers = ({ users = [], currentUserId }) => {
                             ) : user.isSpeaking ? (
                                 <Mic className="voice-indicator speaking" title="Говорит" />
                             ) : null}
-                            {!user.isAudioEnabled && (
+                            {user.isAudioDisabled && (
                                 <HeadsetOff className="voice-indicator audio-disabled" title="Звук выключен" />
                             )}
                         </div>
