@@ -265,28 +265,28 @@ const Home = ({ user }) => {
                         
 
                         
-                        {/* Единственный VoiceChat - позиционируется динамически */}
-                        {voiceRoom && (
-                            <VoiceChat
-                                ref={voiceChatRef}
-                                key={`${voiceRoom.roomId}-${voiceRoom.serverId || 'direct'}-unified`}
-                                roomId={voiceRoom.roomId}
-                                roomName={voiceRoom.roomName}
-                                userName={voiceRoom.userName}
-                                userId={voiceRoom.userId}
-                                serverId={voiceRoom.serverId}
-                                autoJoin={true}
-                                showUI={true}
-                                isVisible={isVoiceChatVisible}
-                                onLeave={handleLeaveVoiceChannel}
-                                onMuteStateChange={handleMuteStateChange}
-                                onAudioStateChange={handleAudioStateChange}
-                                initialMuted={localMuted}
-                                initialAudioEnabled={localAudioEnabled}
-                            />
-                        )}                       
-
                     </>
+                )}
+                
+                {/* Единственный VoiceChat - позиционируется динамически и работает во всех режимах */}
+                {voiceRoom && (
+                    <VoiceChat
+                        ref={voiceChatRef}
+                        key={`${voiceRoom.roomId}-${voiceRoom.serverId || 'direct'}-unified`}
+                        roomId={voiceRoom.roomId}
+                        roomName={voiceRoom.roomName}
+                        userName={voiceRoom.userName}
+                        userId={voiceRoom.userId}
+                        serverId={voiceRoom.serverId}
+                        autoJoin={true}
+                        showUI={true}
+                        isVisible={isVoiceChatVisible}
+                        onLeave={handleLeaveVoiceChannel}
+                        onMuteStateChange={handleMuteStateChange}
+                        onAudioStateChange={handleAudioStateChange}
+                        initialMuted={localMuted}
+                        initialAudioEnabled={localAudioEnabled}
+                    />
                 )}
             </div>
         </div>
