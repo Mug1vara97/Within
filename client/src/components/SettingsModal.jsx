@@ -96,6 +96,9 @@ const SettingsModal = ({ isOpen, onClose }) => {
         hotkeyStorage.saveHotkeys(newHotkeys);
         setEditingHotkey(null);
         setTempKey('');
+        
+        // Отправляем событие об изменении горячих клавиш
+        window.dispatchEvent(new CustomEvent('hotkeySettingsChanged'));
     };
 
     const handleHotkeyKeyDown = (e) => {
@@ -115,6 +118,9 @@ const SettingsModal = ({ isOpen, onClose }) => {
         if (window.confirm('Сбросить все горячие клавиши к значениям по умолчанию?')) {
             hotkeyStorage.resetToDefaults();
             setHotkeys(hotkeyStorage.getHotkeys());
+            
+            // Отправляем событие об изменении горячих клавиш
+            window.dispatchEvent(new CustomEvent('hotkeySettingsChanged'));
         }
     };
 

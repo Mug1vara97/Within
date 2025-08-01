@@ -1,6 +1,9 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
+import hotkeyStorage from '../utils/hotkeyStorage';
 
 export const useGlobalHotkeys = (onToggleMic, onToggleAudio) => {
+  const [currentHotkeys, setCurrentHotkeys] = useState(() => hotkeyStorage.getHotkeys());
+
   const handleGlobalShortcut = useCallback((shortcut) => {
     console.log('Получена глобальная горячая клавиша:', shortcut);
     
@@ -22,11 +25,26 @@ export const useGlobalHotkeys = (onToggleMic, onToggleAudio) => {
     }
   }, [onToggleMic, onToggleAudio]);
 
+  // Функция для обновления горячих клавиш в Electron
+  const updateElectronHotkeys = useCallback((hotkeys) => {
+    if (window.electronAPI && window.electronAPI.updateGlobalShortcuts) {
+      const electronHotkeys = {
+        'toggle-mic': hotkeys.toggleMic,
+        'toggle-audio': hotkeys.toggleAudio
+      };
+      window.electronAPI.updateGlobalShortcuts(electronHotkeys);
+      console.log('Горячие клавиши обновлены в Electron:', electronHotkeys);
+    }
+  }, []);
+
   useEffect(() => {
     // Проверяем, что мы в Electron
     if (window.electronAPI && window.electronAPI.onGlobalShortcut) {
       // Регистрируем слушатель глобальных горячих клавиш
       window.electronAPI.onGlobalShortcut(handleGlobalShortcut);
+      
+      // Устанавливаем текущие горячие клавиши
+      updateElectronHotkeys(currentHotkeys);
       
       console.log('Глобальные горячие клавиши активированы в Electron');
       
@@ -39,7 +57,33 @@ export const useGlobalHotkeys = (onToggleMic, onToggleAudio) => {
     } else {
       console.log('Приложение запущено в браузере - глобальные горячие клавиши недоступны');
     }
-  }, [handleGlobalShortcut]);
+  }, [handleGlobalShortcut, currentHotkeys, updateElectronHotkeys]);
+
+  // Слушаем изменения горячих клавиш в localStorage
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const newHotkeys = hotkeyStorage.getHotkeys();
+      setCurrentHotkeys(newHotkeys);
+      updateElectronHotkeys(newHotkeys);
+    };
+
+    // Слушаем изменения в localStorage
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Также слушаем кастомное событие для изменений в том же окне
+    const handleHotkeyChange = () => {
+      const newHotkeys = hotkeyStorage.getHotkeys();
+      setCurrentHotkeys(newHotkeys);
+      updateElectronHotkeys(newHotkeys);
+    };
+    
+    window.addEventListener('hotkeySettingsChanged', handleHotkeyChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('hotkeySettingsChanged', handleHotkeyChange);
+    };
+  }, [updateElectronHotkeys]);
 
   // Возвращаем функцию для проверки, запущено ли приложение в Electron
   const isElectron = () => {

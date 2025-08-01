@@ -3,6 +3,11 @@ import hotkeyStorage from '../utils/hotkeyStorage';
 
 const useHotkeys = (actions) => {
     const handleKeyDown = useCallback((event) => {
+        // В Electron не обрабатываем горячие клавиши здесь - они обрабатываются глобально
+        if (window.electronAPI && window.electronAPI.isElectron) {
+            return;
+        }
+
         // Игнорируем, если фокус на input, textarea или contenteditable элементах
         const activeElement = document.activeElement;
         if (

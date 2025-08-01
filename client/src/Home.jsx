@@ -11,63 +11,7 @@ import { useNotifications } from './hooks/useNotifications';
 import { useGlobalHotkeys } from './hooks/useGlobalHotkeys';
 import useHotkeys from './hooks/useHotkeys';
 
-// Компонент подсказки о горячих клавишах
-const HotkeyHint = () => {
-  const [showHint, setShowHint] = useState(false);
-  const [isElectronMode, setIsElectronMode] = useState(false);
-
-  useEffect(() => {
-    // Проверяем, запущено ли приложение в Electron
-    const checkElectron = () => {
-      return window.electronAPI && window.electronAPI.isElectron;
-    };
-    
-    setIsElectronMode(checkElectron());
-
-    const handleKeyDown = (event) => {
-      if (event.ctrlKey && (event.key === '`' || event.key === 'F1')) {
-        setShowHint(true);
-        setTimeout(() => setShowHint(false), 2000);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  if (!showHint) return null;
-
-  return (
-    <div style={{
-      position: 'fixed',
-      top: '20px',
-      right: '20px',
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      color: '#fff',
-      padding: '10px 15px',
-      borderRadius: '5px',
-      fontSize: '14px',
-      zIndex: 10000,
-      animation: 'fadeInOut 2s ease-in-out'
-    }}>
-      <div>🎤 Ctrl + ~ - микрофон</div>
-      <div>🎧 Ctrl + F1 - наушники</div>
-      {isElectronMode && (
-        <div style={{ marginTop: '5px', fontSize: '12px', opacity: 0.8 }}>
-          ⚡ Глобальные горячие клавиши активны
-        </div>
-      )}
-      <style>{`
-        @keyframes fadeInOut {
-          0% { opacity: 0; transform: translateY(-10px); }
-          20% { opacity: 1; transform: translateY(0); }
-          80% { opacity: 1; transform: translateY(0); }
-          100% { opacity: 0; transform: translateY(-10px); }
-        }
-      `}</style>
-    </div>
-  );
-};
+// Старые компоненты подсказок удалены - теперь используются настраиваемые горячие клавиши
 
 const Home = ({ user }) => {
     const [isDiscoverMode, setIsDiscoverMode] = useState(false);
@@ -250,30 +194,7 @@ const Home = ({ user }) => {
     // Используем хук для глобальных горячих клавиш
     const { isElectron } = useGlobalHotkeys(handleToggleMute, handleToggleAudio);
     
-    // Локальные горячие клавиши (работают только когда приложение активно)
-    useEffect(() => {
-        const handleKeyDown = (event) => {
-            // Ctrl + ~ для переключения микрофона
-            if (event.ctrlKey && event.key === '`') {
-                event.preventDefault();
-                handleToggleMute();
-                console.log('Локальная горячая клавиша: переключение микрофона');
-            }
-            
-            // Ctrl + F1 для переключения наушников
-            if (event.ctrlKey && event.key === 'F1') {
-                event.preventDefault();
-                handleToggleAudio();
-                console.log('Локальная горячая клавиша: переключение наушников');
-            }
-        };
-
-        document.addEventListener('keydown', handleKeyDown);
-
-        return () => {
-            document.removeEventListener('keydown', handleKeyDown);
-        };
-    }, [handleToggleMute, handleToggleAudio]);
+    // Старые жестко закодированные горячие клавиши удалены
     
     // Логируем информацию о режиме работы
     useEffect(() => {
@@ -364,7 +285,6 @@ const Home = ({ user }) => {
                     </>
                 )}
             </div>
-            <HotkeyHint />
         </div>
     );
 };

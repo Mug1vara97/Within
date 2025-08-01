@@ -4198,33 +4198,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     }
   }, [isAudioEnabled, onAudioStateChange, volumes]);
 
-  // Обработчик горячих клавиш
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      // Ctrl + ~ для переключения микрофона
-      if (event.ctrlKey && event.key === '`') {
-        event.preventDefault();
-        handleMute();
-        console.log('Горячая клавиша: переключение микрофона');
-      }
-      
-      // Ctrl + F1 для переключения наушников
-      if (event.ctrlKey && event.key === 'F1') {
-        event.preventDefault();
-        toggleAudio();
-        console.log('Горячая клавиша: переключение наушников');
-      }
-    };
 
-    // Добавляем обработчик только если компонент видим
-    if (isVisible) {
-      document.addEventListener('keydown', handleKeyDown);
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isVisible, handleMute, toggleAudio]);
 
   // Предоставляем внешним компонентам доступ к функциям управления
   useImperativeHandle(ref, () => ({
@@ -4659,54 +4633,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   return (
     <div style={{ display: isVisible ? 'block' : 'none' }}>
       {ui}
-      <HotkeyHint />
     </div>
   );
 });
 
-// Компонент подсказки о горячих клавишах
-const HotkeyHint = () => {
-  const [showHint, setShowHint] = useState(false);
 
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.ctrlKey && (event.key === '`' || event.key === 'F1')) {
-        setShowHint(true);
-        setTimeout(() => setShowHint(false), 2000);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  if (!showHint) return null;
-
-  return (
-    <div style={{
-      position: 'fixed',
-      top: '20px',
-      right: '20px',
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      color: '#fff',
-      padding: '10px 15px',
-      borderRadius: '5px',
-      fontSize: '14px',
-      zIndex: 10000,
-      animation: 'fadeInOut 2s ease-in-out'
-    }}>
-      <div>🎤 Ctrl + ~ - микрофон</div>
-      <div>🎧 Ctrl + F1 - наушники</div>
-      <style>{`
-        @keyframes fadeInOut {
-          0% { opacity: 0; transform: translateY(-10px); }
-          20% { opacity: 1; transform: translateY(0); }
-          80% { opacity: 1; transform: translateY(0); }
-          100% { opacity: 0; transform: translateY(-10px); }
-        }
-      `}</style>
-    </div>
-  );
-};
 
 export default VoiceChat;
