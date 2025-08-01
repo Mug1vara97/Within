@@ -1,6 +1,7 @@
 import React from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import { FaHashtag, FaMicrophone, FaCog, FaLock, FaUser } from 'react-icons/fa';
+import { MicOff, HeadsetOff, Mic, RecordVoiceOver } from '@mui/icons-material';
 import { useVoiceChannel } from './contexts/VoiceChannelContext';
 
 const ChatItem = ({ 
@@ -158,12 +159,18 @@ const ChatItem = ({
                                             >
                                                 <FaUser style={{ fontSize: '12px' }} />
                                                 <span>{participant.name}</span>
-                                                {participant.isMuted && (
-                                                    <span style={{ color: '#ed4245' }}>🔇</span>
-                                                )}
-                                                {participant.isSpeaking && (
-                                                    <span style={{ color: '#43b581' }}>🔊</span>
-                                                )}
+                                                <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                                    {participant.isMuted ? (
+                                                        <MicOff style={{ fontSize: '14px', color: '#ed4245' }} title="Микрофон выключен" />
+                                                    ) : participant.isSpeaking ? (
+                                                        <RecordVoiceOver style={{ fontSize: '14px', color: '#43b581' }} title="Говорит" />
+                                                    ) : (
+                                                        <Mic style={{ fontSize: '14px', color: '#43b581' }} title="Микрофон включен" />
+                                                    )}
+                                                    {participant.isAudioDisabled && (
+                                                        <HeadsetOff style={{ fontSize: '14px', color: '#ed4245' }} title="Звук выключен" />
+                                                    )}
+                                                </div>
                                             </li>
                                         ))}
                                     </>

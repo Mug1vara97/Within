@@ -34,7 +34,8 @@ export const VoiceChannelProvider = ({ children }) => {
               id: participant.userId,
               name: participant.name,
               isMuted: participant.isMuted || false,
-              isSpeaking: participant.isSpeaking || false
+              isSpeaking: participant.isSpeaking || false,
+              isAudioDisabled: participant.isAudioDisabled || false
             });
           });
           newChannels.set(channelId, { participants: participantsMap });
@@ -102,9 +103,9 @@ export const VoiceChannelProvider = ({ children }) => {
       });
     });
 
-    // Слушаем изменения состояния участника (мьют, говорит)
-    newSocket.on('voiceChannelParticipantStateChanged', ({ channelId, userId, isMuted, isSpeaking }) => {
-      console.log('VoiceChannelContext: Participant state changed:', { channelId, userId, isMuted, isSpeaking });
+    // Слушаем изменения состояния участника (мьют, говорит, звук)
+    newSocket.on('voiceChannelParticipantStateChanged', ({ channelId, userId, isMuted, isSpeaking, isAudioDisabled }) => {
+      console.log('VoiceChannelContext: Participant state changed:', { channelId, userId, isMuted, isSpeaking, isAudioDisabled });
       setVoiceChannels(prev => {
         const newChannels = new Map(prev);
         const channel = newChannels.get(channelId);
@@ -112,6 +113,9 @@ export const VoiceChannelProvider = ({ children }) => {
           const participant = channel.participants.get(userId);
           participant.isMuted = Boolean(isMuted);
           participant.isSpeaking = Boolean(isSpeaking);
+          if (isAudioDisabled !== undefined) {
+            participant.isAudioDisabled = Boolean(isAudioDisabled);
+          }
         }
         return newChannels;
       });

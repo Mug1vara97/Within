@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaMicrophone, FaMicrophoneSlash, FaHeadphones, FaHeadphonesAlt } from 'react-icons/fa';
+import { MicOff, HeadsetOff, Mic, RecordVoiceOver } from '@mui/icons-material';
 import './styles/VoiceChannelUsers.css';
 
 const VoiceChannelUsers = ({ users = [], currentUserId }) => {
@@ -18,16 +18,14 @@ const VoiceChannelUsers = ({ users = [], currentUserId }) => {
                         <span className="voice-user-name">{user.name || 'Unknown'}</span>
                         <div className="voice-user-indicators">
                             {user.isMuted ? (
-                                <FaMicrophoneSlash className="voice-indicator muted" title="Микрофон выключен" />
+                                <MicOff className="voice-indicator muted" title="Микрофон выключен" />
                             ) : user.isSpeaking ? (
-                                <FaMicrophone className="voice-indicator speaking" title="Говорит" />
+                                <RecordVoiceOver className="voice-indicator speaking" title="Говорит" />
                             ) : (
-                                <FaMicrophone className="voice-indicator idle" title="Микрофон включен" />
+                                <Mic className="voice-indicator idle" title="Микрофон включен" />
                             )}
-                            {!user.isAudioEnabled ? (
-                                <FaHeadphonesAlt className="voice-indicator audio-disabled" title="Звук выключен" />
-                            ) : (
-                                <FaHeadphones className="voice-indicator audio-enabled" title="Звук включен" />
+                            {!user.isAudioEnabled && (
+                                <HeadsetOff className="voice-indicator audio-disabled" title="Звук выключен" />
                             )}
                         </div>
                     </div>

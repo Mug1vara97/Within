@@ -4175,6 +4175,16 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     // Emit audio state change
     if (socketRef.current) {
       socketRef.current.emit('audioState', { isEnabled: newState });
+      
+      // Update voice channel context for current user
+      updateVoiceChannelParticipant(roomId, socketRef.current.id, { isAudioDisabled: !newState });
+
+      // Уведомляем сервер об изменении состояния участника
+      socketRef.current.emit('voiceChannelParticipantStateChanged', {
+        channelId: roomId,
+        userId: socketRef.current.id,
+        isAudioDisabled: !newState
+      });
     }
 
     // Mute/unmute all gain nodes with individual volume levels
@@ -4221,6 +4231,16 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
     // Add audio state change handler
     socket.on('peerAudioStateChanged', ({ peerId, isEnabled }) => {
+      // Update voice channel context
+      updateVoiceChannelParticipant(roomId, peerId, { isAudioDisabled: !isEnabled });
+
+      // Уведомляем сервер об изменении состояния участника
+      socket.emit('voiceChannelParticipantStateChanged', {
+        channelId: roomId,
+        userId: peerId,
+        isAudioDisabled: !isEnabled
+      });
+
       setAudioStates(prev => {
         const newStates = new Map(prev);
         newStates.set(peerId, isEnabled);
@@ -4231,7 +4251,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     return () => {
       socket.off('peerAudioStateChanged');
     };
-  }, [socketRef.current]);
+  }, [socketRef.current, roomId, updateVoiceChannelParticipant]);
 
   // Add effect to update isAudioEnabledRef
   useEffect(() => {
