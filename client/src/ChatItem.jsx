@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import { FaHashtag, FaMicrophone, FaCog, FaLock, FaUser } from 'react-icons/fa';
-import { MicOff, HeadsetOff, Mic } from '@mui/icons-material';
+import { MicOff, HeadsetOff } from '@mui/icons-material';
 import { useVoiceChannel } from './contexts/VoiceChannelContext';
 
 const ChatItem = ({ 
@@ -176,11 +176,9 @@ const ChatItem = ({
                                                 <FaUser style={{ fontSize: '12px' }} />
                                                 <span>{participant.name}</span>
                                                 <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                                                    {participant.isMuted ? (
+                                                    {participant.isMuted && (
                                                         <MicOff style={{ fontSize: '14px', color: '#ed4245' }} title="Микрофон выключен" />
-                                                    ) : participant.isSpeaking ? (
-                                                        <Mic style={{ fontSize: '14px', color: '#43b581' }} title="Говорит" />
-                                                    ) : null}
+                                                    )}
                                                     {participant.isAudioDisabled && (
                                                         <HeadsetOff style={{ fontSize: '14px', color: '#ed4245' }} title="Звук выключен" />
                                                     )}

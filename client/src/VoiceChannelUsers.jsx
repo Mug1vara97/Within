@@ -1,5 +1,5 @@
 import React from 'react';
-import { MicOff, HeadsetOff, Mic } from '@mui/icons-material';
+import { MicOff, HeadsetOff } from '@mui/icons-material';
 import './styles/VoiceChannelUsers.css';
 
 const VoiceChannelUsers = React.memo(({ users = [], currentUserId }) => {
@@ -17,11 +17,9 @@ const VoiceChannelUsers = React.memo(({ users = [], currentUserId }) => {
                     <div className="voice-user-info">
                         <span className="voice-user-name">{user.name || 'Unknown'}</span>
                         <div className="voice-user-indicators">
-                            {user.isMuted ? (
+                            {user.isMuted && (
                                 <MicOff className="voice-indicator muted" title="Микрофон выключен" />
-                            ) : user.isSpeaking ? (
-                                <Mic className="voice-indicator speaking" title="Говорит" />
-                            ) : null}
+                            )}
                             {user.isAudioDisabled && (
                                 <HeadsetOff className="voice-indicator audio-disabled" title="Звук выключен" />
                             )}
