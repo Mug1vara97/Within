@@ -19,7 +19,7 @@ export const VoiceChannelProvider = ({ children }) => {
     // Периодически запрашиваем актуальные данные о участниках
     const syncInterval = setInterval(() => {
       newSocket.emit('getVoiceChannelParticipants');
-    }, 30000); // Каждые 30 секунд
+    }, 5000); // Каждые 5 секунд для более частых обновлений
 
     // Слушаем обновления участников голосовых каналов
     newSocket.on('voiceChannelParticipantsUpdate', ({ channelId, participants }) => {
@@ -68,7 +68,8 @@ export const VoiceChannelProvider = ({ children }) => {
             id: userId,
             name: userName,
             isMuted: Boolean(isMuted),
-            isSpeaking: false
+            isSpeaking: false,
+            isAudioDisabled: false
           });
           console.log('VoiceChannelContext: Added new participant:', userId);
         } else {
@@ -111,10 +112,75 @@ export const VoiceChannelProvider = ({ children }) => {
         const channel = newChannels.get(channelId);
         if (channel && channel.participants.has(userId)) {
           const participant = channel.participants.get(userId);
-          participant.isMuted = Boolean(isMuted);
-          participant.isSpeaking = Boolean(isSpeaking);
+          if (isMuted !== undefined) {
+            participant.isMuted = Boolean(isMuted);
+          }
+          if (isSpeaking !== undefined) {
+            participant.isSpeaking = Boolean(isSpeaking);
+          }
           if (isAudioDisabled !== undefined) {
             participant.isAudioDisabled = Boolean(isAudioDisabled);
+          }
+          console.log('VoiceChannelContext: Updated participant state:', { userId, participant });
+        } else {
+          console.log('VoiceChannelContext: Participant not found for state update:', { channelId, userId });
+        }
+        return newChannels;
+      });
+    });
+
+    // Дополнительные обработчики для отслеживания состояний в реальном времени
+    newSocket.on('peerMuteStateChanged', ({ peerId, isMuted }) => {
+      console.log('VoiceChannelContext: Peer mute state changed:', { peerId, isMuted });
+      // Находим канал, в котором находится этот участник
+      setVoiceChannels(prev => {
+        const newChannels = new Map(prev);
+        for (const [channelId, channel] of newChannels.entries()) {
+          if (channel.participants.has(peerId)) {
+            const participant = channel.participants.get(peerId);
+            participant.isMuted = Boolean(isMuted);
+            if (isMuted) {
+              participant.isSpeaking = false; // Если замьючен, то не говорит
+            }
+            console.log('VoiceChannelContext: Updated mute state for peer:', { channelId, peerId, isMuted });
+            break;
+          }
+        }
+        return newChannels;
+      });
+    });
+
+    newSocket.on('speakingStateChanged', ({ peerId, speaking }) => {
+      console.log('VoiceChannelContext: Speaking state changed:', { peerId, speaking });
+      // Находим канал, в котором находится этот участник
+      setVoiceChannels(prev => {
+        const newChannels = new Map(prev);
+        for (const [channelId, channel] of newChannels.entries()) {
+          if (channel.participants.has(peerId)) {
+            const participant = channel.participants.get(peerId);
+            // Обновляем состояние говорения только если участник не замьючен
+            if (!participant.isMuted) {
+              participant.isSpeaking = Boolean(speaking);
+              console.log('VoiceChannelContext: Updated speaking state for peer:', { channelId, peerId, speaking });
+            }
+            break;
+          }
+        }
+        return newChannels;
+      });
+    });
+
+    newSocket.on('peerAudioStateChanged', ({ peerId, isEnabled }) => {
+      console.log('VoiceChannelContext: Peer audio state changed:', { peerId, isEnabled });
+      // Находим канал, в котором находится этот участник
+      setVoiceChannels(prev => {
+        const newChannels = new Map(prev);
+        for (const [channelId, channel] of newChannels.entries()) {
+          if (channel.participants.has(peerId)) {
+            const participant = channel.participants.get(peerId);
+            participant.isAudioDisabled = !Boolean(isEnabled);
+            console.log('VoiceChannelContext: Updated audio state for peer:', { channelId, peerId, isEnabled });
+            break;
           }
         }
         return newChannels;
