@@ -1178,7 +1178,7 @@ const VideoView = React.memo(({
 });
 
 const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true }, ref) => {
-  const { addVoiceChannelParticipant, removeVoiceChannelParticipant, updateVoiceChannelParticipant } = useVoiceChannel();
+  const { addVoiceChannelParticipant, removeVoiceChannelParticipant, updateVoiceChannelParticipant, getVoiceChannelParticipants } = useVoiceChannel();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [isJoined, setIsJoined] = useState(false);
@@ -2732,6 +2732,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     if (producer.appData?.username) {
       return producer.appData.username;
     }
+    
+    // Пытаемся найти реальный ID пользователя по producerSocketId через VoiceChannelContext
+    const participants = getVoiceChannelParticipants(roomId);
+    const participant = participants.find(p => p.id === producer.producerSocketId);
+    if (participant) {
+      return participant.id;
+    }
+    
     // Если не найдено, используем producerSocketId как fallback
     return producer.producerSocketId;
   };
@@ -3917,8 +3925,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const _handleConsume = async (producer) => {
     try {
       console.log('Handling producer:', producer);
-      console.log('Producer appData:', producer.appData);
-      console.log('Producer full object:', JSON.stringify(producer, null, 2));
       
       if (producer.producerSocketId === socketRef.current.id) {
         console.log('Skipping own producer');
@@ -3941,7 +3947,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             reject(new Error(response.error));
             return;
           }
-          console.log('Consume response appData:', response.appData);
           resolve(response);
         });
       });
@@ -4051,6 +4056,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // Получаем реальный ID пользователя
           const realUserId = getRealUserId(producer, appData);
           console.log(`Real user ID: ${realUserId}, Producer socket ID: ${producer.producerSocketId}`);
+          
+          // Логируем участников для отладки
+          const participants = getVoiceChannelParticipants(roomId);
+          console.log('Voice channel participants:', participants);
+          console.log('Looking for participant with ID:', producer.producerSocketId);
           
           // Сохраняем маппинг между producerSocketId и реальным userId
           userIdMappingRef.current.set(producer.producerSocketId, realUserId);
