@@ -4394,6 +4394,19 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     }
   }, []);
 
+  // Функция для вычисления адаптивного размера аватара
+  const getAdaptiveAvatarSize = useCallback((totalItems) => {
+    if (totalItems <= 2) {
+      return '120px'; // Большие аватары для 1-2 участников
+    } else if (totalItems <= 4) {
+      return '100px'; // Средние аватары для 3-4 участников
+    } else if (totalItems <= 6) {
+      return '80px';  // Меньшие аватары для 5-6 участников
+    } else {
+      return '60px';  // Маленькие аватары для 7+ участников
+    }
+  }, []);
+
   // Подсчет общего количества элементов в сетке
   const totalGridItems = useMemo(() => {
     let count = 1; // Локальный пользователь
@@ -4416,6 +4429,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const adaptiveGridStyle = useMemo(() => {
     return getAdaptiveGridStyle(totalGridItems);
   }, [totalGridItems, getAdaptiveGridStyle]);
+
+  // Получаем адаптивный размер аватара
+  const adaptiveAvatarSize = useMemo(() => {
+    return getAdaptiveAvatarSize(totalGridItems);
+  }, [totalGridItems, getAdaptiveAvatarSize]);
 
   // Подготовка всех нужных пропсов для UI
   const ui = (
@@ -4494,7 +4512,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                             username={userName}
                             avatarUrl={avatarData?.avatarUrl}
                             avatarColor={avatarData?.avatarColor}
-                            size="120px"
+                            size={adaptiveAvatarSize}
                             showStatus={false}
                           />
                         );
@@ -4570,7 +4588,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                               username={peer.name}
                               avatarUrl={avatarData?.avatarUrl}
                               avatarColor={avatarData?.avatarColor}
-                              size="120px"
+                              size={adaptiveAvatarSize}
                               showStatus={false}
                             />
                           );

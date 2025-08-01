@@ -3,15 +3,26 @@ import UserStatus from './UserStatus';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor, size = '32px', status, showStatus = true }) => {
     const getStatusSize = () => {
-        if (size === '24px') return 'small';
-        if (size === '40px' || size === '48px') return 'large';
+        const sizeNum = parseInt(size);
+        if (sizeNum <= 24) return 'small';
+        if (sizeNum >= 100) return 'large';
         return 'medium';
     };
 
     const getAvatarSize = () => {
-        if (size === '24px') return 'small';
-        if (size === '40px' || size === '48px') return 'large';
+        const sizeNum = parseInt(size);
+        if (sizeNum <= 24) return 'small';
+        if (sizeNum >= 100) return 'large';
         return 'medium';
+    };
+
+    const getFontSize = () => {
+        const sizeNum = parseInt(size);
+        if (sizeNum <= 24) return '11px';
+        if (sizeNum <= 32) return '14px';
+        if (sizeNum <= 48) return '18px';
+        if (sizeNum <= 80) return '32px';
+        return '48px'; // Для больших аватаров как 120px
     };
 
     return (
@@ -33,7 +44,7 @@ const UserAvatar = ({ username, avatarUrl, avatarColor, size = '32px', status, s
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: 'white',
-                    fontSize: size === '24px' ? '11px' : '14px',
+                    fontSize: getFontSize(),
                     fontWeight: 'bold',
                     flexShrink: 0,
                     overflow: 'hidden'
