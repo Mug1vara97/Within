@@ -1210,7 +1210,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const fetchUserProfile = useCallback(async (userId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`https://whithin.ru/api/profile/${userId}`, {
+      const response = await fetch(`https://whithin.ru/api/profile/${userId}/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -1220,8 +1220,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       if (response.ok) {
         const profile = await response.json();
         setUserProfiles(prev => new Map(prev).set(userId, {
-          avatarUrl: profile.avatarUrl,
-          avatarColor: profile.avatarColor || '#5865F2'
+          avatarUrl: profile.Avatar,
+          avatarColor: profile.AvatarColor || '#5865F2'
         }));
         return profile;
       }
