@@ -133,25 +133,53 @@ export const VoiceChannelProvider = ({ children }) => {
 
     // Дополнительные обработчики для отслеживания состояний в реальном времени
     newSocket.on('peerMuteStateChanged', ({ peerId, isMuted }) => {
-      console.log('VoiceChannelContext: [REALTIME] Peer mute state changed:', { peerId, isMuted });
+      console.log('VoiceChannelContext: [REALTIME] Peer mute state changed:', { peerId, isMuted, type: typeof isMuted });
       // Находим канал, в котором находится этот участник
       setVoiceChannels(prev => {
         const newChannels = new Map(prev);
         let updated = false;
+        
+        // Ищем по всем каналам и всем участникам
         for (const [channelId, channel] of newChannels.entries()) {
+          console.log(`VoiceChannelContext: Checking channel ${channelId}, participants:`, Array.from(channel.participants.keys()));
+          
+          // Проверяем как по peerId, так и по возможным вариантам ID
           if (channel.participants.has(peerId)) {
             const participant = channel.participants.get(peerId);
             participant.isMuted = Boolean(isMuted);
             if (isMuted) {
               participant.isSpeaking = false; // Если замьючен, то не говорит
             }
-            console.log('VoiceChannelContext: [REALTIME] Updated mute state for peer:', { channelId, peerId, isMuted, participant });
+            console.log('VoiceChannelContext: [REALTIME] Updated mute state for peer (by peerId):', { channelId, peerId, isMuted, participant });
             updated = true;
             break;
           }
+          
+          // Дополнительно ищем по имени или другим полям, если ID не совпадает
+          for (const [participantId, participant] of channel.participants.entries()) {
+            if (participantId.toString() === peerId.toString()) {
+              participant.isMuted = Boolean(isMuted);
+              if (isMuted) {
+                participant.isSpeaking = false;
+              }
+              console.log('VoiceChannelContext: [REALTIME] Updated mute state for peer (by string comparison):', { channelId, participantId, peerId, isMuted, participant });
+              updated = true;
+              break;
+            }
+          }
+          
+          if (updated) break;
         }
+        
         if (!updated) {
-          console.log('VoiceChannelContext: [REALTIME] Peer not found for mute update:', peerId);
+          console.log('VoiceChannelContext: [REALTIME] Peer not found for mute update:', { 
+            peerId, 
+            allChannels: Array.from(newChannels.keys()),
+            allParticipants: Array.from(newChannels.entries()).map(([chId, ch]) => ({ 
+              channelId: chId, 
+              participants: Array.from(ch.participants.keys()) 
+            }))
+          });
         }
         return newChannels;
       });
