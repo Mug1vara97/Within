@@ -1,9 +1,10 @@
 class Peer {
-    constructor(socket, roomId, name) {
+    constructor(socket, roomId, name, userId = null) {
         this.id = socket.id;
         this.name = name;
         this.socket = socket;
         this.roomId = roomId;
+        this.userId = userId; // Real user ID from the client
         this.transports = new Map();
         this.producers = new Map();
         this.consumers = new Map();

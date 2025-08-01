@@ -1894,7 +1894,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       socket.emit('createRoom', { roomId }, async ({ error: createError }) => {
         console.log('Create room response:', createError ? `Error: ${createError}` : 'Success');
         
-        socket.emit('join', { roomId, name: userName, initialMuted, initialAudioEnabled }, async ({ error: joinError, routerRtpCapabilities, existingPeers, existingProducers }) => {
+        socket.emit('join', { roomId, name: userName, userId, initialMuted, initialAudioEnabled }, async ({ error: joinError, routerRtpCapabilities, existingPeers, existingProducers }) => {
           if (joinError) {
             console.error('Join error:', joinError);
             setError(joinError);

@@ -152,7 +152,7 @@ io.on('connection', async (socket) => {
         }
     });
 
-    socket.on('join', async ({ roomId, name, initialMuted = false, initialAudioEnabled = true }, callback) => {
+    socket.on('join', async ({ roomId, name, userId, initialMuted = false, initialAudioEnabled = true }, callback) => {
         try {
             // Create room if it doesn't exist
             let room = rooms.get(roomId);
@@ -163,7 +163,7 @@ io.on('connection', async (socket) => {
             }
 
             // Create peer with initial states
-            const peer = new Peer(socket, roomId, name);
+            const peer = new Peer(socket, roomId, name, userId);
             peer.setMuted(initialMuted); // Use initial mute state
             peer.setAudioEnabled(initialAudioEnabled); // Use initial audio state
             peers.set(socket.id, peer);
@@ -343,7 +343,7 @@ io.on('connection', async (socket) => {
 
                 producerOptions.appData = {
                     ...producerOptions.appData,
-                    userId: peer.id
+                    userId: peer.userId || peer.id
                 };
 
                 const producer = await transport.produce(producerOptions);
@@ -505,7 +505,7 @@ io.on('connection', async (socket) => {
 
             producerOptions.appData = {
                 ...producerOptions.appData,
-                userId: peer.id
+                userId: peer.userId || peer.id
             };
 
             const producer = await transport.produce(producerOptions);
