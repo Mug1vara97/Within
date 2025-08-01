@@ -2130,137 +2130,21 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           });
         }
       } else if (kind === 'audio') {
-        // Handle regular audio streams
+        // Handle regular audio streams using _handleConsume
+        console.log('Processing audio consumer for existing producer:', producer.producerSocketId);
         try {
-          // Create audio context and nodes for Web Audio API processing
-          const audioContext = audioContextRef.current;
-          console.log('AudioContext state:', audioContext.state);
-          
-          // Resume audio context if suspended
-          if (audioContext.state === 'suspended') {
-            console.log('Resuming suspended AudioContext...');
-            await audioContext.resume();
-            console.log('AudioContext resumed, new state:', audioContext.state);
-          }
-          
-          // Проверяем, что поток содержит активные треки
-          const audioTracks = stream.getAudioTracks();
-          console.log('Stream audio tracks:', audioTracks.length);
-          audioTracks.forEach((track, index) => {
-            console.log(`Track ${index}:`, {
-              enabled: track.enabled,
-              muted: track.muted,
-              readyState: track.readyState,
-              label: track.label,
-              settings: track.getSettings()
-            });
-          });
-          
-          // Create HTML Audio element as fallback
-          const audioElement = document.createElement('audio');
-          audioElement.srcObject = stream;
-          audioElement.autoplay = true;
-          audioElement.playsInline = true;
-          // Initialize volume based on individual mute state and global audio state
-          const isIndividuallyMutedForAudio = individualMutedPeersRef.current.get(producer.producerSocketId) ?? false;
-          const individualVolume = volumes.get(producer.producerSocketId) || 100;
-          audioElement.volume = (isAudioEnabledRef.current && !isIndividuallyMutedForAudio) ? (individualVolume / 100.0) : 0.0;
-          audioElement.style.display = 'none';
-          document.body.appendChild(audioElement);
-          
-          console.log('Created HTML Audio fallback element');
-          
-          // Store audio element for cleanup and volume control
-          if (!audioRef.current.has(producer.producerSocketId)) {
-            audioRef.current.set(producer.producerSocketId, new Map());
-          }
-          audioRef.current.get(producer.producerSocketId).set('audioElement', audioElement);
-          
-          // Try to play the audio element
-          const playPromise = audioElement.play();
-          if (playPromise !== undefined) {
-            playPromise.then(() => {
-              console.log('HTML Audio element playing successfully');
-            }).catch(error => {
-              console.error('HTML Audio element play failed:', error);
-            });
-          }
-          
-          const source = audioContext.createMediaStreamSource(stream);
-          console.log('Created MediaStreamSource from stream');
-          
-          // Debug: Check if MediaStreamSource is receiving audio data
-          const debugAnalyser = audioContext.createAnalyser();
-          debugAnalyser.fftSize = 256;
-          source.connect(debugAnalyser);
-          
-          const checkAudioData = () => {
-            const dataArray = new Uint8Array(debugAnalyser.frequencyBinCount);
-            debugAnalyser.getByteFrequencyData(dataArray);
-            const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-            console.log(`Audio data for peer ${producer.producerSocketId}: average=${average}, max=${Math.max(...dataArray)}`);
-            
-            // If Web Audio API shows no data but we have a track, the HTML audio might still work
-            if (average === 0 && audioTracks.length > 0 && audioTracks[0].readyState === 'live') {
-              console.log('Web Audio API shows no data, but HTML Audio fallback should be working');
-            }
+          // Create a mock producer object with the necessary data for _handleConsume
+          const mockProducer = {
+            producerId: producer.producerId,
+            producerSocketId: producer.producerSocketId,
+            kind: kind,
+            appData: appData
           };
           
-          // Check audio data every 2 seconds
-          const audioCheckInterval = setInterval(checkAudioData, 2000);
-          
-          // Store interval for cleanup
-          audioRef.current.get(producer.producerSocketId).set('audioCheckInterval', audioCheckInterval);
-          
-          // Add analyzer for voice activity detection
-          const analyser = createAudioAnalyser(audioContext);
-          
-          // Create gain node для регулировки громкости
-          const gainNode = audioContext.createGain();
-          // Начальная громкость всегда 100% для нового пира (индивидуально не замьючен)
-          // Глобальное состояние звука будет применено через эффект
-          const isIndividuallyMuted = individualMutedPeersRef.current.get(producer.producerSocketId) ?? false;
-          const initialVolume = isIndividuallyMuted ? 0 : 100;
-          const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 100.0) * 4.0 : 0;
-          gainNode.gain.value = initialGain;
-          console.log('Created gain node for peer:', producer.producerSocketId, {
-            isAudioEnabled: isAudioEnabledRef.current,
-            isIndividuallyMuted,
-            initialVolume,
-            initialGain
-          });
-
-          // Подключаем цепочку аудио узлов
-          source.connect(analyser);
-          analyser.connect(gainNode);
-          gainNode.connect(audioContext.destination);
-          console.log('Connected audio nodes: source -> analyser -> gainNode -> destination');
-          
-          // Debug: Also connect debugAnalyser to the main chain for monitoring
-          debugAnalyser.connect(analyser);
-          
-          // Добавляем периодическую проверку gain node
-          const checkGainInterval = setInterval(() => {
-            console.log(`Gain check for peer ${producer.producerSocketId}:`, {
-              gainValue: gainNode.gain.value,
-              isAudioEnabled: isAudioEnabledRef.current,
-              individualVolume: volumes.get(producer.producerSocketId) || 100
-            });
-          }, 5000);
-          
-          // Сохраняем интервал для очистки
-          audioRef.current.get(producer.producerSocketId).set('gainCheckInterval', checkGainInterval);
-
-          // Store references
-          analyserNodesRef.current.set(producer.producerSocketId, analyser);
-          gainNodesRef.current.set(producer.producerSocketId, gainNode);
-          setVolumes(prev => new Map(prev).set(producer.producerSocketId, 100));
-
-          // Start voice detection
-          detectSpeaking(analyser, producer.producerSocketId, producer.producerId);
-          console.log('Audio setup completed for peer:', producer.producerSocketId);
+          // Call _handleConsume with the mock producer
+          await _handleConsume(mockProducer);
         } catch (error) {
-          console.error('Error setting up audio:', error);
+          console.error('Error handling existing audio producer:', error);
         }
       }
 
