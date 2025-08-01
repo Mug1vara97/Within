@@ -131,6 +131,20 @@ io.on('connection', async (socket) => {
         }
     });
 
+    // Handle direct peerMuteStateChanged events from client for VoiceChannelContext
+    socket.on('peerMuteStateChanged', ({ peerId, isMuted }) => {
+        if (!socket.data?.roomId) return;
+
+        const room = rooms.get(socket.data.roomId);
+        if (!room) return;
+
+        // Broadcast to all peers in the room (including sender for consistency)
+        socket.to(room.id).emit('peerMuteStateChanged', {
+            peerId,
+            isMuted
+        });
+    });
+
     socket.on('createRoom', async ({ roomId }, callback) => {
         if (!callback || typeof callback !== 'function') {
             console.error('Callback is not a function for createRoom event');

@@ -176,13 +176,6 @@ const ChatItem = ({
                                                 <FaUser style={{ fontSize: '12px' }} />
                                                 <span>{participant.name}</span>
                                                 <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                                                    {console.log(`[MIC DEBUG] ${participant.name}:`, {
-                                                        isMuted: participant.isMuted,
-                                                        isMutedType: typeof participant.isMuted,
-                                                        isSpeaking: participant.isSpeaking,
-                                                        isAudioDisabled: participant.isAudioDisabled,
-                                                        shouldShowRedMic: Boolean(participant.isMuted)
-                                                    })}
                                                     {participant.isMuted ? (
                                                         <MicOff style={{ fontSize: '14px', color: '#ed4245' }} title="Микрофон выключен" />
                                                     ) : participant.isSpeaking ? (
