@@ -58,7 +58,6 @@ function updateUserVoiceState(userId, updates) {
     const newState = { ...currentState, ...updates };
     userVoiceStates.set(userId, newState);
     console.log(`[USER_VOICE_STATE] Updated user ${userId}:`, newState);
-    console.log(`[USER_VOICE_STATE] All states:`, Array.from(userVoiceStates.entries()));
     return newState;
 }
 
@@ -81,19 +80,18 @@ function removeUserVoiceState(userId) {
 
 function getChannelParticipants(channelId) {
     const participants = [];
-    console.log(`[GET_PARTICIPANTS] Getting participants for channel ${channelId}`);
     
     // Добавляем активных участников из WebRTC комнаты
     const room = rooms.get(channelId);
     if (room) {
-        console.log(`[GET_PARTICIPANTS] WebRTC room has ${room.peers.size} peers`);
         room.peers.forEach((peer) => {
+            // Используем настоящий userId, а не socket ID
+            const realUserId = peer.userId || peer.id;
             // Получаем сохраненное состояние пользователя (приоритет для isMuted и isAudioDisabled)
-            const userState = userVoiceStates.get(peer.id) || {};
-            console.log(`[GET_PARTICIPANTS] WebRTC peer ${peer.id} userState:`, userState);
+            const userState = userVoiceStates.get(realUserId) || {};
             
             const participant = {
-                userId: peer.id,
+                userId: realUserId, // Используем настоящий userId
                 name: peer.name,
                 // Приоритизируем сохраненное состояние микрофона и наушников
                 isMuted: userState.isMuted !== undefined ? userState.isMuted : peer.isMuted(),
@@ -102,18 +100,14 @@ function getChannelParticipants(channelId) {
                 isActive: true // Активно в WebRTC
             };
             participants.push(participant);
-            console.log(`[GET_PARTICIPANTS] Added WebRTC participant:`, participant);
         });
     }
     
     // Добавляем пользователей, которые в канале, но не в активном WebRTC соединении
-    console.log(`[GET_PARTICIPANTS] Checking ${userVoiceStates.size} user states for channel ${channelId}`);
     for (const [userId, state] of userVoiceStates.entries()) {
-        console.log(`[GET_PARTICIPANTS] User ${userId} state:`, state);
         if (state.channelId === channelId) {
             // Проверяем, не добавили ли мы уже этого пользователя из WebRTC
             const alreadyAdded = participants.some(p => p.userId === userId);
-            console.log(`[GET_PARTICIPANTS] User ${userId} in channel ${channelId}, already added: ${alreadyAdded}`);
             if (!alreadyAdded) {
                 const participant = {
                     userId: userId,
@@ -124,12 +118,11 @@ function getChannelParticipants(channelId) {
                     isActive: false // Не в активном WebRTC
                 };
                 participants.push(participant);
-                console.log(`[GET_PARTICIPANTS] Added non-WebRTC participant:`, participant);
             }
         }
     }
     
-    console.log(`[GET_PARTICIPANTS] Final participants for channel ${channelId}:`, participants);
+    console.log(`[GET_PARTICIPANTS] Channel ${channelId}: ${participants.length} participants (${participants.filter(p => p.isActive).length} active)`);
     return participants;
 }
 
