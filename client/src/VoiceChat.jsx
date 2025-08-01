@@ -2634,7 +2634,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         // Получаем реальный ID пользователя из маппинга
         const realUserId = userIdMappingRef.current.get(peerId) || peerId;
         await volumeStorage.saveUserVolume(realUserId, newVolume);
-        console.log(`Volume saved for user ${realUserId}: ${newVolume}`);
       } catch (error) {
         console.error('Failed to save volume for user:', peerId, error);
       }
@@ -2691,7 +2690,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
          // Получаем реальный ID пользователя из маппинга
          const realUserId = userIdMappingRef.current.get(peerId) || peerId;
          await volumeStorage.saveUserVolume(realUserId, newVolume);
-         console.log(`Volume saved for user ${realUserId}: ${newVolume}`);
        } catch (error) {
          console.error('Failed to save volume for user:', peerId, error);
        }
@@ -2733,11 +2731,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       return producer.appData.username;
     }
     
-    // Пытаемся найти реальный ID пользователя по producerSocketId через VoiceChannelContext
+    // Пытаемся найти реальный ID пользователя через VoiceChannelContext
+    // Ищем участника, который не является текущим пользователем
     const participants = getVoiceChannelParticipants(roomId);
-    const participant = participants.find(p => p.id === producer.producerSocketId);
-    if (participant) {
-      return participant.id;
+    
+    // Ищем участника, который не является текущим пользователем
+    const otherParticipant = participants.find(p => p.id !== userId);
+    if (otherParticipant) {
+      return otherParticipant.id;
     }
     
     // Если не найдено, используем producerSocketId как fallback
@@ -4055,12 +4056,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           
           // Получаем реальный ID пользователя
           const realUserId = getRealUserId(producer, appData);
-          console.log(`Real user ID: ${realUserId}, Producer socket ID: ${producer.producerSocketId}`);
-          
-          // Логируем участников для отладки
-          const participants = getVoiceChannelParticipants(roomId);
-          console.log('Voice channel participants:', participants);
-          console.log('Looking for participant with ID:', producer.producerSocketId);
           
           // Сохраняем маппинг между producerSocketId и реальным userId
           userIdMappingRef.current.set(producer.producerSocketId, realUserId);
@@ -4069,7 +4064,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           let savedVolume = 100; // Значение по умолчанию
           try {
             savedVolume = await volumeStorage.getUserVolume(realUserId);
-            console.log(`Loaded saved volume for user ${realUserId}:`, savedVolume);
           } catch (error) {
             console.error('Failed to load saved volume for user:', realUserId, error);
           }
