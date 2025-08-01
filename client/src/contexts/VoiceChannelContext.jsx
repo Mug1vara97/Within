@@ -133,7 +133,7 @@ export const VoiceChannelProvider = ({ children }) => {
 
     // Дополнительные обработчики для отслеживания состояний в реальном времени
     newSocket.on('peerMuteStateChanged', ({ peerId, isMuted }) => {
-      console.log('VoiceChannelContext: [REALTIME] Peer mute state changed:', { peerId, isMuted });
+      console.log('VoiceChannelContext: [REALTIME] Peer mute state changed:', { peerId, isMuted, isMutedType: typeof isMuted });
       // Находим канал, в котором находится этот участник
       setVoiceChannels(prev => {
         const newChannels = new Map(prev);
@@ -141,20 +141,37 @@ export const VoiceChannelProvider = ({ children }) => {
         
         // Ищем по всем каналам и всем участникам
         for (const [channelId, channel] of newChannels.entries()) {
+          console.log(`VoiceChannelContext: [REALTIME] Checking channel ${channelId}, participants:`, Array.from(channel.participants.keys()));
+          
           if (channel.participants.has(peerId)) {
             const participant = channel.participants.get(peerId);
+            const oldMuted = participant.isMuted;
             participant.isMuted = Boolean(isMuted);
             if (isMuted) {
               participant.isSpeaking = false; // Если замьючен, то не говорит
             }
-            console.log('VoiceChannelContext: [REALTIME] Updated mute state for peer:', { channelId, peerId, isMuted });
+            console.log('VoiceChannelContext: [REALTIME] Updated mute state for peer:', { 
+              channelId, 
+              peerId, 
+              oldMuted, 
+              newMuted: participant.isMuted, 
+              isMutedRaw: isMuted,
+              participant: { ...participant }
+            });
             updated = true;
             break;
           }
         }
         
         if (!updated) {
-          console.log('VoiceChannelContext: [REALTIME] Peer not found for mute update:', peerId);
+          console.log('VoiceChannelContext: [REALTIME] Peer not found for mute update:', { 
+            peerId, 
+            allChannels: Array.from(newChannels.keys()),
+            allParticipants: Array.from(newChannels.entries()).map(([chId, ch]) => ({ 
+              channelId: chId, 
+              participants: Array.from(ch.participants.keys()) 
+            }))
+          });
         }
         return newChannels;
       });
