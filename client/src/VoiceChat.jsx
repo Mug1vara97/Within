@@ -2571,7 +2571,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     });
   }, [isAudioEnabled, volumes]);
 
-    const handleVolumeChange = (peerId) => {
+    const handleVolumeChange = async (peerId) => {
     console.log('Volume change requested for peer:', peerId);
     const gainNode = gainNodesRef.current.get(peerId);
     
@@ -2625,6 +2625,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           console.log('Set HTML Audio volume to', newVolume / 100.0, 'for peer:', peerId);
         }
       }
+      
+      // Сохраняем громкость в IndexedDB
+      try {
+        await volumeStorage.saveUserVolume(peerId, newVolume);
+        console.log(`Volume saved for user ${peerId}: ${newVolume}`);
+      } catch (error) {
+        console.error('Failed to save volume for user:', peerId, error);
+      }
     }
   };
 
@@ -2670,13 +2678,18 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
        return newVolumes;
      });
 
-     // Сохраняем громкость в IndexedDB
-     try {
-       await volumeStorage.saveUserVolume(peerId, newVolume);
-     } catch (error) {
-       console.error('Failed to save volume for user:', peerId, error);
+     // Сохраняем громкость в IndexedDB только если это реальное изменение пользователем
+     // (не при инициализации из сохраненных настроек)
+     const currentSavedVolume = volumes.get(peerId);
+     if (currentSavedVolume !== newVolume) {
+       try {
+         await volumeStorage.saveUserVolume(peerId, newVolume);
+         console.log(`Volume saved for user ${peerId}: ${newVolume}`);
+       } catch (error) {
+         console.error('Failed to save volume for user:', peerId, error);
+       }
      }
-   }, []);
+   }, [volumes]);
 
    // Функция для переключения отображения слайдера громкости
    const toggleVolumeSlider = useCallback((peerId) => {
@@ -2698,24 +2711,16 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
    }, []);
 
    // Обновляем обработчик подключения пира
-  const handlePeerJoined = useCallback(async ({ peerId }) => {
+  const handlePeerJoined = useCallback(({ peerId }) => {
     // Инициализируем состояние - не замучен индивидуально
     individualMutedPeersRef.current.set(peerId, false);
     
-    // Загружаем сохраненную громкость из IndexedDB
-    let savedVolume = 100; // Значение по умолчанию
-    try {
-      savedVolume = await volumeStorage.getUserVolume(peerId);
-    } catch (error) {
-      console.error('Failed to load saved volume for user:', peerId, error);
-    }
-    
-    // Инициализируем предыдущий уровень громкости
-    previousVolumesRef.current.set(peerId, savedVolume);
+    // Инициализируем предыдущий уровень громкости (будет загружен в _handleConsume)
+    previousVolumesRef.current.set(peerId, 100);
     
     setVolumes(prev => {
       const newVolumes = new Map(prev);
-      newVolumes.set(peerId, savedVolume);
+      newVolumes.set(peerId, 100); // Временное значение, будет обновлено в _handleConsume
       return newVolumes;
     });
     
@@ -2725,7 +2730,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       return newState;
     });
     
-    console.log(`Loaded saved volume for user ${peerId}:`, savedVolume);
+    console.log(`Peer joined: ${peerId}, volume will be loaded when audio stream is created`);
   }, []);
 
   // Обновляем обработчик отключения пира
@@ -3838,6 +3843,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         setIsNoiseSuppressed(newState);
         localStorage.setItem('noiseSuppression', JSON.stringify(newState));
         console.log('Noise suppression ' + (newState ? 'enabled' : 'disabled'));
+      } else {
+        console.error('Failed to toggle noise suppression');
       }
     } catch (error) {
       console.error('Error toggling noise suppression:', error);
@@ -4016,6 +4023,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           let savedVolume = 100; // Значение по умолчанию
           try {
             savedVolume = await volumeStorage.getUserVolume(producer.producerSocketId);
+            console.log(`Loaded saved volume for user ${producer.producerSocketId}:`, savedVolume);
           } catch (error) {
             console.error('Failed to load saved volume for user:', producer.producerSocketId, error);
           }
@@ -4025,6 +4033,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           const initialVolume = isIndividuallyMuted ? 0 : savedVolume;
           const initialGain = isAudioEnabledRef.current && !isIndividuallyMuted ? (initialVolume / 100.0) * 4.0 : 0;
           gainNode.gain.value = initialGain;
+          
+          // Обновляем предыдущий уровень громкости
+          previousVolumesRef.current.set(producer.producerSocketId, savedVolume);
+          
           console.log('handleConsume: Created gain node for peer:', producer.producerSocketId, {
             isAudioEnabled: isAudioEnabledRef.current,
             isIndividuallyMuted,
