@@ -90,8 +90,19 @@ class HotkeyStorage {
             'ScrollLock': 'Scroll',
             'PrintScreen': 'PrtSc',
             'Pause': 'Pause',
-            'ContextMenu': 'Menu'
+            'ContextMenu': 'Menu',
+            // Кнопки мыши
+            'Mouse4': 'Боковая 1',
+            'Mouse5': 'Боковая 2',
+            'LeftClick': 'Левая',
+            'MiddleClick': 'Средняя',
+            'RightClick': 'Правая'
         };
+
+        // Обрабатываем комбинации клавиш
+        if (key.includes('+')) {
+            return key.split('+').map(part => keyMap[part] || part).join(' + ');
+        }
 
         return keyMap[key] || key;
     }
@@ -108,6 +119,39 @@ class HotkeyStorage {
         // Игнорируем модификаторы как основную клавишу
         if (!['Control', 'Alt', 'Shift', 'Meta'].includes(event.key)) {
             parts.push(event.key);
+        }
+        
+        return parts.join('+');
+    }
+
+    // Парсить событие мыши в строку
+    parseMouseEvent(event) {
+        const parts = [];
+        
+        if (event.ctrlKey) parts.push('Ctrl');
+        if (event.altKey) parts.push('Alt');
+        if (event.shiftKey) parts.push('Shift');
+        if (event.metaKey) parts.push('Cmd');
+        
+        // Определяем кнопку мыши
+        switch (event.button) {
+            case 3:
+                parts.push('Mouse4');
+                break;
+            case 4:
+                parts.push('Mouse5');
+                break;
+            case 0:
+                parts.push('LeftClick');
+                break;
+            case 1:
+                parts.push('MiddleClick');
+                break;
+            case 2:
+                parts.push('RightClick');
+                break;
+            default:
+                parts.push(`Mouse${event.button}`);
         }
         
         return parts.join('+');

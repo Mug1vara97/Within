@@ -114,6 +114,17 @@ const SettingsModal = ({ isOpen, onClose }) => {
         setTempKey(keyString);
     };
 
+    const handleHotkeyMouseDown = (e) => {
+        // Обрабатываем только боковые кнопки мыши (3 и 4) и среднюю кнопку (1)
+        if (e.button === 3 || e.button === 4 || e.button === 1) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const mouseString = hotkeyStorage.parseMouseEvent(e);
+            setTempKey(mouseString);
+        }
+    };
+
     const handleHotkeyReset = () => {
         if (window.confirm('Сбросить все горячие клавиши к значениям по умолчанию?')) {
             hotkeyStorage.resetToDefaults();
@@ -267,7 +278,8 @@ const SettingsModal = ({ isOpen, onClose }) => {
                                     <span>Переключить микрофон</span>
                                 </div>
                                 <p className="settings-description">
-                                    Горячая клавиша для включения/выключения микрофона
+                                    Горячая клавиша для включения/выключения микрофона<br/>
+                                    <small>Поддерживаются клавиши и боковые кнопки мыши</small>
                                 </p>
                             </div>
                             {editingHotkey === 'toggleMic' ? (
@@ -277,7 +289,8 @@ const SettingsModal = ({ isOpen, onClose }) => {
                                         className="hotkey-input"
                                         value={hotkeyStorage.formatKey(tempKey)}
                                         onKeyDown={handleHotkeyKeyDown}
-                                        placeholder="Нажмите клавишу..."
+                                        onMouseDown={handleHotkeyMouseDown}
+                                        placeholder="Нажмите клавишу или кнопку мыши..."
                                         autoFocus
                                         readOnly
                                     />
@@ -316,7 +329,8 @@ const SettingsModal = ({ isOpen, onClose }) => {
                                     <span>Переключить наушники</span>
                                 </div>
                                 <p className="settings-description">
-                                    Горячая клавиша для включения/выключения звука в наушниках
+                                    Горячая клавиша для включения/выключения звука в наушниках<br/>
+                                    <small>Поддерживаются клавиши и боковые кнопки мыши</small>
                                 </p>
                             </div>
                             {editingHotkey === 'toggleAudio' ? (
@@ -326,7 +340,8 @@ const SettingsModal = ({ isOpen, onClose }) => {
                                         className="hotkey-input"
                                         value={hotkeyStorage.formatKey(tempKey)}
                                         onKeyDown={handleHotkeyKeyDown}
-                                        placeholder="Нажмите клавишу..."
+                                        onMouseDown={handleHotkeyMouseDown}
+                                        placeholder="Нажмите клавишу или кнопку мыши..."
                                         autoFocus
                                         readOnly
                                     />
