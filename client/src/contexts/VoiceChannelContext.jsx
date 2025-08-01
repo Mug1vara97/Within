@@ -37,8 +37,8 @@ export const VoiceChannelProvider = ({ children }) => {
             participantsMap.set(participant.userId, {
               id: participant.userId,
               name: participant.name,
-              // Приоритет у существующих состояний (более свежие данные)
-              isMuted: existingParticipant?.isMuted !== undefined ? existingParticipant.isMuted : (participant.isMuted || false),
+              // isMuted управляется только через peerMuteStateChanged - всегда сохраняем существующее значение
+              isMuted: existingParticipant?.isMuted !== undefined ? existingParticipant.isMuted : false,
               isSpeaking: existingParticipant?.isSpeaking !== undefined ? existingParticipant.isSpeaking : (participant.isSpeaking || false),
               isAudioDisabled: existingParticipant?.isAudioDisabled !== undefined ? existingParticipant.isAudioDisabled : (participant.isAudioDisabled || false)
             });
@@ -114,9 +114,12 @@ export const VoiceChannelProvider = ({ children }) => {
         const channel = newChannels.get(channelId);
         if (channel && channel.participants.has(userId)) {
           const participant = channel.participants.get(userId);
-          if (isMuted !== undefined) {
-            participant.isMuted = Boolean(isMuted);
-          }
+          
+          // isMuted управляется только через peerMuteStateChanged - не трогаем его здесь
+          // if (isMuted !== undefined) {
+          //   participant.isMuted = Boolean(isMuted);
+          // }
+          
           if (isSpeaking !== undefined) {
             participant.isSpeaking = Boolean(isSpeaking);
           }
