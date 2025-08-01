@@ -2505,7 +2505,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // Локально обновляем состояние для самого пользователя в VoiceChannelContext
           // Эмитим событие локально, чтобы обновить свое состояние
           const localEvent = new CustomEvent('peerMuteStateChanged', {
-            detail: { peerId: userId, isMuted: newMuteState }
+            detail: { peerId: socketRef.current.id, isMuted: newMuteState }
           });
           window.dispatchEvent(localEvent);
           
