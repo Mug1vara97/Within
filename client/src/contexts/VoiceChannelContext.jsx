@@ -228,8 +228,38 @@ export const VoiceChannelProvider = ({ children }) => {
       });
     });
 
+    // Слушаем локальные события изменения состояния мьюта (для самого пользователя)
+    const handleLocalMuteChange = (event) => {
+      const { peerId, isMuted } = event.detail;
+      console.log('VoiceChannelContext: [LOCAL] Peer mute state changed:', { peerId, isMuted });
+      
+      setVoiceChannels(prev => {
+        const newChannels = new Map(prev);
+        let updated = false;
+        
+        // Ищем по всем каналам и всем участникам
+        for (const [channelId, channel] of newChannels.entries()) {
+          if (channel.participants.has(peerId)) {
+            const participant = channel.participants.get(peerId);
+            participant.isMuted = Boolean(isMuted);
+            if (isMuted) {
+              participant.isSpeaking = false; // Если замьючен, то не говорит
+            }
+            console.log('VoiceChannelContext: [LOCAL] Updated mute state for peer:', { channelId, peerId, isMuted });
+            updated = true;
+            break;
+          }
+        }
+        
+        return updated ? newChannels : prev;
+      });
+    };
+
+    window.addEventListener('peerMuteStateChanged', handleLocalMuteChange);
+
     return () => {
       clearInterval(syncInterval);
+      window.removeEventListener('peerMuteStateChanged', handleLocalMuteChange);
       newSocket.disconnect();
     };
   }, []);
