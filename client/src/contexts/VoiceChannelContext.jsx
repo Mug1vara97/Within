@@ -23,7 +23,16 @@ export const VoiceChannelProvider = ({ children }) => {
 
     // Слушаем обновления участников голосовых каналов
     newSocket.on('voiceChannelParticipantsUpdate', ({ channelId, participants }) => {
-      console.log('VoiceChannelContext: Received participants update:', { channelId, participants });
+      console.log('VoiceChannelContext: Received participants update:', { 
+        channelId, 
+        participants: participants?.map(p => ({
+          userId: p.userId,
+          name: p.name,
+          isMuted: p.isMuted,
+          isSpeaking: p.isSpeaking,
+          isAudioDisabled: p.isAudioDisabled
+        }))
+      });
       setVoiceChannels(prev => {
         const newChannels = new Map(prev);
         const existingChannel = newChannels.get(channelId);
@@ -346,6 +355,47 @@ export const VoiceChannelProvider = ({ children }) => {
     return channel ? channel.participants.size : 0;
   }, [voiceChannels]);
 
+  // Новые функции для работы с серверным состоянием пользователей
+  const updateUserVoiceState = useCallback((userId, userName, channelId, isMuted, isAudioDisabled) => {
+    if (_socket) {
+      console.log('VoiceChannelContext: Updating user voice state on server:', { userId, userName, channelId, isMuted, isAudioDisabled });
+      _socket.emit('updateUserVoiceState', { 
+        userId, 
+        userName, 
+        channelId, 
+        isMuted, 
+        isAudioDisabled 
+      });
+    }
+  }, [_socket]);
+
+  const getUserVoiceState = useCallback((userId, callback) => {
+    if (_socket) {
+      console.log('VoiceChannelContext: Getting user voice state from server:', userId);
+      _socket.emit('getUserVoiceState', { userId }, callback);
+    }
+  }, [_socket]);
+
+  const joinVoiceChannel = useCallback((channelId, userId, userName) => {
+    console.log('VoiceChannelContext: User joining voice channel:', { channelId, userId, userName });
+    updateUserVoiceState(userId, userName, channelId, undefined, undefined);
+  }, [updateUserVoiceState]);
+
+  const leaveVoiceChannel = useCallback((userId) => {
+    console.log('VoiceChannelContext: User leaving voice channel:', userId);
+    updateUserVoiceState(userId, undefined, null, undefined, undefined);
+  }, [updateUserVoiceState]);
+
+  const updateUserMuteState = useCallback((userId, isMuted) => {
+    console.log('VoiceChannelContext: Updating user mute state:', { userId, isMuted });
+    updateUserVoiceState(userId, undefined, undefined, isMuted, undefined);
+  }, [updateUserVoiceState]);
+
+  const updateUserAudioState = useCallback((userId, isAudioDisabled) => {
+    console.log('VoiceChannelContext: Updating user audio state:', { userId, isAudioDisabled });
+    updateUserVoiceState(userId, undefined, undefined, undefined, isAudioDisabled);
+  }, [updateUserVoiceState]);
+
   const value = {
     voiceChannels,
     updateVoiceChannelParticipants,
@@ -354,6 +404,13 @@ export const VoiceChannelProvider = ({ children }) => {
     updateVoiceChannelParticipant,
     getVoiceChannelParticipants,
     getVoiceChannelParticipantCount,
+    // Новые функции для работы с серверным состоянием
+    updateUserVoiceState,
+    getUserVoiceState,
+    joinVoiceChannel,
+    leaveVoiceChannel,
+    updateUserMuteState,
+    updateUserAudioState,
 
   };
 

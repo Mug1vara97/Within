@@ -43,6 +43,80 @@ app.use(express.static(path.join(__dirname, '../../public')));
 const rooms = new Map();
 const peers = new Map();
 
+// Глобальное хранилище состояния пользователей (независимо от WebRTC соединений)
+const userVoiceStates = new Map(); // userId -> { isMuted, isAudioDisabled, channelId, userName }
+
+// Функции для управления состоянием пользователей
+function updateUserVoiceState(userId, updates) {
+    const currentState = userVoiceStates.get(userId) || {
+        isMuted: false,
+        isAudioDisabled: false,
+        channelId: null,
+        userName: 'Unknown'
+    };
+    
+    const newState = { ...currentState, ...updates };
+    userVoiceStates.set(userId, newState);
+    console.log(`Updated voice state for user ${userId}:`, newState);
+    return newState;
+}
+
+function getUserVoiceState(userId) {
+    return userVoiceStates.get(userId) || {
+        isMuted: false,
+        isAudioDisabled: false,
+        channelId: null,
+        userName: 'Unknown'
+    };
+}
+
+function removeUserVoiceState(userId) {
+    const state = userVoiceStates.get(userId);
+    if (state) {
+        // Обновляем состояние, но не удаляем полностью - сохраняем настройки микрофона/наушников
+        updateUserVoiceState(userId, { channelId: null });
+    }
+}
+
+function getChannelParticipants(channelId) {
+    const participants = [];
+    
+    // Добавляем активных участников из WebRTC комнаты
+    const room = rooms.get(channelId);
+    if (room) {
+        room.peers.forEach((peer) => {
+            participants.push({
+                userId: peer.id,
+                name: peer.name,
+                isMuted: peer.isMuted(),
+                isSpeaking: peer.isSpeaking(),
+                isAudioDisabled: !peer.isAudioEnabled(),
+                isActive: true // Активно в WebRTC
+            });
+        });
+    }
+    
+    // Добавляем пользователей, которые в канале, но не в активном WebRTC соединении
+    for (const [userId, state] of userVoiceStates.entries()) {
+        if (state.channelId === channelId) {
+            // Проверяем, не добавили ли мы уже этого пользователя из WebRTC
+            const alreadyAdded = participants.some(p => p.userId === userId);
+            if (!alreadyAdded) {
+                participants.push({
+                    userId: userId,
+                    name: state.userName,
+                    isMuted: state.isMuted,
+                    isSpeaking: false, // Не в активном соединении
+                    isAudioDisabled: state.isAudioDisabled,
+                    isActive: false // Не в активном WebRTC
+                });
+            }
+        }
+    }
+    
+    return participants;
+}
+
 let workers = [];
 let nextWorkerIndex = 0;
 
@@ -1178,35 +1252,32 @@ io.on('connection', async (socket) => {
                 });
             });
 
-            // Отправляем информацию о всех активных голосовых каналах
+            // Отправляем информацию о всех голосовых каналах (активных и неактивных)
+            const allChannelIds = new Set();
+            
+            // Собираем ID всех активных WebRTC комнат
             rooms.forEach((room, roomId) => {
-                if (room.peers.size > 0) {
-                    const participants = [];
-                    room.peers.forEach((peer) => {
-                        participants.push({
-                            userId: peer.id,
-                            name: peer.name,
-                            isMuted: peer.isMuted(),
-                            isSpeaking: peer.isSpeaking()
-                        });
-                    });
-                    
-                    console.log(`Room ${roomId} has ${participants.length} participants`);
-                    
-                    // Отправляем информацию всем подключенным клиентам
-                    io.emit('voiceChannelParticipantsUpdate', {
-                        channelId: roomId,
-                        participants: participants
-                    });
-                } else {
-                    // Если комната пустая, удаляем её и уведомляем
-                    console.log(`Room ${roomId} is empty, removing it`);
-                    rooms.delete(roomId);
-                    io.emit('voiceChannelParticipantsUpdate', {
-                        channelId: roomId,
-                        participants: []
-                    });
+                allChannelIds.add(roomId);
+            });
+            
+            // Собираем ID всех каналов, где есть пользователи (даже не в активном соединении)
+            for (const [userId, state] of userVoiceStates.entries()) {
+                if (state.channelId) {
+                    allChannelIds.add(state.channelId);
                 }
+            }
+            
+            // Отправляем информацию о каждом канале
+            allChannelIds.forEach(channelId => {
+                const participants = getChannelParticipants(channelId);
+                
+                console.log(`Channel ${channelId} has ${participants.length} participants (${participants.filter(p => p.isActive).length} active)`);
+                
+                // Отправляем информацию всем подключенным клиентам
+                io.emit('voiceChannelParticipantsUpdate', {
+                    channelId: channelId,
+                    participants: participants
+                });
             });
         } catch (error) {
             console.error('Error in getVoiceChannelParticipants:', error);
@@ -1285,6 +1356,50 @@ io.on('connection', async (socket) => {
             });
         } catch (error) {
             console.error('Error in voiceChannelParticipantStateChanged:', error);
+        }
+    });
+
+    // Новые обработчики для управления глобальным состоянием пользователей
+    socket.on('updateUserVoiceState', ({ userId, userName, channelId, isMuted, isAudioDisabled }) => {
+        try {
+            const updates = {};
+            if (userName !== undefined) updates.userName = userName;
+            if (channelId !== undefined) updates.channelId = channelId;
+            if (isMuted !== undefined) updates.isMuted = isMuted;
+            if (isAudioDisabled !== undefined) updates.isAudioDisabled = isAudioDisabled;
+            
+            updateUserVoiceState(userId, updates);
+            
+            // Если пользователь присоединился/покинул канал, обновляем информацию о канале
+            if (channelId !== undefined) {
+                const participants = getChannelParticipants(channelId);
+                io.emit('voiceChannelParticipantsUpdate', {
+                    channelId: channelId,
+                    participants: participants
+                });
+                
+                // Если пользователь покинул канал, также обновляем предыдущий канал
+                const currentState = getUserVoiceState(userId);
+                if (currentState.channelId && currentState.channelId !== channelId) {
+                    const oldParticipants = getChannelParticipants(currentState.channelId);
+                    io.emit('voiceChannelParticipantsUpdate', {
+                        channelId: currentState.channelId,
+                        participants: oldParticipants
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error in updateUserVoiceState:', error);
+        }
+    });
+
+    socket.on('getUserVoiceState', ({ userId }, callback) => {
+        try {
+            const state = getUserVoiceState(userId);
+            callback(state);
+        } catch (error) {
+            console.error('Error in getUserVoiceState:', error);
+            callback(null);
         }
     });
 

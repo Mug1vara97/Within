@@ -1178,7 +1178,15 @@ const VideoView = React.memo(({
 });
 
 const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true }, ref) => {
-  const { addVoiceChannelParticipant, removeVoiceChannelParticipant, updateVoiceChannelParticipant } = useVoiceChannel();
+  const { 
+    addVoiceChannelParticipant, 
+    removeVoiceChannelParticipant, 
+    updateVoiceChannelParticipant,
+    joinVoiceChannel,
+    leaveVoiceChannel,
+    updateUserMuteState,
+    updateUserAudioState
+  } = useVoiceChannel();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [isJoined, setIsJoined] = useState(false);
@@ -1911,6 +1919,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
               isSpeaking: false
             });
 
+            // Обновляем глобальное состояние пользователя на сервере
+            joinVoiceChannel(roomId, userId, userName);
+
             // Уведомляем сервер о присоединении пользователя к голосовому каналу
             socket.emit('userJoinedVoiceChannel', {
               channelId: roomId,
@@ -2502,6 +2513,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             isMuted: newMuteState 
           });
           
+          // Обновляем глобальное состояние пользователя на сервере
+          updateUserMuteState(userId, newMuteState);
+          
           // Локально обновляем состояние для самого пользователя в VoiceChannelContext
           // Эмитим событие локально, чтобы обновить свое состояние
           const localEvent = new CustomEvent('peerMuteStateChanged', {
@@ -2536,7 +2550,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         }
       }
     }
-  }, [isMuted, setMuteState, onMuteStateChange, userId]);
+  }, [isMuted, setMuteState, onMuteStateChange, userId, updateUserMuteState]);
 
   useEffect(() => {
     const socket = socketRef.current;
@@ -3211,6 +3225,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         channelId: roomId,
         userId: userId
       });
+
+      // Обновляем глобальное состояние пользователя на сервере
+      leaveVoiceChannel(userId);
       
       // Запрашиваем обновленные данные о участниках несколько раз с интервалом
       setTimeout(() => {
@@ -4192,6 +4209,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       // Update voice channel context for current user
       updateVoiceChannelParticipant(roomId, socketRef.current.id, { isAudioDisabled: !newState });
 
+      // Обновляем глобальное состояние пользователя на сервере
+      updateUserAudioState(userId, !newState);
+
       // Уведомляем сервер об изменении состояния участника
       socketRef.current.emit('voiceChannelParticipantStateChanged', {
         channelId: roomId,
@@ -4219,7 +4239,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     if (onAudioStateChange) {
       onAudioStateChange(newState);
     }
-  }, [isAudioEnabled, onAudioStateChange, volumes]);
+  }, [isAudioEnabled, onAudioStateChange, volumes, userId, updateUserAudioState]);
 
 
 
