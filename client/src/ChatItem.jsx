@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import { FaHashtag, FaMicrophone, FaCog, FaLock, FaUser } from 'react-icons/fa';
 import { MicOff, HeadsetOff, Mic, RecordVoiceOver } from '@mui/icons-material';
@@ -16,6 +16,28 @@ const ChatItem = ({
 }) => {
     const isDragDisabled = !(isServerOwner || userPermissions?.manageChannels);
     const { getVoiceChannelParticipants, voiceChannels } = useVoiceChannel();
+
+    // Предварительно вычисляем участников для голосового канала
+    const isVoiceChannel = chat.typeId === 4;
+    const channelId = chat.chatId || chat.id;
+    
+    const { uniqueParticipants, participantCount } = useMemo(() => {
+        if (!isVoiceChannel) {
+            return { uniqueParticipants: [], participantCount: 0 };
+        }
+        
+        const participants = getVoiceChannelParticipants(channelId);
+        
+        // Убираем дубликаты участников по ID
+        const unique = participants.filter((participant, index, self) => 
+            index === self.findIndex(p => p.id === participant.id)
+        );
+        
+        return {
+            uniqueParticipants: unique,
+            participantCount: unique.length
+        };
+    }, [isVoiceChannel, channelId, getVoiceChannelParticipants]);
 
     console.log('ChatItem render:', {
         chatId: chat.chatId,
@@ -44,7 +66,6 @@ const ChatItem = ({
                 return (
                     <>
                         {(() => {
-                            const isVoiceChannel = chat.typeId === 4;
                             console.log('Voice channel condition check:', {
                                 chatId: chat.chatId,
                                 chatName: chat.name,
@@ -54,24 +75,19 @@ const ChatItem = ({
                             });
                             
                             if (isVoiceChannel) {
-                                const channelId = chat.chatId || chat.id;
-                                const participants = getVoiceChannelParticipants(channelId);
-                                
-                                // Убираем дубликаты участников по ID
-                                const uniqueParticipants = participants.filter((participant, index, self) => 
-                                    index === self.findIndex(p => p.id === participant.id)
-                                );
-                                
-                                const participantCount = uniqueParticipants.length;
-                                
-
                                 console.log('Voice channel participants:', {
                                     chatId: chat.chatId,
                                     chatIdAlt: chat.id,
                                     channelId,
                                     chatName: chat.name,
                                     participantCount,
-                                    participants: uniqueParticipants,
+                                    participants: uniqueParticipants.map(p => ({
+                                        id: p.id,
+                                        name: p.name,
+                                        isMuted: p.isMuted,
+                                        isSpeaking: p.isSpeaking,
+                                        isAudioDisabled: p.isAudioDisabled
+                                    })),
                                     allChannels: Array.from(voiceChannels.keys())
                                 });
                                 
