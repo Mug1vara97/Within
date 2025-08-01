@@ -178,6 +178,39 @@
     box-shadow: 0 0 1px #4a9eff;
 }
 
+.settings-clear-btn {
+    background: linear-gradient(135deg, #ed4245 0%, #c53030 100%);
+    border: none;
+    color: #ffffff;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 80px;
+}
+
+.settings-clear-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #f04747 0%, #d73a49 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(237, 66, 69, 0.3);
+}
+
+.settings-clear-btn:disabled {
+    background: #666;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.volume-stats {
+    color: #888;
+    font-size: 11px;
+    margin-top: 4px;
+    display: block;
+}
+
 /* Анимация появления */
 @keyframes settingsModalFadeIn {
     from {

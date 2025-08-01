@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { IoClose, IoMic, IoMicOff } from 'react-icons/io5';
+import { IoClose, IoMic, IoMicOff, IoTrash } from 'react-icons/io5';
 import './SettingsModal.css';
+import volumeStorage from '../utils/volumeStorage';
 
 const SettingsModal = ({ isOpen, onClose }) => {
     const [noiseSuppression, setNoiseSuppression] = useState(() => {
         const saved = localStorage.getItem('noiseSuppression');
         return saved ? JSON.parse(saved) : false;
     });
+    const [volumeStats, setVolumeStats] = useState(null);
+    const [isClearingVolumes, setIsClearingVolumes] = useState(false);
 
     useEffect(() => {
         // Сохраняем настройку в localStorage при изменении
@@ -21,6 +24,38 @@ const SettingsModal = ({ isOpen, onClose }) => {
     const handleNoiseSuppressionToggle = () => {
         setNoiseSuppression(!noiseSuppression);
     };
+
+    const loadVolumeStats = async () => {
+        try {
+            const stats = await volumeStorage.getVolumeStats();
+            setVolumeStats(stats);
+        } catch (error) {
+            console.error('Failed to load volume stats:', error);
+        }
+    };
+
+    const handleClearVolumes = async () => {
+        if (window.confirm('Вы уверены, что хотите очистить все сохраненные настройки громкости? Это действие нельзя отменить.')) {
+            setIsClearingVolumes(true);
+            try {
+                await volumeStorage.clearAllVolumes();
+                await loadVolumeStats();
+                alert('Все настройки громкости очищены');
+            } catch (error) {
+                console.error('Failed to clear volumes:', error);
+                alert('Ошибка при очистке настроек громкости');
+            } finally {
+                setIsClearingVolumes(false);
+            }
+        }
+    };
+
+    // Загружаем статистику при открытии модального окна
+    useEffect(() => {
+        if (isOpen) {
+            loadVolumeStats();
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -56,6 +91,41 @@ const SettingsModal = ({ isOpen, onClose }) => {
                                 />
                                 <span className="settings-toggle-slider"></span>
                             </label>
+                        </div>
+                    </div>
+                    
+                    <div className="settings-section">
+                        <h3>Настройки громкости</h3>
+                        
+                        <div className="settings-item">
+                            <div className="settings-item-info">
+                                <div className="settings-item-header">
+                                    <IoTrash className="settings-icon" />
+                                    <span>Очистить настройки громкости</span>
+                                </div>
+                                <p className="settings-description">
+                                    Удаляет все сохраненные настройки громкости для пользователей
+                                    {volumeStats && (
+                                        <span className="volume-stats">
+                                            <br />
+                                            Сохранено настроек: {volumeStats.totalUsers}
+                                            {volumeStats.oldestEntry && (
+                                                <>
+                                                    <br />
+                                                    Самая старая запись: {volumeStats.oldestEntry.toLocaleDateString()}
+                                                </>
+                                            )}
+                                        </span>
+                                    )}
+                                </p>
+                            </div>
+                            <button 
+                                className="settings-clear-btn"
+                                onClick={handleClearVolumes}
+                                disabled={isClearingVolumes}
+                            >
+                                {isClearingVolumes ? 'Очистка...' : 'Очистить'}
+                            </button>
                         </div>
                     </div>
                 </div>
