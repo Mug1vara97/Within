@@ -162,7 +162,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
     return (
         <div className="settings-modal-overlay" onClick={onClose}>
-            <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="user-settings-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="settings-modal-header">
                     <h2>Настройки</h2>
                     <button className="settings-close-btn" onClick={onClose}>

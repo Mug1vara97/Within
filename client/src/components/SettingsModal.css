@@ -1,19 +1,22 @@
 .settings-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
     background-color: rgba(0, 0, 0, 0.8);
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 10000;
+    z-index: 99999 !important;
     -webkit-backdrop-filter: blur(5px);
     backdrop-filter: blur(5px);
+    pointer-events: all !important;
 }
 
-.settings-modal {
+.user-settings-modal {
     background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
     border-radius: 12px;
     padding: 0;
@@ -24,6 +27,10 @@
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.1);
     position: relative;
+    margin: 0 auto;
+    transform: none !important;
+    left: auto !important;
+    right: auto !important;
 }
 
 .settings-modal-header {
