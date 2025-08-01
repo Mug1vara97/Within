@@ -308,7 +308,8 @@ io.on('connection', async (socket) => {
                         id: existingPeer.id,
                         name: existingPeer.name,
                         isMuted: existingPeer.isMuted(),
-                        isAudioEnabled: existingPeer.isAudioEnabled()
+                        isAudioEnabled: existingPeer.isAudioEnabled(),
+                        userId: existingPeer.userId // Добавляем userId для загрузки аватара
                     });
                 }
             });
@@ -330,7 +331,8 @@ io.on('connection', async (socket) => {
                 peerId: peer.id,
                 name: peer.name,
                 isMuted: peer.isMuted(),
-                isAudioEnabled: Boolean(peer.isAudioEnabled())
+                isAudioEnabled: Boolean(peer.isAudioEnabled()),
+                userId: peer.userId // Добавляем userId для загрузки аватара
             });
 
             console.log(`Peer ${name} (${socket.id}) joined room ${roomId}`);
