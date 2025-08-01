@@ -2496,6 +2496,12 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         if (socketRef.current) {
           socketRef.current.emit('muteState', { isMuted: newMuteState });
           
+          // Отправляем событие для обновления VoiceChannelContext
+          socketRef.current.emit('peerMuteStateChanged', { 
+            peerId: userId, 
+            isMuted: newMuteState 
+          });
+          
           if (setMuteState) {
             setMuteState(socketRef.current.id, newMuteState);
           }
@@ -2523,7 +2529,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         }
       }
     }
-  }, [isMuted, setMuteState, onMuteStateChange]);
+  }, [isMuted, setMuteState, onMuteStateChange, userId]);
 
   useEffect(() => {
     const socket = socketRef.current;
