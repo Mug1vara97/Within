@@ -166,6 +166,13 @@ io.on('connection', async (socket) => {
             const peer = new Peer(socket, roomId, name, userId);
             peer.setMuted(initialMuted); // Use initial mute state
             peer.setAudioEnabled(initialAudioEnabled); // Use initial audio state
+            
+            console.log('Peer created with userId:', {
+                socketId: socket.id,
+                peerId: peer.id,
+                peerUserId: peer.userId,
+                name: peer.name
+            });
             peers.set(socket.id, peer);
             room.addPeer(peer);
 
@@ -345,6 +352,13 @@ io.on('connection', async (socket) => {
                     ...producerOptions.appData,
                     userId: peer.userId || peer.id
                 };
+                
+                console.log('Screen sharing producer appData with userId:', {
+                    peerId: peer.id,
+                    peerUserId: peer.userId,
+                    appDataUserId: producerOptions.appData.userId,
+                    appData: producerOptions.appData
+                });
 
                 const producer = await transport.produce(producerOptions);
 
@@ -507,6 +521,13 @@ io.on('connection', async (socket) => {
                 ...producerOptions.appData,
                 userId: peer.userId || peer.id
             };
+            
+            console.log('Producer appData with userId:', {
+                peerId: peer.id,
+                peerUserId: peer.userId,
+                appDataUserId: producerOptions.appData.userId,
+                appData: producerOptions.appData
+            });
 
             const producer = await transport.produce(producerOptions);
 

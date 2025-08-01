@@ -4032,6 +4032,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // Получаем реальный ID пользователя
           const realUserId = getRealUserId(producer, appData);
           
+          console.log('Consumer appData and realUserId:', {
+            producerSocketId: producer.producerSocketId,
+            appData: appData,
+            producerAppData: producer.appData,
+            realUserId: realUserId
+          });
+          
           // Сохраняем маппинг между producerSocketId и реальным userId
           userIdMappingRef.current.set(producer.producerSocketId, realUserId);
           
