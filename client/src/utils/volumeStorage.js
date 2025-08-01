@@ -79,7 +79,7 @@ class VolumeStorage {
                     resolve(result.volume);
                 } else {
                     console.log(`No saved volume found for user ${userId}, using default`);
-                    resolve(1.0); // Значение по умолчанию
+                    resolve(100); // Значение по умолчанию
                 }
             };
 
