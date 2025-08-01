@@ -19,20 +19,11 @@ export const VoiceChannelProvider = ({ children }) => {
     // Периодически запрашиваем актуальные данные о участниках
     const syncInterval = setInterval(() => {
       newSocket.emit('getVoiceChannelParticipants');
-    }, 10000); // Каждые 10 секунд (уменьшили частоту, чтобы не перезаписывать актуальные состояния)
+    }, 30000); // Каждые 30 секунд (редко, так как основное обновление через события)
 
     // Слушаем обновления участников голосовых каналов
     newSocket.on('voiceChannelParticipantsUpdate', ({ channelId, participants }) => {
-      console.log('VoiceChannelContext: Received participants update:', { 
-        channelId, 
-        participants: participants?.map(p => ({
-          userId: p.userId,
-          name: p.name,
-          isMuted: p.isMuted,
-          isSpeaking: p.isSpeaking,
-          isAudioDisabled: p.isAudioDisabled
-        }))
-      });
+      // console.log('VoiceChannelContext: Received participants update:', channelId, participants?.length);
       setVoiceChannels(prev => {
         const newChannels = new Map(prev);
         const existingChannel = newChannels.get(channelId);
@@ -52,7 +43,7 @@ export const VoiceChannelProvider = ({ children }) => {
             });
           });
           newChannels.set(channelId, { participants: participantsMap });
-          console.log('VoiceChannelContext: Updated channel participants (preserving states):', channelId, participantsMap.size);
+          // console.log('VoiceChannelContext: Updated channel participants:', channelId, participantsMap.size);
         } else {
           // Если участников нет, удаляем канал из списка
           newChannels.delete(channelId);

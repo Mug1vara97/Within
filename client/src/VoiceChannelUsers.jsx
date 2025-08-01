@@ -2,7 +2,7 @@ import React from 'react';
 import { MicOff, HeadsetOff, Mic } from '@mui/icons-material';
 import './styles/VoiceChannelUsers.css';
 
-const VoiceChannelUsers = ({ users = [], currentUserId }) => {
+const VoiceChannelUsers = React.memo(({ users = [], currentUserId }) => {
     if (!users || users.length === 0) {
         return null;
     }
@@ -31,6 +31,6 @@ const VoiceChannelUsers = ({ users = [], currentUserId }) => {
             ))}
         </div>
     );
-};
+});
 
 export default VoiceChannelUsers; 

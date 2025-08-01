@@ -46,6 +46,29 @@ const peers = new Map();
 // Глобальное хранилище состояния пользователей (независимо от WebRTC соединений)
 const userVoiceStates = new Map(); // userId -> { isMuted, isAudioDisabled, channelId, userName }
 
+// Дебаунс для обновлений участников канала
+const channelUpdateTimeouts = new Map();
+
+// Функция для дебаунса обновлений канала
+function scheduleChannelUpdate(channelId, delay = 100) {
+    // Отменяем предыдущее обновление
+    if (channelUpdateTimeouts.has(channelId)) {
+        clearTimeout(channelUpdateTimeouts.get(channelId));
+    }
+    
+    // Планируем новое обновление
+    const timeout = setTimeout(() => {
+        const participants = getChannelParticipants(channelId);
+        io.emit('voiceChannelParticipantsUpdate', {
+            channelId: channelId,
+            participants: participants
+        });
+        channelUpdateTimeouts.delete(channelId);
+    }, delay);
+    
+    channelUpdateTimeouts.set(channelId, timeout);
+}
+
 // Функции для управления состоянием пользователей
 function updateUserVoiceState(userId, updates) {
     const currentState = userVoiceStates.get(userId) || {
@@ -57,7 +80,7 @@ function updateUserVoiceState(userId, updates) {
     
     const newState = { ...currentState, ...updates };
     userVoiceStates.set(userId, newState);
-    console.log(`[USER_VOICE_STATE] Updated user ${userId}:`, newState);
+    // console.log(`[USER_VOICE_STATE] Updated user ${userId}:`, newState);
     return newState;
 }
 
@@ -122,7 +145,7 @@ function getChannelParticipants(channelId) {
         }
     }
     
-    console.log(`[GET_PARTICIPANTS] Channel ${channelId}: ${participants.length} participants (${participants.filter(p => p.isActive).length} active)`);
+    // console.log(`[GET_PARTICIPANTS] Channel ${channelId}: ${participants.length} participants (${participants.filter(p => p.isActive).length} active)`);
     return participants;
 }
 
@@ -1280,7 +1303,7 @@ io.on('connection', async (socket) => {
             allChannelIds.forEach(channelId => {
                 const participants = getChannelParticipants(channelId);
                 
-                console.log(`Channel ${channelId} has ${participants.length} participants (${participants.filter(p => p.isActive).length} active)`);
+                // console.log(`Channel ${channelId} has ${participants.length} participants (${participants.filter(p => p.isActive).length} active)`);
                 
                 // Отправляем информацию всем подключенным клиентам
                 io.emit('voiceChannelParticipantsUpdate', {
@@ -1381,20 +1404,12 @@ io.on('connection', async (socket) => {
             
             // Если пользователь присоединился/покинул канал, обновляем информацию о канале
             if (channelId !== undefined) {
-                const participants = getChannelParticipants(channelId);
-                io.emit('voiceChannelParticipantsUpdate', {
-                    channelId: channelId,
-                    participants: participants
-                });
+                scheduleChannelUpdate(channelId);
                 
                 // Если пользователь покинул канал, также обновляем предыдущий канал
                 const currentState = getUserVoiceState(userId);
                 if (currentState.channelId && currentState.channelId !== channelId) {
-                    const oldParticipants = getChannelParticipants(currentState.channelId);
-                    io.emit('voiceChannelParticipantsUpdate', {
-                        channelId: currentState.channelId,
-                        participants: oldParticipants
-                    });
+                    scheduleChannelUpdate(currentState.channelId);
                 }
             }
         } catch (error) {
