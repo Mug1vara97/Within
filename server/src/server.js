@@ -341,6 +341,11 @@ io.on('connection', async (socket) => {
                     keyFrameRequestDelay: 2000
                 };
 
+                producerOptions.appData = {
+                    ...producerOptions.appData,
+                    userId: peer.id
+                };
+
                 const producer = await transport.produce(producerOptions);
 
                 console.log('Screen sharing producer created:', { 
@@ -497,6 +502,11 @@ io.on('connection', async (socket) => {
                     producerOptions.rtpParameters = rtpParameters;
                 }
             }
+
+            producerOptions.appData = {
+                ...producerOptions.appData,
+                userId: peer.id
+            };
 
             const producer = await transport.produce(producerOptions);
 

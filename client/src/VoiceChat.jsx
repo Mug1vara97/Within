@@ -1178,7 +1178,7 @@ const VideoView = React.memo(({
 });
 
 const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true }, ref) => {
-  const { addVoiceChannelParticipant, removeVoiceChannelParticipant, updateVoiceChannelParticipant, getVoiceChannelParticipants } = useVoiceChannel();
+  const { addVoiceChannelParticipant, removeVoiceChannelParticipant, updateVoiceChannelParticipant } = useVoiceChannel();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [isJoined, setIsJoined] = useState(false);
@@ -2715,34 +2715,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
      });
    }, []);
 
-   // Функция для получения реального ID пользователя из producer
+  // Функция для получения реального ID пользователя из producer
   const getRealUserId = (producer, appData) => {
-    // Пытаемся найти реальный ID пользователя в различных местах
-    if (appData?.userId) {
-      return appData.userId;
-    }
-    if (producer.appData?.userId) {
-      return producer.appData.userId;
-    }
-    if (appData?.username) {
-      return appData.username;
-    }
-    if (producer.appData?.username) {
-      return producer.appData.username;
-    }
-    
-    // Пытаемся найти реальный ID пользователя через VoiceChannelContext
-    // Ищем участника, который не является текущим пользователем
-    const participants = getVoiceChannelParticipants(roomId);
-    
-    // Ищем участника, который не является текущим пользователем
-    const otherParticipant = participants.find(p => p.id !== userId);
-    if (otherParticipant) {
-      return otherParticipant.id;
-    }
-    
-    // Если не найдено, используем producerSocketId как fallback
-    return producer.producerSocketId;
+    return appData?.userId || producer.appData?.userId || producer.producerSocketId;
   };
 
   // Обновляем обработчик подключения пира
