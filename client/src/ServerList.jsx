@@ -5,6 +5,8 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import './styles/ServerList.css';
 import compassIcon from './assets/magnifying-glass.png';
 import NotificationButton from './components/NotificationButton';
+import SettingsModal from './components/SettingsModal';
+import { Settings } from '@mui/icons-material';
 
 const ServerList = ({ userId, onDiscoverClick }) => {
     const [servers, setServers] = useState([]);
@@ -13,6 +15,7 @@ const ServerList = ({ userId, onDiscoverClick }) => {
     const [description, setDescription] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
     const navigate = useNavigate();
 
     const handleDiscoverClick = () => {
@@ -242,6 +245,15 @@ const ServerList = ({ userId, onDiscoverClick }) => {
                             </li>
                             <li className="server-item">
                                 <button
+                                    className="server-button settings-button"
+                                    onClick={() => setShowSettings(true)}
+                                    title="Настройки"
+                                >
+                                    <Settings />
+                                </button>
+                            </li>
+                            <li className="server-item">
+                                <button
                                     className="server-button logout-button"
                                     onClick={handleLogout}
                                     title="Выйти из аккаунта"
@@ -316,6 +328,11 @@ const ServerList = ({ userId, onDiscoverClick }) => {
                     </div>
                 </div>
             )}
+
+            <SettingsModal 
+                isOpen={showSettings} 
+                onClose={() => setShowSettings(false)} 
+            />
         </div>
     );
 };

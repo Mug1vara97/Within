@@ -100,6 +100,21 @@
     height: 18px;
 }
 
+.settings-button {
+    background-color: #5865f2 !important;
+    color: white !important;
+}
+
+.settings-button:hover {
+    background-color: #4752c4 !important;
+    transform: scale(1.05);
+}
+
+.settings-button svg {
+    width: 20px;
+    height: 20px;
+}
+
 .server-item:hover::before {
     content: '';
     position: absolute;
