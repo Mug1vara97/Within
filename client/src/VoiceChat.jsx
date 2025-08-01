@@ -1231,6 +1231,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     const saved = localStorage.getItem('noiseSuppression');
     return saved ? JSON.parse(saved) : false;
   });
+  
+  // Маппинг между producerSocketId и реальным userId
+  const userIdMappingRef = useRef(new Map());
   const [noiseSuppressionMode, setNoiseSuppressionMode] = useState('rnnoise');
   const [noiseSuppressMenuAnchor, setNoiseSuppressMenuAnchor] = useState(null);
   const noiseSuppressionRef = useRef(null);
@@ -2628,8 +2631,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       
       // Сохраняем громкость в IndexedDB
       try {
-        await volumeStorage.saveUserVolume(peerId, newVolume);
-        console.log(`Volume saved for user ${peerId}: ${newVolume}`);
+        // Получаем реальный ID пользователя из маппинга
+        const realUserId = userIdMappingRef.current.get(peerId) || peerId;
+        await volumeStorage.saveUserVolume(realUserId, newVolume);
+        console.log(`Volume saved for user ${realUserId}: ${newVolume}`);
       } catch (error) {
         console.error('Failed to save volume for user:', peerId, error);
       }
@@ -2683,8 +2688,10 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
      const currentSavedVolume = volumes.get(peerId);
      if (currentSavedVolume !== newVolume) {
        try {
-         await volumeStorage.saveUserVolume(peerId, newVolume);
-         console.log(`Volume saved for user ${peerId}: ${newVolume}`);
+         // Получаем реальный ID пользователя из маппинга
+         const realUserId = userIdMappingRef.current.get(peerId) || peerId;
+         await volumeStorage.saveUserVolume(realUserId, newVolume);
+         console.log(`Volume saved for user ${realUserId}: ${newVolume}`);
        } catch (error) {
          console.error('Failed to save volume for user:', peerId, error);
        }
@@ -2710,7 +2717,26 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
      });
    }, []);
 
-   // Обновляем обработчик подключения пира
+   // Функция для получения реального ID пользователя из producer
+  const getRealUserId = (producer, appData) => {
+    // Пытаемся найти реальный ID пользователя в различных местах
+    if (appData?.userId) {
+      return appData.userId;
+    }
+    if (producer.appData?.userId) {
+      return producer.appData.userId;
+    }
+    if (appData?.username) {
+      return appData.username;
+    }
+    if (producer.appData?.username) {
+      return producer.appData.username;
+    }
+    // Если не найдено, используем producerSocketId как fallback
+    return producer.producerSocketId;
+  };
+
+  // Обновляем обработчик подключения пира
   const handlePeerJoined = useCallback(({ peerId }) => {
     // Инициализируем состояние - не замучен индивидуально
     individualMutedPeersRef.current.set(peerId, false);
@@ -3891,6 +3917,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   const _handleConsume = async (producer) => {
     try {
       console.log('Handling producer:', producer);
+      console.log('Producer appData:', producer.appData);
+      console.log('Producer full object:', JSON.stringify(producer, null, 2));
       
       if (producer.producerSocketId === socketRef.current.id) {
         console.log('Skipping own producer');
@@ -3913,6 +3941,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             reject(new Error(response.error));
             return;
           }
+          console.log('Consume response appData:', response.appData);
           resolve(response);
         });
       });
@@ -4019,13 +4048,20 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // Create gain node для регулировки громкости
           const gainNode = audioContext.createGain();
           
+          // Получаем реальный ID пользователя
+          const realUserId = getRealUserId(producer, appData);
+          console.log(`Real user ID: ${realUserId}, Producer socket ID: ${producer.producerSocketId}`);
+          
+          // Сохраняем маппинг между producerSocketId и реальным userId
+          userIdMappingRef.current.set(producer.producerSocketId, realUserId);
+          
           // Получаем сохраненную громкость для этого пользователя
           let savedVolume = 100; // Значение по умолчанию
           try {
-            savedVolume = await volumeStorage.getUserVolume(producer.producerSocketId);
-            console.log(`Loaded saved volume for user ${producer.producerSocketId}:`, savedVolume);
+            savedVolume = await volumeStorage.getUserVolume(realUserId);
+            console.log(`Loaded saved volume for user ${realUserId}:`, savedVolume);
           } catch (error) {
-            console.error('Failed to load saved volume for user:', producer.producerSocketId, error);
+            console.error('Failed to load saved volume for user:', realUserId, error);
           }
           
           // Начальная громкость из сохраненных настроек
