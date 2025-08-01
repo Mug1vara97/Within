@@ -3919,7 +3919,12 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   const _handleConsume = async (producer) => {
     try {
-      console.log('Handling producer:', producer);
+      console.log('_handleConsume called with producer:', {
+        producerId: producer.producerId,
+        producerSocketId: producer.producerSocketId,
+        kind: producer.kind,
+        appData: producer.appData
+      });
       
       if (producer.producerSocketId === socketRef.current.id) {
         console.log('Skipping own producer');
@@ -3994,6 +3999,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           });
         }
       } else if (kind === 'audio') {
+        console.log('Processing audio consumer for producer:', producer.producerSocketId);
         try {
           // Create audio context and nodes for Web Audio API processing
           const audioContext = audioContextRef.current;
@@ -4048,8 +4054,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // Create gain node для регулировки громкости
           const gainNode = audioContext.createGain();
           
-                  // Получаем реальный ID пользователя
-        const realUserId = getRealUserId(producer, appData);
+                            // Получаем реальный ID пользователя
+          console.log('About to get realUserId for producer:', producer.producerSocketId);
+          const realUserId = getRealUserId(producer, appData);
         
         console.log('Consumer appData and realUserId:', {
           producerSocketId: producer.producerSocketId,
