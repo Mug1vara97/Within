@@ -17,7 +17,6 @@ class VolumeStorage {
 
             request.onsuccess = () => {
                 this.db = request.result;
-                console.log('IndexedDB opened successfully');
                 resolve();
             };
 
@@ -28,7 +27,6 @@ class VolumeStorage {
                 if (!db.objectStoreNames.contains(this.storeName)) {
                     const store = db.createObjectStore(this.storeName, { keyPath: 'userId' });
                     store.createIndex('userId', 'userId', { unique: true });
-                    console.log('Volume store created');
                 }
             };
         });
@@ -50,7 +48,6 @@ class VolumeStorage {
             });
 
             request.onsuccess = () => {
-                console.log(`Volume saved for user ${userId}:`, volume);
                 resolve();
             };
 
@@ -75,10 +72,8 @@ class VolumeStorage {
             request.onsuccess = () => {
                 const result = request.result;
                 if (result) {
-                    console.log(`Volume loaded for user ${userId}:`, result.volume);
                     resolve(result.volume);
                 } else {
-                    console.log(`No saved volume found for user ${userId}, using default`);
                     resolve(100); // Значение по умолчанию
                 }
             };
@@ -106,7 +101,6 @@ class VolumeStorage {
                 request.result.forEach(item => {
                     volumes[item.userId] = item.volume;
                 });
-                console.log('All user volumes loaded:', volumes);
                 resolve(volumes);
             };
 
@@ -129,7 +123,6 @@ class VolumeStorage {
             const request = store.delete(userId);
 
             request.onsuccess = () => {
-                console.log(`Volume deleted for user ${userId}`);
                 resolve();
             };
 
@@ -152,7 +145,6 @@ class VolumeStorage {
             const request = store.clear();
 
             request.onsuccess = () => {
-                console.log('All volumes cleared');
                 resolve();
             };
 

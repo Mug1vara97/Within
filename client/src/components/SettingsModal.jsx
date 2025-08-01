@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { IoClose, IoMic, IoMicOff, IoTrash, IoEye, IoEyeOff } from 'react-icons/io5';
+import { IoClose, IoMic, IoMicOff, IoTrash, IoEye, IoEyeOff, IoKeypad } from 'react-icons/io5';
 import './SettingsModal.css';
 import volumeStorage from '../utils/volumeStorage';
+import hotkeyStorage from '../utils/hotkeyStorage';
 
 const SettingsModal = ({ isOpen, onClose }) => {
     const [noiseSuppression, setNoiseSuppression] = useState(() => {
@@ -11,6 +12,11 @@ const SettingsModal = ({ isOpen, onClose }) => {
     const [volumeStats, setVolumeStats] = useState(null);
     const [isClearingVolumes, setIsClearingVolumes] = useState(false);
     const [showVolumeEntries, setShowVolumeEntries] = useState(false);
+    
+    // Состояние для горячих клавиш
+    const [hotkeys, setHotkeys] = useState(() => hotkeyStorage.getHotkeys());
+    const [editingHotkey, setEditingHotkey] = useState(null);
+    const [tempKey, setTempKey] = useState('');
 
     useEffect(() => {
         // Сохраняем настройку в localStorage при изменении
@@ -62,6 +68,62 @@ const SettingsModal = ({ isOpen, onClose }) => {
                 alert('Ошибка при удалении записи');
             }
         }
+    };
+
+    // Функции для работы с горячими клавишами
+    const handleHotkeyEdit = (action) => {
+        setEditingHotkey(action);
+        setTempKey(hotkeys[action] || '');
+    };
+
+    const handleHotkeyCancel = () => {
+        setEditingHotkey(null);
+        setTempKey('');
+    };
+
+    const handleHotkeySave = (action) => {
+        if (tempKey) {
+            // Проверяем, не используется ли уже эта клавиша
+            const usedBy = hotkeyStorage.isKeyUsed(tempKey, action);
+            if (usedBy) {
+                alert(`Клавиша "${tempKey}" уже используется для: ${getActionName(usedBy)}`);
+                return;
+            }
+        }
+
+        const newHotkeys = { ...hotkeys, [action]: tempKey };
+        setHotkeys(newHotkeys);
+        hotkeyStorage.saveHotkeys(newHotkeys);
+        setEditingHotkey(null);
+        setTempKey('');
+    };
+
+    const handleHotkeyKeyDown = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Игнорируем только модификаторы
+        if (['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) {
+            return;
+        }
+        
+        const keyString = hotkeyStorage.parseKeyEvent(e);
+        setTempKey(keyString);
+    };
+
+    const handleHotkeyReset = () => {
+        if (window.confirm('Сбросить все горячие клавиши к значениям по умолчанию?')) {
+            hotkeyStorage.resetToDefaults();
+            setHotkeys(hotkeyStorage.getHotkeys());
+        }
+    };
+
+    const getActionName = (action) => {
+        const actionNames = {
+            toggleMic: 'Переключить микрофон',
+            toggleAudio: 'Переключить наушники'
+        };
+        return actionNames[action] || action;
     };
 
     // Загружаем статистику при открытии модального окна
@@ -187,6 +249,126 @@ const SettingsModal = ({ isOpen, onClose }) => {
                                 )}
                             </div>
                         )}
+                    </div>
+
+                    <div className="settings-section">
+                        <h3>Горячие клавиши</h3>
+                        
+                        <div className="settings-item">
+                            <div className="settings-item-info">
+                                <div className="settings-item-header">
+                                    <IoKeypad className="settings-icon" />
+                                    <span>Переключить микрофон</span>
+                                </div>
+                                <p className="settings-description">
+                                    Горячая клавиша для включения/выключения микрофона
+                                </p>
+                            </div>
+                            {editingHotkey === 'toggleMic' ? (
+                                <div className="hotkey-edit-container">
+                                    <input
+                                        type="text"
+                                        className="hotkey-input"
+                                        value={hotkeyStorage.formatKey(tempKey)}
+                                        onKeyDown={handleHotkeyKeyDown}
+                                        placeholder="Нажмите клавишу..."
+                                        autoFocus
+                                        readOnly
+                                    />
+                                    <button 
+                                        className="hotkey-save-btn"
+                                        onClick={() => handleHotkeySave('toggleMic')}
+                                    >
+                                        ✓
+                                    </button>
+                                    <button 
+                                        className="hotkey-cancel-btn"
+                                        onClick={handleHotkeyCancel}
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="hotkey-display-container">
+                                    <span className="hotkey-display">
+                                        {hotkeyStorage.formatKey(hotkeys.toggleMic)}
+                                    </span>
+                                    <button 
+                                        className="hotkey-edit-btn"
+                                        onClick={() => handleHotkeyEdit('toggleMic')}
+                                    >
+                                        Изменить
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="settings-item">
+                            <div className="settings-item-info">
+                                <div className="settings-item-header">
+                                    <IoKeypad className="settings-icon" />
+                                    <span>Переключить наушники</span>
+                                </div>
+                                <p className="settings-description">
+                                    Горячая клавиша для включения/выключения звука в наушниках
+                                </p>
+                            </div>
+                            {editingHotkey === 'toggleAudio' ? (
+                                <div className="hotkey-edit-container">
+                                    <input
+                                        type="text"
+                                        className="hotkey-input"
+                                        value={hotkeyStorage.formatKey(tempKey)}
+                                        onKeyDown={handleHotkeyKeyDown}
+                                        placeholder="Нажмите клавишу..."
+                                        autoFocus
+                                        readOnly
+                                    />
+                                    <button 
+                                        className="hotkey-save-btn"
+                                        onClick={() => handleHotkeySave('toggleAudio')}
+                                    >
+                                        ✓
+                                    </button>
+                                    <button 
+                                        className="hotkey-cancel-btn"
+                                        onClick={handleHotkeyCancel}
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="hotkey-display-container">
+                                    <span className="hotkey-display">
+                                        {hotkeyStorage.formatKey(hotkeys.toggleAudio)}
+                                    </span>
+                                    <button 
+                                        className="hotkey-edit-btn"
+                                        onClick={() => handleHotkeyEdit('toggleAudio')}
+                                    >
+                                        Изменить
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="settings-item">
+                            <div className="settings-item-info">
+                                <div className="settings-item-header">
+                                    <IoTrash className="settings-icon" />
+                                    <span>Сбросить горячие клавиши</span>
+                                </div>
+                                <p className="settings-description">
+                                    Вернуть все горячие клавиши к значениям по умолчанию
+                                </p>
+                            </div>
+                            <button 
+                                className="settings-clear-btn"
+                                onClick={handleHotkeyReset}
+                            >
+                                Сбросить
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

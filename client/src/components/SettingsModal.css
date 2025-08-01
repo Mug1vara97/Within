@@ -373,4 +373,98 @@
 
 .settings-modal::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.5);
+}
+
+/* Стили для горячих клавиш */
+.hotkey-display-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.hotkey-display {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    font-weight: bold;
+    color: #ffffff;
+    min-width: 60px;
+    text-align: center;
+}
+
+.hotkey-edit-btn {
+    background: linear-gradient(135deg, #4a9eff 0%, #3a7bd5 100%);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.hotkey-edit-btn:hover {
+    background: linear-gradient(135deg, #5ba9ff 0%, #4a8be6 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(74, 158, 255, 0.3);
+}
+
+.hotkey-edit-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.hotkey-input {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid #4a9eff;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    font-weight: bold;
+    color: #ffffff;
+    min-width: 120px;
+    text-align: center;
+    outline: none;
+}
+
+.hotkey-input:focus {
+    border-color: #5ba9ff;
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.3);
+}
+
+.hotkey-save-btn {
+    background: #2ecc71;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.hotkey-save-btn:hover {
+    background: #27ae60;
+}
+
+.hotkey-cancel-btn {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.hotkey-cancel-btn:hover {
+    background: #c0392b;
 } 

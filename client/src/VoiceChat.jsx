@@ -48,6 +48,7 @@ import { io } from 'socket.io-client';
 import { NoiseSuppressionManager } from './utils/noiseSuppression';
 import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
 import volumeStorage from './utils/volumeStorage';
+import useHotkeys from './hooks/useHotkeys';
 
 
 
@@ -2131,7 +2132,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         }
       } else if (kind === 'audio') {
         // Handle regular audio streams
-        console.log('Processing audio consumer for existing producer:', producer.producerSocketId);
         try {
           // Create audio context and nodes for Web Audio API processing
           const audioContext = audioContextRef.current;
@@ -2223,14 +2223,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           console.log('About to get realUserId for producer:', producer.producerSocketId);
           const realUserId = getRealUserId(producer, appData);
           
-          console.log('Consumer appData and realUserId:', {
-            producerSocketId: producer.producerSocketId,
-            appData: appData,
-            producerAppData: producer.appData,
-            realUserId: realUserId,
-            appDataUserId: appData?.userId,
-            producerAppDataUserId: producer.appData?.userId
-          });
+
           
           // Сохраняем маппинг между producerSocketId и реальным userId
           userIdMappingRef.current.set(producer.producerSocketId, realUserId);
@@ -2670,12 +2663,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       try {
         // Получаем реальный ID пользователя из маппинга
         const realUserId = userIdMappingRef.current.get(peerId) || peerId;
-        console.log('Saving volume in handleVolumeChange:', {
-          peerId: peerId,
-          realUserId: realUserId,
-          newVolume: newVolume,
-          userIdMapping: Array.from(userIdMappingRef.current.entries())
-        });
+
         await volumeStorage.saveUserVolume(realUserId, newVolume);
       } catch (error) {
         console.error('Failed to save volume for user:', peerId, error);
@@ -2732,12 +2720,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
        try {
          // Получаем реальный ID пользователя из маппинга
          const realUserId = userIdMappingRef.current.get(peerId) || peerId;
-         console.log('Saving volume in handleVolumeSliderChange:', {
-           peerId: peerId,
-           realUserId: realUserId,
-           newVolume: newVolume,
-           userIdMapping: Array.from(userIdMappingRef.current.entries())
-         });
+         
          await volumeStorage.saveUserVolume(realUserId, newVolume);
        } catch (error) {
          console.error('Failed to save volume for user:', peerId, error);
@@ -2766,14 +2749,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   // Функция для получения реального ID пользователя из producer
   const getRealUserId = (producer, appData) => {
-    const result = appData?.userId || producer.appData?.userId || producer.producerSocketId;
-    console.log('getRealUserId called:', {
-      appDataUserId: appData?.userId,
-      producerAppDataUserId: producer.appData?.userId,
-      producerSocketId: producer.producerSocketId,
-      result: result
-    });
-    return result;
+    return appData?.userId || producer.appData?.userId || producer.producerSocketId;
   };
 
   // Обновляем обработчик подключения пира
@@ -3956,12 +3932,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   const _handleConsume = async (producer) => {
     try {
-      console.log('_handleConsume called with producer:', {
-        producerId: producer.producerId,
-        producerSocketId: producer.producerSocketId,
-        kind: producer.kind,
-        appData: producer.appData
-      });
       
       if (producer.producerSocketId === socketRef.current.id) {
         console.log('Skipping own producer');
@@ -4036,7 +4006,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           });
         }
       } else if (kind === 'audio') {
-        console.log('Processing audio consumer for producer:', producer.producerSocketId);
         try {
           // Create audio context and nodes for Web Audio API processing
           const audioContext = audioContextRef.current;
@@ -4263,6 +4232,12 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     handleMute,
     toggleAudio
   }), [handleMute, toggleAudio]);
+
+  // Горячие клавиши
+  useHotkeys({
+    toggleMic: handleMute,
+    toggleAudio: toggleAudio
+  });
 
   // Add initial audio state when joining
   useEffect(() => {
