@@ -1219,10 +1219,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       
       if (response.ok) {
         const profile = await response.json();
-        setUserProfiles(prev => new Map(prev).set(userId, {
-          avatarUrl: profile.Avatar,
-          avatarColor: profile.AvatarColor || '#5865F2'
-        }));
+        console.log('Loaded user profile:', { userId, profile });
+        const avatarData = {
+          avatarUrl: profile.avatar ? `https://whithin.ru${profile.avatar}` : null,
+          avatarColor: profile.avatarColor || '#5865F2'
+        };
+        console.log('Setting avatar data:', avatarData);
+        setUserProfiles(prev => new Map(prev).set(userId, avatarData));
         return profile;
       }
     } catch (error) {
@@ -4483,13 +4486,19 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                       justifyContent: 'center',
                       alignItems: 'center'
                     }}>
-                      <UserAvatar
-                        username={userName}
-                        avatarUrl={userProfiles.get(userId)?.avatarUrl}
-                        avatarColor={userProfiles.get(userId)?.avatarColor}
-                        size="120px"
-                        showStatus={false}
-                      />
+{(() => {
+                        const avatarData = userProfiles.get(userId);
+                        console.log('Rendering local user avatar:', { userId, userName, avatarData });
+                        return (
+                          <UserAvatar
+                            username={userName}
+                            avatarUrl={avatarData?.avatarUrl}
+                            avatarColor={avatarData?.avatarColor}
+                            size="120px"
+                            showStatus={false}
+                          />
+                        );
+                      })()}
                       <VideoOverlay
                         peerName={userName}
                         isMuted={isMuted}
@@ -4553,13 +4562,19 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                         justifyContent: 'center',
                         alignItems: 'center'
                       }}>
-                        <UserAvatar
-                          username={peer.name}
-                          avatarUrl={userProfiles.get(peer.userId)?.avatarUrl}
-                          avatarColor={userProfiles.get(peer.userId)?.avatarColor}
-                          size="120px"
-                          showStatus={false}
-                        />
+{(() => {
+                          const avatarData = userProfiles.get(peer.userId);
+                          console.log('Rendering remote user avatar:', { peerId: peer.id, userId: peer.userId, name: peer.name, avatarData });
+                          return (
+                            <UserAvatar
+                              username={peer.name}
+                              avatarUrl={avatarData?.avatarUrl}
+                              avatarColor={avatarData?.avatarColor}
+                              size="120px"
+                              showStatus={false}
+                            />
+                          );
+                        })()}
                         <VideoOverlay
                           peerName={peer.name}
                           isMuted={peer.isMuted}
