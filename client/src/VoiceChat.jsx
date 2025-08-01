@@ -48,6 +48,7 @@ import { io } from 'socket.io-client';
 import { NoiseSuppressionManager } from './utils/noiseSuppression';
 import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
 import volumeStorage from './utils/volumeStorage';
+import UserAvatar from './UserAvatar';
 
 
 
@@ -1201,8 +1202,34 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     const [speakingStates, setSpeakingStates] = useState(new Map());
     const [audioStates, setAudioStates] = useState(new Map());
     const [showVolumeSliders, setShowVolumeSliders] = useState(new Map()); // Состояние для отображения слайдеров
+  const [userProfiles, setUserProfiles] = useState(new Map()); // Профили пользователей с аватарами
 
   const prevRoomIdRef = useRef(roomId);
+
+  // Функция для получения профиля пользователя с C# сервера
+  const fetchUserProfile = useCallback(async (userId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`https://whithin.ru/api/profile/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const profile = await response.json();
+        setUserProfiles(prev => new Map(prev).set(userId, {
+          avatarUrl: profile.avatarUrl,
+          avatarColor: profile.avatarColor || '#5865F2'
+        }));
+        return profile;
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+    return null;
+  }, []);
 
   // Use userId and serverId in socket connection
   useEffect(() => {
@@ -1210,6 +1237,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       socketRef.current.emit('setUserInfo', { userId, serverId });
     }
   }, [userId, serverId]);
+
+  // Загружаем профиль текущего пользователя
+  useEffect(() => {
+    if (userId) {
+      fetchUserProfile(userId);
+    }
+  }, [userId, fetchUserProfile]);
 
 
 
@@ -1800,8 +1834,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       });
 
       // Add handlers for peer events
-      socket.on('peerJoined', ({ peerId, name, isMuted, isAudioEnabled }) => {
-        console.log('New peer joined:', { peerId, name, isMuted, isAudioEnabled });
+      socket.on('peerJoined', ({ peerId, name, isMuted, isAudioEnabled, userId: peerUserId }) => {
+        console.log('New peer joined:', { peerId, name, isMuted, isAudioEnabled, peerUserId });
         
         // Участник будет добавлен автоматически через voiceChannelParticipantsUpdate от сервера
         console.log('New peer will be added via server update:', {
@@ -1827,7 +1861,8 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
             newPeers.set(peerId, { 
               id: peerId, 
               name, 
-              isMuted: Boolean(isMuted) 
+              isMuted: Boolean(isMuted),
+              userId: peerUserId // Добавляем userId для связи с профилем
             });
             console.log('Added new peer to peers map:', { peerId, name });
           }
@@ -1840,6 +1875,11 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           newStates.set(peerId, Boolean(isAudioEnabled));
           return newStates;
         });
+
+        // Загружаем профиль нового участника
+        if (peerUserId) {
+          fetchUserProfile(peerUserId);
+        }
 
         // Initialize volumes for the new peer
         setVolumes(prev => {
@@ -1937,9 +1977,15 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                 peersMap.set(peer.id, { 
                   id: peer.id, 
                   name: peer.name, 
-                  isMuted: peer.isMuted || false 
+                  isMuted: peer.isMuted || false,
+                  userId: peer.userId // Добавляем userId для связи с профилем
                 });
                 audioStatesMap.set(peer.id, peer.isAudioEnabled);
+                
+                // Загружаем профиль существующего участника
+                if (peer.userId) {
+                  fetchUserProfile(peer.userId);
+                }
                 
                 // Initialize individual mute state for existing peers - NOT muted by default
                 individualMutedPeersRef.current.set(peer.id, false);
@@ -4437,9 +4483,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                       justifyContent: 'center',
                       alignItems: 'center'
                     }}>
-                      <Box sx={styles.userAvatar}>
-                        {userName[0].toUpperCase()}
-                      </Box>
+                      <UserAvatar
+                        username={userName}
+                        avatarUrl={userProfiles.get(userId)?.avatarUrl}
+                        avatarColor={userProfiles.get(userId)?.avatarColor}
+                        size="120px"
+                        showStatus={false}
+                      />
                       <VideoOverlay
                         peerName={userName}
                         isMuted={isMuted}
@@ -4503,9 +4553,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                         justifyContent: 'center',
                         alignItems: 'center'
                       }}>
-                        <Box sx={styles.userAvatar}>
-                          {peer.name[0].toUpperCase()}
-                        </Box>
+                        <UserAvatar
+                          username={peer.name}
+                          avatarUrl={userProfiles.get(peer.userId)?.avatarUrl}
+                          avatarColor={userProfiles.get(peer.userId)?.avatarColor}
+                          size="120px"
+                          showStatus={false}
+                        />
                         <VideoOverlay
                           peerName={peer.name}
                           isMuted={peer.isMuted}
