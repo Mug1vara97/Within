@@ -2633,6 +2633,12 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       try {
         // Получаем реальный ID пользователя из маппинга
         const realUserId = userIdMappingRef.current.get(peerId) || peerId;
+        console.log('Saving volume in handleVolumeChange:', {
+          peerId: peerId,
+          realUserId: realUserId,
+          newVolume: newVolume,
+          userIdMapping: Array.from(userIdMappingRef.current.entries())
+        });
         await volumeStorage.saveUserVolume(realUserId, newVolume);
       } catch (error) {
         console.error('Failed to save volume for user:', peerId, error);
@@ -2689,6 +2695,12 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
        try {
          // Получаем реальный ID пользователя из маппинга
          const realUserId = userIdMappingRef.current.get(peerId) || peerId;
+         console.log('Saving volume in handleVolumeSliderChange:', {
+           peerId: peerId,
+           realUserId: realUserId,
+           newVolume: newVolume,
+           userIdMapping: Array.from(userIdMappingRef.current.entries())
+         });
          await volumeStorage.saveUserVolume(realUserId, newVolume);
        } catch (error) {
          console.error('Failed to save volume for user:', peerId, error);
@@ -2717,7 +2729,14 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   // Функция для получения реального ID пользователя из producer
   const getRealUserId = (producer, appData) => {
-    return appData?.userId || producer.appData?.userId || producer.producerSocketId;
+    const result = appData?.userId || producer.appData?.userId || producer.producerSocketId;
+    console.log('getRealUserId called:', {
+      appDataUserId: appData?.userId,
+      producerAppDataUserId: producer.appData?.userId,
+      producerSocketId: producer.producerSocketId,
+      result: result
+    });
+    return result;
   };
 
   // Обновляем обработчик подключения пира
@@ -4029,18 +4048,25 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
           // Create gain node для регулировки громкости
           const gainNode = audioContext.createGain();
           
-          // Получаем реальный ID пользователя
-          const realUserId = getRealUserId(producer, appData);
-          
-          console.log('Consumer appData and realUserId:', {
-            producerSocketId: producer.producerSocketId,
-            appData: appData,
-            producerAppData: producer.appData,
-            realUserId: realUserId
-          });
+                  // Получаем реальный ID пользователя
+        const realUserId = getRealUserId(producer, appData);
+        
+        console.log('Consumer appData and realUserId:', {
+          producerSocketId: producer.producerSocketId,
+          appData: appData,
+          producerAppData: producer.appData,
+          realUserId: realUserId,
+          appDataUserId: appData?.userId,
+          producerAppDataUserId: producer.appData?.userId
+        });
           
           // Сохраняем маппинг между producerSocketId и реальным userId
           userIdMappingRef.current.set(producer.producerSocketId, realUserId);
+          console.log('Updated userIdMapping:', {
+            producerSocketId: producer.producerSocketId,
+            realUserId: realUserId,
+            userIdMapping: Array.from(userIdMappingRef.current.entries())
+          });
           
           // Получаем сохраненную громкость для этого пользователя
           let savedVolume = 100; // Значение по умолчанию
