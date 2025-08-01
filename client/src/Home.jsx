@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import ChatList from './ChatList';
 import ServerList from './ServerList';
 import ServerPage from './ServerPage';
@@ -9,6 +9,7 @@ import GroupChat from './Chats/GroupChat';
 import NotificationButton from './components/NotificationButton';
 import { useNotifications } from './hooks/useNotifications';
 import { useGlobalHotkeys } from './hooks/useGlobalHotkeys';
+import useHotkeys from './hooks/useHotkeys';
 
 // Компонент подсказки о горячих клавишах
 const HotkeyHint = () => {
@@ -168,7 +169,7 @@ const Home = ({ user }) => {
     };
     
     // Функции управления мьютом для UserPanel
-    const handleToggleMute = () => {
+    const handleToggleMute = useCallback(() => {
         if (voiceRoom && voiceChatRef.current && voiceChatRef.current.handleMute) {
             // Если в голосовом чате - управляем реальным мьютом
             voiceChatRef.current.handleMute();
@@ -176,9 +177,9 @@ const Home = ({ user }) => {
             // Если не в голосовом чате - управляем локальным состоянием
             setLocalMuted(!localMuted);
         }
-    };
+    }, [voiceRoom, localMuted]);
     
-    const handleToggleAudio = () => {
+    const handleToggleAudio = useCallback(() => {
         if (voiceRoom && voiceChatRef.current && voiceChatRef.current.toggleAudio) {
             // Если в голосовом чате - управляем реальным звуком
             voiceChatRef.current.toggleAudio();
@@ -186,7 +187,7 @@ const Home = ({ user }) => {
             // Если не в голосовом чате - управляем локальным состоянием
             setLocalAudioEnabled(!localAudioEnabled);
         }
-    };
+    }, [voiceRoom, localAudioEnabled]);
     
     // Коллбеки для получения состояний от VoiceChat
     const handleMuteStateChange = (muted) => {
@@ -197,7 +198,11 @@ const Home = ({ user }) => {
         setIsAudioEnabled(enabled);
     };
 
-
+    // Глобальные горячие клавиши
+    useHotkeys({
+        toggleMic: handleToggleMute,
+        toggleAudio: handleToggleAudio
+    });
 
     // Сохраняем состояние голосового чата в localStorage
     useEffect(() => {

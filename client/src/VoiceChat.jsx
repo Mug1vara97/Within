@@ -48,7 +48,6 @@ import { io } from 'socket.io-client';
 import { NoiseSuppressionManager } from './utils/noiseSuppression';
 import voiceDetectorWorklet from './utils/voiceDetector.worklet.js?url';
 import volumeStorage from './utils/volumeStorage';
-import useHotkeys from './hooks/useHotkeys';
 
 
 
@@ -4233,11 +4232,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     toggleAudio
   }), [handleMute, toggleAudio]);
 
-  // Горячие клавиши
-  useHotkeys({
-    toggleMic: handleMute,
-    toggleAudio: toggleAudio
-  });
+  // Горячие клавиши обрабатываются глобально в Home.jsx
 
   // Add initial audio state when joining
   useEffect(() => {
