@@ -80,7 +80,7 @@ function updateUserVoiceState(userId, updates) {
     
     const newState = { ...currentState, ...updates };
     userVoiceStates.set(userId, newState);
-    // console.log(`[USER_VOICE_STATE] Updated user ${userId}:`, newState);
+    console.log(`[USER_VOICE_STATE] Updated user ${userId}:`, newState);
     return newState;
 }
 
@@ -1404,12 +1404,33 @@ io.on('connection', async (socket) => {
             
             // Если пользователь присоединился/покинул канал, обновляем информацию о канале
             if (channelId !== undefined) {
-                scheduleChannelUpdate(channelId);
+                // Мгновенное обновление для смены канала
+                const participants = getChannelParticipants(channelId);
+                console.log(`[INSTANT_UPDATE] Channel ${channelId}: ${participants.length} participants`);
+                io.emit('voiceChannelParticipantsUpdate', {
+                    channelId: channelId,
+                    participants: participants
+                });
                 
                 // Если пользователь покинул канал, также обновляем предыдущий канал
                 const currentState = getUserVoiceState(userId);
                 if (currentState.channelId && currentState.channelId !== channelId) {
-                    scheduleChannelUpdate(currentState.channelId);
+                    const oldParticipants = getChannelParticipants(currentState.channelId);
+                    io.emit('voiceChannelParticipantsUpdate', {
+                        channelId: currentState.channelId,
+                        participants: oldParticipants
+                    });
+                }
+            } else {
+                // Для изменений состояния (микрофон/наушники) - тоже мгновенно
+                const userState = getUserVoiceState(userId);
+                if (userState.channelId) {
+                    const participants = getChannelParticipants(userState.channelId);
+                    console.log(`[INSTANT_UPDATE] State change for channel ${userState.channelId}: ${participants.length} participants`);
+                    io.emit('voiceChannelParticipantsUpdate', {
+                        channelId: userState.channelId,
+                        participants: participants
+                    });
                 }
             }
         } catch (error) {

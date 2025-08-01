@@ -23,7 +23,7 @@ export const VoiceChannelProvider = ({ children }) => {
 
     // Слушаем обновления участников голосовых каналов
     newSocket.on('voiceChannelParticipantsUpdate', ({ channelId, participants }) => {
-      // console.log('VoiceChannelContext: Received participants update:', channelId, participants?.length);
+      console.log('VoiceChannelContext: Received participants update:', channelId, participants?.length);
       setVoiceChannels(prev => {
         const newChannels = new Map(prev);
         const existingChannel = newChannels.get(channelId);
