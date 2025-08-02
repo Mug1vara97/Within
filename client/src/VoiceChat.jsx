@@ -4737,14 +4737,13 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
 
   // Определяем целевой контейнер для портала
   const getTargetContainer = () => {
-    if (!isVisible) return null;
-    
-    // Для серверных голосовых каналов
+    // Для серверных голосовых каналов проверяем isVisible
     if (serverId) {
+      if (!isVisible) return null;
       return document.getElementById('voice-chat-container-server');
     }
     
-    // Для личных звонков (1 на 1) ищем контейнер в GroupChat
+    // Для личных звонков (1 на 1) всегда ищем контейнер в GroupChat, независимо от isVisible
     if (isPrivateCall) {
       const privateContainer = document.getElementById('voice-chat-container-private');
       if (privateContainer) {
@@ -4754,13 +4753,21 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       return null;
     }
     
+    // Для других случаев проверяем isVisible
+    if (!isVisible) return null;
+    
     // Для других случаев не создаем портал (работаем в фоне)
     return null;
   };
 
   const targetContainer = getTargetContainer();
   
-  // Если видимый и есть контейнер, используем портал
+  // Для приватных звонков: если есть контейнер, используем портал
+  if (isPrivateCall && targetContainer) {
+    return createPortal(ui, targetContainer);
+  }
+  
+  // Для других случаев: если видимый и есть контейнер, используем портал
   if (isVisible && targetContainer) {
     return createPortal(ui, targetContainer);
   }

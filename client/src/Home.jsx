@@ -69,9 +69,9 @@ const Home = ({ user }) => {
             return false;
         }
         
-        // Для личных звонков скрываем глобальный VoiceChat (он отображается в GroupChat)
+        // Для личных звонков VoiceChat рендерится, но isVisible = false (показывается только в портале GroupChat)
         if (voiceRoom.isPrivateCall) {
-            console.log('Private call detected - hiding global voice chat (shown in GroupChat)');
+            console.log('Private call detected - VoiceChat will render but be hidden (shown only in GroupChat portal)');
             return false;
         }
         
