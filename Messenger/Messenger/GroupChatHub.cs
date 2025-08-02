@@ -532,13 +532,14 @@ namespace Messenger
             {
                 Console.WriteLine($"🔥 NotifyCallStarted called: chatId={chatId}, callerId={callerId}");
                 
+                Console.WriteLine("🔍 Getting chat members...");
                 // Получаем участников чата
                 var chatMembers = await _context.Members
                     .Where(m => m.ChatId == chatId)
                     .Select(m => m.UserId)
                     .ToListAsync();
 
-                Console.WriteLine($"Found {chatMembers.Count} chat members: {string.Join(", ", chatMembers)}");
+                Console.WriteLine($"✅ Found {chatMembers.Count} chat members: {string.Join(", ", chatMembers)}");
 
                 // Отправляем уведомление о начале звонка всем участникам кроме звонящего
                 var notificationMembers = chatMembers.Where(m => m != callerId).ToList();
@@ -547,10 +548,19 @@ namespace Messenger
                 
                 foreach (var memberId in notificationMembers)
                 {
-                    Console.WriteLine($"Sending CallStarted to user {memberId}: chatId={chatId}, callerId={callerId}");
-                    // Отправляем уведомление через групповой чат
-                    await Clients.User(memberId.ToString()).SendAsync("CallStarted", chatId, callerId);
+                    Console.WriteLine($"📤 Sending CallStarted to user {memberId}: chatId={chatId}, callerId={callerId}");
+                    try
+                    {
+                        await Clients.User(memberId.ToString()).SendAsync("CallStarted", chatId, callerId);
+                        Console.WriteLine($"✅ CallStarted sent to user {memberId}");
+                    }
+                    catch (Exception sendEx)
+                    {
+                        Console.Error.WriteLine($"❌ Failed to send CallStarted to user {memberId}: {sendEx.Message}");
+                    }
                 }
+                
+                Console.WriteLine("🎯 NotifyCallStarted completed successfully");
             }
             catch (Exception ex)
             {
