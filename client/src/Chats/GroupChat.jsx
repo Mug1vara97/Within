@@ -14,6 +14,7 @@ import useScrollToBottom from '../hooks/useScrollToBottom';
 import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/GroupSettings';
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
+import CallTypeModal from '../components/CallTypeModal';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
   return (
@@ -100,6 +101,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const [forwardMessageText, setForwardMessageText] = useState('');
   const forwardTextareaRef = useRef(null);
   const [isPrivateChat, setIsPrivateChat] = useState(false);
+  const [isCallTypeModalOpen, setIsCallTypeModalOpen] = useState(false);
 
   // Определяем, является ли это личным чатом
   useEffect(() => {
@@ -114,26 +116,52 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
 
   const handleStartCall = () => {
     if (isPrivateChat && !isCallActiveInThisChat) {
-      // Создаем данные звонка
-      const callData = {
-        roomId: chatId.toString(),
-        roomName: `Звонок с ${groupName}`,
-        userName: username,
-        userId: userId,
-        isPrivateCall: true,
-        chatId: chatId
-      };
-      
-      // Отправляем уведомление о звонке через SignalR
-      if (connection) {
-        connection.invoke('SendCallNotification', chatId, username, userId, groupName);
-      }
-      
-      // Вызываем глобальный обработчик для начала звонка
-      if (onJoinVoiceChannel) {
-        onJoinVoiceChannel(callData);
-      }
+      // Открываем модальное окно выбора типа звонка
+      setIsCallTypeModalOpen(true);
     }
+  };
+
+  const handleCallWithNotification = () => {
+    // Создаем данные звонка с уведомлением
+    const callData = {
+      roomId: chatId.toString(),
+      roomName: `Звонок с ${groupName}`,
+      userName: username,
+      userId: userId,
+      isPrivateCall: true,
+      chatId: chatId
+    };
+    
+    // Отправляем уведомление о звонке через SignalR
+    if (connection) {
+      connection.invoke('SendCallNotification', chatId, username, userId, groupName);
+    }
+    
+    // Вызываем глобальный обработчик для начала звонка
+    if (onJoinVoiceChannel) {
+      onJoinVoiceChannel(callData);
+    }
+    
+    setIsCallTypeModalOpen(false);
+  };
+
+  const handleCallWithoutNotification = () => {
+    // Создаем данные звонка без уведомления
+    const callData = {
+      roomId: chatId.toString(),
+      roomName: `Звонок с ${groupName}`,
+      userName: username,
+      userId: userId,
+      isPrivateCall: true,
+      chatId: chatId
+    };
+    
+    // Вызываем глобальный обработчик для начала звонка (без отправки уведомления)
+    if (onJoinVoiceChannel) {
+      onJoinVoiceChannel(callData);
+    }
+    
+    setIsCallTypeModalOpen(false);
   };
 
   const handleEndCall = () => {
@@ -907,6 +935,15 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         )}
       </form>
       <ForwardModal />
+      
+      {/* Модальное окно выбора типа звонка */}
+      <CallTypeModal
+        isOpen={isCallTypeModalOpen}
+        onClose={() => setIsCallTypeModalOpen(false)}
+        onCallWithNotification={handleCallWithNotification}
+        onCallWithoutNotification={handleCallWithoutNotification}
+        targetUser={groupName}
+      />
     </div>
   );
 };
