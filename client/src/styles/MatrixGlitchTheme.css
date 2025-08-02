@@ -44,11 +44,21 @@
 }
 
 /* Исключаем применение прозрачного фона к контейнерам с кнопками */
-.matrix-glitch-theme .MuiBox-root.css-34b1gw,
-.matrix-glitch-theme .MuiBox-root.css-huskxe,
-.matrix-glitch-theme .MuiBox-root.css-yja2m0,
-.matrix-glitch-theme .MuiBox-root.css-70qvj9 {
-    background-color: initial !important;
+.matrix-glitch-theme #voice-chat-container-private .MuiBox-root.css-34b1gw,
+.matrix-glitch-theme #voice-chat-container-server .MuiBox-root.css-34b1gw,
+.matrix-glitch-theme #voice-chat-container-private .MuiBox-root.css-huskxe,
+.matrix-glitch-theme #voice-chat-container-server .MuiBox-root.css-huskxe,
+.matrix-glitch-theme #voice-chat-container-private .MuiBox-root.css-yja2m0,
+.matrix-glitch-theme #voice-chat-container-server .MuiBox-root.css-yja2m0,
+.matrix-glitch-theme #voice-chat-container-private .MuiBox-root.css-70qvj9,
+.matrix-glitch-theme #voice-chat-container-server .MuiBox-root.css-70qvj9 {
+    background-color: var(--background) !important;
+}
+
+/* Дополнительно исключаем все контейнеры с кнопками внутри VoiceChat */
+.matrix-glitch-theme #voice-chat-container-private .MuiBox-root:has(.MuiButtonBase-root),
+.matrix-glitch-theme #voice-chat-container-server .MuiBox-root:has(.MuiButtonBase-root) {
+    background-color: var(--background) !important;
 }
 
 .matrix-glitch-theme .messages {
