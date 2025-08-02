@@ -14,6 +14,7 @@ import useScrollToBottom from '../hooks/useScrollToBottom';
 import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/GroupSettings';
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
+import VoiceChat from '../VoiceChat';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
   return (
@@ -100,6 +101,8 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const [forwardMessageText, setForwardMessageText] = useState('');
   const forwardTextareaRef = useRef(null);
   const [isPrivateChat, setIsPrivateChat] = useState(false);
+  const [activeCall, setActiveCall] = useState(null);
+  const [isInCall, setIsInCall] = useState(false);
 
   // Определяем, является ли это личным чатом
   useEffect(() => {
@@ -108,17 +111,30 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   }, [chatTypeId, isGroupChat, isServerChat]);
 
   const handleStartCall = () => {
-    if (onJoinVoiceChannel && isPrivateChat) {
-      // Используем ID чата как ID комнаты для звонка
-      onJoinVoiceChannel({
+    if (isPrivateChat && !isInCall) {
+      // Устанавливаем состояние звонка
+      const callData = {
         roomId: chatId.toString(),
         roomName: `Звонок с ${groupName}`,
         userName: username,
         userId: userId,
         isPrivateCall: true,
         chatId: chatId
-      });
+      };
+      
+      setActiveCall(callData);
+      setIsInCall(true);
+      
+      // Если есть глобальный обработчик, вызываем его тоже
+      if (onJoinVoiceChannel) {
+        onJoinVoiceChannel(callData);
+      }
     }
+  };
+
+  const handleEndCall = () => {
+    setIsInCall(false);
+    setActiveCall(null);
   };
 
   useEffect(() => {
@@ -526,7 +542,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           </div>
         </div>
         <div className="header-actions">
-          {isPrivateChat && (
+          {isPrivateChat && !isInCall && (
             <button
               onClick={handleStartCall}
               className="voice-call-button"
@@ -642,6 +658,71 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           userId={userId}
           chatId={chatId}
         />
+      )}
+
+      {/* Интерфейс звонка для личных чатов */}
+      {isPrivateChat && isInCall && activeCall && (
+        <div style={{
+          position: 'relative',
+          width: '100%',
+          minHeight: '300px',
+          backgroundColor: '#18191c',
+          borderBottom: '1px solid #202225',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}>
+          {/* Заголовок звонка */}
+          <div style={{
+            padding: '16px 20px',
+            borderBottom: '1px solid #202225',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: '#202225'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <CallIcon style={{ color: '#3ba55d', fontSize: '20px' }} />
+              <span style={{ color: '#dcddde', fontSize: '16px', fontWeight: '500' }}>
+                Голосовой звонок с {groupName}
+              </span>
+            </div>
+            <button
+              onClick={handleEndCall}
+              style={{
+                background: '#ed4245',
+                border: 'none',
+                color: 'white',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#c53030'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#ed4245'}
+            >
+              Завершить звонок
+            </button>
+          </div>
+          
+          {/* Область VoiceChat */}
+          <div style={{ flex: 1, position: 'relative', minHeight: '250px' }}>
+            <VoiceChat
+              roomId={activeCall.roomId}
+              roomName={activeCall.roomName}
+              userName={activeCall.userName}
+              userId={activeCall.userId}
+              autoJoin={true}
+              showUI={true}
+              isVisible={true}
+              onLeave={handleEndCall}
+              isPrivateCall={true}
+              embedMode={true}
+            />
+          </div>
+        </div>
       )}
 
   <div className="messages">
