@@ -635,7 +635,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         connection.off('CallEnded', handleCallEnded);
       };
     }
-  }, [connection, chatId]);
+  }, [connection, connection?.state, chatId]);
 
   // Обработчик события завершения звонка из Home.jsx
   useEffect(() => {
