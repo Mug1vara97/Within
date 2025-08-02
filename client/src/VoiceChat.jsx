@@ -4444,7 +4444,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         display: 'flex', 
         width: '100%', 
         height: '100%',
-        ...(isVisible ? {
+        ...(isVisible || isPrivateCall ? {
           position: 'relative',
           zIndex: 1
         } : {
