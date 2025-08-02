@@ -44,6 +44,84 @@ export const NotificationProvider = ({ children }) => {
         }
     }, []);
 
+    // Функция для проигрывания звука входящего звонка
+    const playIncomingCallSound = useCallback(() => {
+        try {
+            // Сначала пробуем проиграть реальный аудиофайл для звонка
+            const audioElement = new Audio('/incoming-call.mp3');
+            audioElement.volume = 0.7;
+            audioElement.loop = true; // Зацикливаем звук для звонка
+            
+            audioElement.play().catch(() => {
+                // Если MP3 не найден, пробуем WAV
+                const wavAudio = new Audio('/incoming-call.wav');
+                wavAudio.volume = 0.7;
+                wavAudio.loop = true;
+                
+                wavAudio.play().catch(() => {
+                    // Если файлы не найдены, используем fallback для звонка
+                    console.log("Incoming call audio files not found, using fallback sound");
+                    playIncomingCallFallbackSound();
+                });
+            });
+            
+            console.log("Incoming call sound played");
+            
+            // Возвращаем функцию для остановки звука
+            return () => {
+                audioElement.pause();
+                audioElement.currentTime = 0;
+            };
+        } catch (error) {
+            console.error("Error playing incoming call sound:", error);
+            // В случае ошибки тоже используем fallback
+            return playIncomingCallFallbackSound();
+        }
+    }, []);
+
+    // Функция для проигрывания fallback звука входящего звонка
+    const playIncomingCallFallbackSound = useCallback(() => {
+        try {
+            // Создаем или используем существующий AudioContext
+            if (!audioContextRef.current) {
+                audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            const audioContext = audioContextRef.current;
+            
+            // Проверяем состояние AudioContext и возобновляем если нужно
+            if (audioContext.state === 'suspended') {
+                audioContext.resume().then(() => {
+                    console.log("AudioContext resumed");
+                    playIncomingCallFallbackSound(); // Повторяем попытку после возобновления
+                });
+                return;
+            }
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Создаем звук звонка (более длинный и повторяющийся)
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.5);
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 1.0);
+            oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 1.5);
+            
+            gainNode.gain.setValueAtTime(0.6, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 2.0);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 2.0);
+            
+            console.log("Incoming call fallback sound played successfully");
+        } catch (error) {
+            console.error("Error playing incoming call fallback sound:", error);
+        }
+    }, []);
+
     // Функция для проигрывания fallback звука
     const playFallbackSound = useCallback(() => {
         try {
@@ -195,6 +273,9 @@ export const NotificationProvider = ({ children }) => {
                 callerId: typeof callerId, 
                 roomId: typeof roomId 
             });
+            
+            // Проигрываем звук входящего звонка
+            playIncomingCallSound();
             
             // Отправляем событие для обработки входящего звонка
             const eventDetail = { 
