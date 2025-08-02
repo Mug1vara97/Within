@@ -599,6 +599,10 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
                     isNotMe: callerId !== userId
                 });
                 
+                // Тест: всегда устанавливаем панель для отладки
+                console.log('🧪 DEBUG: Setting otherUserInCall to TRUE regardless of conditions');
+                setOtherUserInCall(true);
+                
                 // Если звонок в этом чате и звонит не мы, показываем панель
                 if (String(callChatId) === String(chatId) && callerId !== userId) {
                     console.log('🎯 Setting otherUserInCall to TRUE');
