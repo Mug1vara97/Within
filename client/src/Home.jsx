@@ -375,6 +375,8 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel
                                 chatId={selectedChat.chatId}
                                 groupName={selectedChat.groupName || selectedChat.name}
                                 isServerChat={false}
+                                onJoinVoiceChannel={onJoinVoiceChannel}
+                                chatTypeId={selectedChat.typeId || selectedChat.chatType}
                             />
                         )}
                         
@@ -484,6 +486,8 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVis
                                 serverId={serverId}
                                 userPermissions={selectedChat.userPermissions}
                                 isServerOwner={selectedChat.isServerOwner}
+                                onJoinVoiceChannel={onJoinVoiceChannel}
+                                chatTypeId={selectedChat.typeId || selectedChat.chatType}
                             />
                         )}
                         
