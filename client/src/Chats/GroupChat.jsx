@@ -213,6 +213,15 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       console.log('📞 Sending call started (without notification):', { chatId, userId });
       console.log('📞 Connection state:', connection.state);
       
+      // Тестовый вызов
+      connection.invoke('TestCallMethod', 12345)
+        .then(() => {
+          console.log('✅ TestCallMethod sent successfully');
+        })
+        .catch((error) => {
+          console.error('❌ Failed to send TestCallMethod:', error);
+        });
+      
       connection.invoke('NotifyCallStarted', chatId, userId)
         .then(() => {
           console.log('✅ NotifyCallStarted sent successfully');

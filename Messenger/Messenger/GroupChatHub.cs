@@ -521,11 +521,16 @@ namespace Messenger
             }
         }
 
+        public async Task TestCallMethod(int testValue)
+        {
+            Console.WriteLine($"🧪 TEST METHOD CALLED: testValue={testValue}");
+        }
+
         public async Task NotifyCallStarted(int chatId, int callerId)
         {
             try
             {
-                Console.WriteLine($"NotifyCallStarted called: chatId={chatId}, callerId={callerId}");
+                Console.WriteLine($"🔥 NotifyCallStarted called: chatId={chatId}, callerId={callerId}");
                 
                 // Получаем участников чата
                 var chatMembers = await _context.Members
