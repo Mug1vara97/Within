@@ -34,6 +34,12 @@
     background-color: transparent !important;
 }
 
+/* Прозрачный фон для основного контейнера VoiceChat */
+.matrix-glitch-theme #voice-chat-container-private > .MuiBox-root:first-child,
+.matrix-glitch-theme #voice-chat-container-server > .MuiBox-root:first-child {
+    background-color: transparent !important;
+}
+
 .matrix-glitch-theme .messages {
     background-color: transparent !important;
 }
