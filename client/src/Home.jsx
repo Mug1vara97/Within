@@ -7,7 +7,6 @@ import { Routes, Route, useParams, useLocation, useNavigate } from 'react-router
 import VoiceChat from './VoiceChat';
 import GroupChat from './Chats/GroupChat';
 import NotificationButton from './components/NotificationButton';
-import OutgoingCallModal from './components/OutgoingCallModal';
 import IncomingCallModal from './components/IncomingCallModal';
 import { useNotifications } from './hooks/useNotifications';
 import { useGlobalHotkeys } from './hooks/useGlobalHotkeys';
@@ -38,11 +37,8 @@ const Home = ({ user }) => {
     // Состояние активного приватного звонка
     const [activePrivateCall, setActivePrivateCall] = useState(null); // { chatId, callData }
     
-    // Состояние дозвона (outgoing call)
-    const [outgoingCall, setOutgoingCall] = useState(null); // { chatId, callData, targetUser }
-    
-    // Состояние входящего звонка (incoming call)
-    const [incomingCall, setIncomingCall] = useState(null); // { chatId, callData, caller }
+    // Состояние входящего звонка
+    const [incomingCall, setIncomingCall] = useState(null); // { chatId, caller, callerId, roomId }
     
     // Состояния мьюта для UserPanel (инициализируются из localStorage)
     const [isMuted, setIsMuted] = useState(() => {
@@ -119,19 +115,8 @@ const Home = ({ user }) => {
             // Если передан null, это означает выход из звонка
             handleLeaveVoiceChannel();
         } else {
-            // Если это дозвон, сохраняем состояние дозвона
-            if (data.isOutgoingCall) {
-                setOutgoingCall({
-                    chatId: data.chatId,
-                    callData: data,
-                    targetUser: data.targetUser
-                });
-                return; // Не присоединяемся к звонку пока не ответят
-            }
-            
             setVoiceRoom(data);
             setLeftVoiceChannel(false);
-            setOutgoingCall(null); // Очищаем состояние дозвона
             
             // Если это приватный звонок, сохраняем информацию о нем
             if (data.isPrivateCall && data.chatId) {
@@ -143,11 +128,43 @@ const Home = ({ user }) => {
         }
     };
     
+    // Обработчик входящего звонка
+    const handleIncomingCall = (callData) => {
+        setIncomingCall(callData);
+    };
+    
+    // Обработчик ответа на входящий звонок
+    const handleAcceptCall = () => {
+        if (incomingCall) {
+            // Создаем данные звонка для присоединения
+            const callData = {
+                roomId: incomingCall.roomId,
+                roomName: `Звонок с ${incomingCall.caller}`,
+                userName: user?.username,
+                userId: user?.userId,
+                isPrivateCall: true,
+                chatId: incomingCall.chatId
+            };
+            
+            setVoiceRoom(callData);
+            setActivePrivateCall({
+                chatId: incomingCall.chatId,
+                callData: callData
+            });
+            setIncomingCall(null);
+        }
+    };
+    
+    // Обработчик отклонения входящего звонка
+    const handleRejectCall = () => {
+        setIncomingCall(null);
+    };
+    
     // Обработчик выхода из голосового канала
     const handleLeaveVoiceChannel = () => {
         setVoiceRoom(null);
         setActivePrivateCall(null); // Очищаем состояние приватного звонка
-        setOutgoingCall(null); // Очищаем состояние дозвона
+        setIncomingCall(null); // Очищаем состояние входящего звонка
         setLeftVoiceChannel(true);
         // НЕ сбрасываем состояния мьюта - сохраняем пользовательские настройки
         // setIsMuted(false);
@@ -289,6 +306,7 @@ const Home = ({ user }) => {
                                     onToggleMute={handleToggleMute}
                                     onToggleAudio={handleToggleAudio}
                                     activePrivateCall={activePrivateCall}
+                                    onIncomingCall={handleIncomingCall}
                                 />
                             } />
                             <Route path="/channels/:serverId/:chatId?" element={
@@ -304,6 +322,7 @@ const Home = ({ user }) => {
                                     onToggleMute={handleToggleMute}
                                     onToggleAudio={handleToggleAudio}
                                     activePrivateCall={activePrivateCall}
+                                    onIncomingCall={handleIncomingCall}
                                 />
                             } />
                         </Routes>
@@ -335,39 +354,12 @@ const Home = ({ user }) => {
                     />
                 )}
                 
-                {/* Модальное окно дозвона */}
-                {outgoingCall && (
-                    <OutgoingCallModal
-                        outgoingCall={outgoingCall}
-                        onCancelCall={() => {
-                            setOutgoingCall(null);
-                            handleLeaveVoiceChannel();
-                        }}
-                    />
-                )}
-                
                 {/* Модальное окно входящего звонка */}
                 {incomingCall && (
                     <IncomingCallModal
                         incomingCall={incomingCall}
-                        onAcceptCall={() => {
-                            // Принимаем звонок - создаем обычный звонок
-                            const callData = {
-                                ...incomingCall.callData,
-                                isPrivateCall: true,
-                                isOutgoingCall: false
-                            };
-                            setVoiceRoom(callData);
-                            setActivePrivateCall({
-                                chatId: incomingCall.chatId,
-                                callData: callData
-                            });
-                            setIncomingCall(null);
-                        }}
-                        onRejectCall={() => {
-                            // Отклоняем звонок
-                            setIncomingCall(null);
-                        }}
+                        onAcceptCall={handleAcceptCall}
+                        onRejectCall={handleRejectCall}
                     />
                 )}
             </div>
@@ -375,7 +367,7 @@ const Home = ({ user }) => {
     );
 };
 
-const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio, activePrivateCall }) => {
+const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio, activePrivateCall, onIncomingCall }) => {
     // Компонент для отображения сообщения о выходе из голосового канала
     const LeftVoiceChannelComponent = () => (
         <div style={{
@@ -460,6 +452,7 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel
                                 onJoinVoiceChannel={onJoinVoiceChannel}
                                 chatTypeId={selectedChat.typeId || selectedChat.chatType}
                                 activePrivateCall={activePrivateCall}
+                                onIncomingCall={onIncomingCall}
                             />
                         )}
                         
@@ -483,7 +476,7 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel
     );
 };
 
-const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio, activePrivateCall }) => {
+const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio, activePrivateCall, onIncomingCall }) => {
     // Компонент для отображения сообщения о выходе из голосового канала
     const LeftVoiceChannelComponent = () => (
         <div style={{
@@ -572,6 +565,7 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVis
                                 onJoinVoiceChannel={onJoinVoiceChannel}
                                 chatTypeId={selectedChat.typeId || selectedChat.chatType}
                                 activePrivateCall={activePrivateCall}
+                                onIncomingCall={onIncomingCall}
                             />
                         )}
                         

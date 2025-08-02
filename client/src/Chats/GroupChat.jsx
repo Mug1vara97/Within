@@ -52,7 +52,7 @@ const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
 };
 
 const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, userPermissions, chatListConnection,
-  isGroupChat = false, isServerOwner, onJoinVoiceChannel, chatTypeId, activePrivateCall }) => {
+  isGroupChat = false, isServerOwner, onJoinVoiceChannel, chatTypeId, activePrivateCall, onIncomingCall }) => {
   
 
   const [messages, setMessages] = useState([]);
@@ -114,15 +114,14 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
 
   const handleStartCall = () => {
     if (isPrivateChat && !isCallActiveInThisChat) {
-      // Создаем данные дозвона
+      // Создаем данные звонка
       const callData = {
         roomId: chatId.toString(),
         roomName: `Звонок с ${groupName}`,
         userName: username,
         userId: userId,
-        isOutgoingCall: true, // Это дозвон
-        chatId: chatId,
-        targetUser: groupName // Имя пользователя, которому звоним
+        isPrivateCall: true,
+        chatId: chatId
       };
       
       // Отправляем уведомление о звонке через SignalR
@@ -130,7 +129,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         connection.invoke('SendCallNotification', chatId, username, userId, groupName);
       }
       
-      // Вызываем глобальный обработчик для начала дозвона
+      // Вызываем глобальный обработчик для начала звонка
       if (onJoinVoiceChannel) {
         onJoinVoiceChannel(callData);
       }
@@ -458,6 +457,19 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         setMessages(prev => prev.filter(msg => msg.messageId !== messageId));
       };
 
+      // Обработчик входящего звонка
+      const incomingCallHandler = (incomingChatId, caller, callerId, roomId) => {
+        // Проверяем, что звонок для этого чата и не от нас самих
+        if (parseInt(incomingChatId) === parseInt(chatId) && callerId !== userId) {
+          onIncomingCall({
+            chatId: parseInt(incomingChatId),
+            caller: caller,
+            callerId: callerId,
+            roomId: roomId
+          });
+        }
+      };
+
                   connection.on('ReceiveMessage', receiveMessageHandler);
             connection.on('MessageEdited', messageEditedHandler);
             connection.on('MessageDeleted', messageDeletedHandler);
@@ -466,11 +478,13 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
                 // Здесь можно добавить визуальную индикацию прочтения сообщения
                 // Например, обновить состояние сообщения или показать иконку "прочитано"
             });
+            connection.on('IncomingCall', incomingCallHandler);
 
       return () => {
         connection.off('ReceiveMessage', receiveMessageHandler);
         connection.off('MessageEdited', messageEditedHandler);
         connection.off('MessageDeleted', messageDeletedHandler);
+        connection.off('IncomingCall', incomingCallHandler);
       };
     }
   }, [connection, chatId]);
@@ -672,7 +686,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         <div style={{
           position: 'relative',
           width: '100%',
-          height: '350px', // Фиксированная высота для лучшего отображения
+          height: '400px', // Фиксированная высота для лучшего отображения
           backgroundColor: '#18191c',
           borderBottom: '1px solid #202225',
           display: 'flex',

@@ -194,7 +194,7 @@
     background: rgba(97, 220, 163, 0.2) !important;
 }
 
-/* Стили для модального окна дозвона */
+/* Стили для модального окна входящего звонка */
 .matrix-glitch-theme .MuiBox-root[style*="position: fixed"][style*="z-index: 10000"] {
     background-color: rgba(0, 0, 0, 0.9) !important;
     backdrop-filter: blur(8px) !important;

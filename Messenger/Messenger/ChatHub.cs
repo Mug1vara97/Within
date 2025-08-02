@@ -273,5 +273,31 @@ namespace Messenger
             Console.Error.WriteLine($"Error marking message as read: {ex.Message}");
         }
     }
+
+    public async Task SendCallNotification(int chatId, string caller, int callerId, string targetUser)
+    {
+        try
+        {
+            // Получаем участников чата
+            var chatMembers = await _context.Members
+                .Where(m => m.ChatId == chatId)
+                .Select(m => m.UserId)
+                .ToListAsync();
+
+            // Отправляем уведомление о звонке всем участникам кроме звонящего
+            var notificationMembers = chatMembers.Where(m => m != callerId).ToList();
+            
+            foreach (var memberId in notificationMembers)
+            {
+                // Отправляем уведомление через SignalR
+                await _notificationHub.Clients.User(memberId.ToString()).SendAsync("IncomingCall", chatId, caller, callerId, chatId.ToString());
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error sending call notification: {ex.Message}");
+            throw;
+        }
+    }
 }
 }
