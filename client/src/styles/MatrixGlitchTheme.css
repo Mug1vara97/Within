@@ -21,6 +21,10 @@
     backdrop-filter: blur(2px);
 }
 
+.matrix-glitch-theme .server-sidebar {
+    background-color: transparent !important;
+}
+
 .matrix-glitch-theme .server-button {
     background-color: rgba(43, 69, 57, 0.7) !important;
     backdrop-filter: blur(2px);
