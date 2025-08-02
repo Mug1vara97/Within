@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import MicIcon from '@mui/icons-material/Mic';
 import StopIcon from '@mui/icons-material/Stop';
@@ -15,9 +15,6 @@ import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
 import CallTypeModal from '../components/CallTypeModal';
-import { useVoiceChannel } from '../contexts/VoiceChannelContext';
-import { FaUser } from 'react-icons/fa';
-import { MicOff, HeadsetOff } from '@mui/icons-material';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
   return (
@@ -58,7 +55,6 @@ const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
 const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, userPermissions, chatListConnection,
   isGroupChat = false, isServerOwner, onJoinVoiceChannel, chatTypeId, activePrivateCall }) => {
   
-  const { getVoiceChannelParticipants } = useVoiceChannel();
 
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -106,6 +102,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const forwardTextareaRef = useRef(null);
   const [isPrivateChat, setIsPrivateChat] = useState(false);
   const [isCallTypeModalOpen, setIsCallTypeModalOpen] = useState(false);
+  const [otherUserInCall, setOtherUserInCall] = useState(false); // Состояние для отображения, что собеседник в звонке
 
   // Определяем, является ли это личным чатом
   useEffect(() => {
@@ -118,22 +115,15 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     String(activePrivateCall.chatId) === String(chatId) && 
     isPrivateChat;
 
-  // Получаем участников приватного звонка (используем chatId как roomId для приватных звонков)
-  const callParticipants = useMemo(() => {
-    if (!isPrivateChat) return [];
-    
-    // Для приватных звонков используем chatId как идентификатор канала
-    const participants = getVoiceChannelParticipants(chatId);
-    console.log(`GroupChat: Getting call participants for chat ${chatId}:`, participants);
-    
-    // Фильтруем участников - исключаем текущего пользователя
-    const otherParticipants = participants.filter(p => p.id !== userId);
-    
-    return otherParticipants;
-  }, [isPrivateChat, chatId, getVoiceChannelParticipants, userId]);
-
-  // Определяем, есть ли другие пользователи в звонке (не мы сами)
-  const hasOtherUsersInCall = callParticipants.length > 0;
+  // Отслеживаем завершение звонка
+  useEffect(() => {
+    // Если звонок был активен в этом чате, но теперь его нет, уведомляем о завершении
+    if (isPrivateChat && !activePrivateCall && connection) {
+      // Здесь можно добавить логику для определения, был ли звонок активен ранее
+      console.log('Call ended in private chat, notifying...');
+      // connection.invoke('NotifyCallEnded', chatId, userId);
+    }
+  }, [activePrivateCall, isPrivateChat, connection, chatId, userId]);
 
   const handleStartCall = () => {
     if (isPrivateChat && !isCallActiveInThisChat) {
@@ -143,9 +133,8 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   };
 
   // Функция для присоединения к существующему звонку
-  const handleJoinExistingCall = () => {
-    if (isPrivateChat && hasOtherUsersInCall && !isCallActiveInThisChat) {
-      // Создаем данные звонка для присоединения
+  const handleJoinCall = () => {
+    if (isPrivateChat && !isCallActiveInThisChat) {
       const callData = {
         roomId: chatId.toString(),
         roomName: `Звонок с ${groupName}`,
@@ -155,7 +144,9 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         chatId: chatId
       };
 
-      // Присоединяемся к звонку
+      // Скрываем панель, так как мы присоединяемся
+      setOtherUserInCall(false);
+
       if (onJoinVoiceChannel) {
         onJoinVoiceChannel(callData);
       }
@@ -176,6 +167,8 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     // Отправляем уведомление о звонке через SignalR
     if (connection) {
       connection.invoke('SendCallNotification', chatId, username, userId, groupName);
+      // Уведомляем о начале звонка
+      connection.invoke('NotifyCallStarted', chatId, userId);
     }
     
     // Вызываем глобальный обработчик для начала звонка
@@ -196,6 +189,11 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       isPrivateCall: true,
       chatId: chatId
     };
+    
+    // Уведомляем о начале звонка (даже без уведомления собеседнику нужно показать панель)
+    if (connection) {
+      connection.invoke('NotifyCallStarted', chatId, userId);
+    }
     
     // Вызываем глобальный обработчик для начала звонка (без отправки уведомления)
     if (onJoinVoiceChannel) {
@@ -535,10 +533,29 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
                 // Например, обновить состояние сообщения или показать иконку "прочитано"
             });
 
+            // Обработчики для статуса звонков
+            connection.on('CallStarted', (callChatId, callerId) => {
+                console.log('CallStarted received:', { callChatId, callerId, currentChatId: chatId });
+                // Если звонок в этом чате и звонит не мы, показываем панель
+                if (String(callChatId) === String(chatId) && callerId !== userId) {
+                    setOtherUserInCall(true);
+                }
+            });
+
+            connection.on('CallEnded', (callChatId) => {
+                console.log('CallEnded received:', { callChatId, currentChatId: chatId });
+                // Если звонок закончился в этом чате, скрываем панель
+                if (String(callChatId) === String(chatId)) {
+                    setOtherUserInCall(false);
+                }
+            });
+
       return () => {
         connection.off('ReceiveMessage', receiveMessageHandler);
         connection.off('MessageEdited', messageEditedHandler);
         connection.off('MessageDeleted', messageDeletedHandler);
+        connection.off('CallStarted');
+        connection.off('CallEnded');
       };
     }
   }, [connection, chatId]);
@@ -617,7 +634,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           </div>
         </div>
         <div className="header-actions">
-          {isPrivateChat && !isCallActiveInThisChat && !hasOtherUsersInCall && (
+          {isPrivateChat && !isCallActiveInThisChat && (
             <button
               onClick={handleStartCall}
               className="voice-call-button"
@@ -646,64 +663,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
             >
               <CallIcon style={{ fontSize: '20px' }} />
             </button>
-          )}
-          
-          {/* Отображение участников звонка и кнопки присоединения */}
-          {isPrivateChat && hasOtherUsersInCall && !isCallActiveInThisChat && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              marginRight: '8px',
-              padding: '4px 8px',
-              backgroundColor: '#5865f2',
-              borderRadius: '6px',
-              gap: '8px'
-            }}>
-              {/* Участники звонка */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                color: 'white',
-                fontSize: '12px'
-              }}>
-                <FaUser style={{ fontSize: '12px' }} />
-                <span>{callParticipants.length} в звонке</span>
-                
-                {/* Показываем статусы участников */}
-                {callParticipants.some(p => p.isMuted) && (
-                  <MicOff style={{ fontSize: '12px', color: '#ed4245' }} title="Микрофон выключен" />
-                )}
-                {callParticipants.some(p => p.isAudioDisabled) && (
-                  <HeadsetOff style={{ fontSize: '12px', color: '#ed4245' }} title="Звук выключен" />
-                )}
-              </div>
-              
-              {/* Кнопка присоединения */}
-              <button
-                onClick={handleJoinExistingCall}
-                style={{
-                  background: '#3ba55c',
-                  border: 'none',
-                  color: 'white',
-                  cursor: 'pointer',
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#2d7d32';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = '#3ba55c';
-                }}
-                title="Присоединиться к звонку"
-              >
-                Присоединиться
-              </button>
-            </div>
           )}
           {isGroupChat && (
             <button
@@ -820,6 +779,72 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
               height: '100%'
             }} />
           </div>
+        </div>
+      )}
+
+      {/* Панель звонка в стиле Discord */}
+      {isPrivateChat && otherUserInCall && !isCallActiveInThisChat && (
+        <div style={{
+          backgroundColor: '#5865f2',
+          color: 'white',
+          padding: '12px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid #202225',
+          animation: 'pulse 2s infinite'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            {/* Анимированная иконка звонка */}
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              backgroundColor: '#3ba55c',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              animation: 'callPulse 1.5s infinite'
+            }}>
+              <CallIcon style={{ fontSize: '18px', color: 'white' }} />
+            </div>
+            
+            <div>
+              <div style={{ fontWeight: 'bold', fontSize: '14px' }}>
+                {groupName} в голосовом звонке
+              </div>
+              <div style={{ fontSize: '12px', opacity: 0.8 }}>
+                Нажмите для присоединения
+              </div>
+            </div>
+          </div>
+          
+          <button
+            onClick={handleJoinCall}
+            style={{
+              backgroundColor: '#3ba55c',
+              border: 'none',
+              color: 'white',
+              padding: '8px 16px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '14px',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#2d7d32';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = '#3ba55c';
+            }}
+          >
+            Присоединиться
+          </button>
         </div>
       )}
 

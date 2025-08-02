@@ -520,6 +520,70 @@ namespace Messenger
                 throw;
             }
         }
+
+        public async Task NotifyCallStarted(int chatId, int callerId)
+        {
+            try
+            {
+                Console.WriteLine($"NotifyCallStarted called: chatId={chatId}, callerId={callerId}");
+                
+                // Получаем участников чата
+                var chatMembers = await _context.Members
+                    .Where(m => m.ChatId == chatId)
+                    .Select(m => m.UserId)
+                    .ToListAsync();
+
+                Console.WriteLine($"Found {chatMembers.Count} chat members: {string.Join(", ", chatMembers)}");
+
+                // Отправляем уведомление о начале звонка всем участникам кроме звонящего
+                var notificationMembers = chatMembers.Where(m => m != callerId).ToList();
+                
+                Console.WriteLine($"Sending CallStarted notifications to {notificationMembers.Count} members: {string.Join(", ", notificationMembers)}");
+                
+                foreach (var memberId in notificationMembers)
+                {
+                    Console.WriteLine($"Sending CallStarted to user {memberId}: chatId={chatId}, callerId={callerId}");
+                    // Отправляем уведомление через групповой чат
+                    await Clients.User(memberId.ToString()).SendAsync("CallStarted", chatId, callerId);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Error notifying call started: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task NotifyCallEnded(int chatId, int userId)
+        {
+            try
+            {
+                Console.WriteLine($"NotifyCallEnded called: chatId={chatId}, userId={userId}");
+                
+                // Получаем участников чата
+                var chatMembers = await _context.Members
+                    .Where(m => m.ChatId == chatId)
+                    .Select(m => m.UserId)
+                    .ToListAsync();
+
+                Console.WriteLine($"Found {chatMembers.Count} chat members: {string.Join(", ", chatMembers)}");
+
+                // Отправляем уведомление о завершении звонка всем участникам
+                Console.WriteLine($"Sending CallEnded notifications to {chatMembers.Count} members: {string.Join(", ", chatMembers)}");
+                
+                foreach (var memberId in chatMembers)
+                {
+                    Console.WriteLine($"Sending CallEnded to user {memberId}: chatId={chatId}");
+                    // Отправляем уведомление через групповой чат
+                    await Clients.User(memberId.ToString()).SendAsync("CallEnded", chatId);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Error notifying call ended: {ex.Message}");
+                throw;
+            }
+        }
     }
 
     public class MessageDto
