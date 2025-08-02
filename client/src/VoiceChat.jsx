@@ -118,9 +118,9 @@ const config = {
 };
 
 // Add Discord-like styles with theme support
-const createStyles = (colors) => ({
+const createStyles = (colors, isPrivateCall = false) => ({
   root: {
-    height: '100vh', // Занимает всю высоту viewport
+    height: isPrivateCall ? '100%' : '100vh', // Для приватных звонков используем 100% высоты контейнера
     display: 'flex',
     flexDirection: 'column',
     backgroundColor: colors.background,
@@ -181,7 +181,7 @@ const createStyles = (colors) => ({
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
-    height: 'calc(100vh - 52px)', // Высота минус header
+    height: isPrivateCall ? 'calc(100% - 52px)' : 'calc(100vh - 52px)', // Для приватных звонков - высота контейнера минус header
     width: '100%',
     margin: 0,
     position: 'relative',
@@ -1188,7 +1188,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
     updateUserAudioState
   } = useVoiceChannel();
   const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors, isPrivateCall), [colors, isPrivateCall]);
   const [isJoined, setIsJoined] = useState(false);
 
   const [isMuted, setIsMuted] = useState(initialMuted);

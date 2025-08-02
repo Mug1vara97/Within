@@ -666,7 +666,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         <div style={{
           position: 'relative',
           width: '100%',
-          minHeight: '300px',
+          height: '400px', // Фиксированная высота для лучшего отображения
           backgroundColor: '#18191c',
           borderBottom: '1px solid #202225',
           display: 'flex',
@@ -712,7 +712,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           <div style={{ 
             flex: 1, 
             position: 'relative', 
-            minHeight: '250px',
+            height: '340px', // Фиксированная высота (400px - 60px заголовка)
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
