@@ -42,9 +42,6 @@ const Home = ({ user }) => {
     // Состояние входящего звонка
     const [incomingCall, setIncomingCall] = useState(null); // { chatId, caller, callerId, roomId }
     
-    // Глобальное состояние для отслеживания звонков в других чатах
-    const [otherUsersInCall, setOtherUsersInCall] = useState(new Map()); // Map<chatId, { callerId, callerName }>
-    
     // Состояния мьюта для UserPanel (инициализируются из localStorage)
     const [isMuted, setIsMuted] = useState(() => {
         const saved = localStorage.getItem('localMuted');
@@ -167,47 +164,10 @@ const Home = ({ user }) => {
         setIncomingCall(null);
     };
     
-    // Глобальная функция для уведомления о завершении звонка
-    const notifyCallEnded = useCallback((chatId, userId) => {
-        // Эта функция будет вызываться из GroupChat для отправки NotifyCallEnded
-        // Она должна быть передана как prop в GroupChat
-        window.dispatchEvent(new CustomEvent('callEnded', { 
-            detail: { chatId, userId } 
-        }));
-    }, []);
-
-    // Функции для управления состоянием звонков в других чатах
-    const setOtherUserInCall = useCallback((chatId, callerId, callerName) => {
-        setOtherUsersInCall(prev => new Map(prev).set(chatId, { callerId, callerName }));
-        console.log('🎯 Global: Setting other user in call for chat', chatId, { callerId, callerName });
-    }, []);
-
-    const removeOtherUserFromCall = useCallback((chatId) => {
-        setOtherUsersInCall(prev => {
-            const newMap = new Map(prev);
-            newMap.delete(chatId);
-            return newMap;
-        });
-        console.log('🎯 Global: Removing other user from call for chat', chatId);
-    }, []);
-
-    const isOtherUserInCall = useCallback((chatId) => {
-        return otherUsersInCall.has(chatId);
-    }, [otherUsersInCall]);
-
-    const getOtherUserInCall = useCallback((chatId) => {
-        return otherUsersInCall.get(chatId);
-    }, [otherUsersInCall]);
-
     // Обработчик выхода из голосового канала
     const handleLeaveVoiceChannel = () => {
         // Останавливаем звук входящего звонка если он играет
         stopIncomingCallSound();
-        
-        // Уведомляем о завершении звонка для приватных звонков
-        if (activePrivateCall) {
-            notifyCallEnded(activePrivateCall.chatId, user?.userId);
-        }
         
         setVoiceRoom(null);
         setActivePrivateCall(null); // Очищаем состояние приватного звонка
@@ -384,10 +344,6 @@ const Home = ({ user }) => {
                                     onToggleMute={handleToggleMute}
                                     onToggleAudio={handleToggleAudio}
                                     activePrivateCall={activePrivateCall}
-                                    setOtherUserInCall={setOtherUserInCall}
-                                    removeOtherUserFromCall={removeOtherUserFromCall}
-                                    isOtherUserInCall={isOtherUserInCall}
-                                    getOtherUserInCall={getOtherUserInCall}
                                 />
                             } />
                             <Route path="/channels/:serverId/:chatId?" element={
@@ -447,7 +403,7 @@ const Home = ({ user }) => {
     );
 };
 
-const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio, activePrivateCall, setOtherUserInCall, removeOtherUserFromCall, isOtherUserInCall, getOtherUserInCall }) => {
+const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio, activePrivateCall }) => {
     // Компонент для отображения сообщения о выходе из голосового канала
     const LeftVoiceChannelComponent = () => (
         <div style={{
@@ -532,10 +488,6 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel
                                 onJoinVoiceChannel={onJoinVoiceChannel}
                                 chatTypeId={selectedChat.typeId || selectedChat.chatType}
                                 activePrivateCall={activePrivateCall}
-                                setOtherUserInCall={setOtherUserInCall}
-                                removeOtherUserFromCall={removeOtherUserFromCall}
-                                isOtherUserInCall={isOtherUserInCall}
-                                getOtherUserInCall={getOtherUserInCall}
                             />
                         )}
                         
