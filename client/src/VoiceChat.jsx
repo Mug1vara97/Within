@@ -181,7 +181,7 @@ const createStyles = (colors, isPrivateCall = false) => ({
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
-    height: isPrivateCall ? 'calc(100% - 52px)' : 'calc(100vh - 52px)', // Для приватных звонков - высота контейнера минус header
+    height: isPrivateCall ? '100%' : 'calc(100vh - 52px)', // Для приватных звонков - вся высота (нет хедера)
     width: '100%',
     margin: 0,
     position: 'relative',
@@ -4458,16 +4458,18 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         display: 'none' 
       }) 
     }}>
-        <AppBar position="static" sx={styles.appBar}>
-          <Toolbar sx={styles.toolbar}>
-            <Box sx={styles.channelName}>
-              <Tag />
-              <Typography variant="subtitle1">
-                {roomName || roomId}
-              </Typography>
-            </Box>
-          </Toolbar>
-        </AppBar>
+        {!isPrivateCall && (
+          <AppBar position="static" sx={styles.appBar}>
+            <Toolbar sx={styles.toolbar}>
+              <Box sx={styles.channelName}>
+                <Tag />
+                <Typography variant="subtitle1">
+                  {roomName || roomId}
+                </Typography>
+              </Box>
+            </Toolbar>
+          </AppBar>
+        )}
         {error && (
           <Typography color="error" sx={{ p: 2 }}>
             {error}

@@ -543,15 +543,15 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           </div>
         </div>
         <div className="header-actions">
-          {isPrivateChat && !isCallActiveInThisChat && (
+          {isPrivateChat && (
             <button
-              onClick={handleStartCall}
+              onClick={isCallActiveInThisChat ? handleEndCall : handleStartCall}
               className="voice-call-button"
-              title="Начать звонок"
+              title={isCallActiveInThisChat ? "Завершить звонок" : "Начать звонок"}
               style={{
-                background: 'transparent',
+                background: isCallActiveInThisChat ? '#ed4245' : 'transparent',
                 border: 'none',
-                color: '#b9bbbe',
+                color: isCallActiveInThisChat ? 'white' : '#b9bbbe',
                 cursor: 'pointer',
                 padding: '8px',
                 borderRadius: '4px',
@@ -562,12 +562,21 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
                 transition: 'background-color 0.2s, color 0.2s'
               }}
               onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#4f545c';
-                e.target.style.color = '#dcddde';
+                if (isCallActiveInThisChat) {
+                  e.target.style.backgroundColor = '#c53030';
+                } else {
+                  e.target.style.backgroundColor = '#4f545c';
+                  e.target.style.color = '#dcddde';
+                }
               }}
               onMouseLeave={(e) => {
-                e.target.style.backgroundColor = 'transparent';
-                e.target.style.color = '#b9bbbe';
+                if (isCallActiveInThisChat) {
+                  e.target.style.backgroundColor = '#ed4245';
+                  e.target.style.color = 'white';
+                } else {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.color = '#b9bbbe';
+                }
               }}
             >
               <CallIcon style={{ fontSize: '20px' }} />
@@ -673,46 +682,11 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           flexDirection: 'column',
           overflow: 'hidden'
         }}>
-          {/* Заголовок звонка */}
-          <div style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid #202225',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            backgroundColor: '#202225'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <CallIcon style={{ color: '#3ba55d', fontSize: '20px' }} />
-              <span style={{ color: '#dcddde', fontSize: '16px', fontWeight: '500' }}>
-                {activePrivateCall?.callData?.roomName || `Звонок с ${groupName}`}
-              </span>
-            </div>
-            <button
-              onClick={handleEndCall}
-              style={{
-                background: '#ed4245',
-                border: 'none',
-                color: 'white',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500',
-                transition: 'background-color 0.2s'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#c53030'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#ed4245'}
-            >
-              Завершить звонок
-            </button>
-          </div>
-          
           {/* Область для глобального VoiceChat */}
           <div style={{ 
             flex: 1, 
             position: 'relative', 
-            height: '340px', // Фиксированная высота (400px - 60px заголовка)
+            height: '100%', // Используем всю высоту контейнера
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
