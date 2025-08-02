@@ -166,9 +166,12 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     
     // Отправляем уведомление о звонке через SignalR
     if (connection) {
+      console.log('📞 Sending call notification and call started:', { chatId, userId, username });
       connection.invoke('SendCallNotification', chatId, username, userId, groupName);
       // Уведомляем о начале звонка
       connection.invoke('NotifyCallStarted', chatId, userId);
+    } else {
+      console.error('❌ No SignalR connection available!');
     }
     
     // Вызываем глобальный обработчик для начала звонка
@@ -192,7 +195,10 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     
     // Уведомляем о начале звонка (даже без уведомления собеседнику нужно показать панель)
     if (connection) {
+      console.log('📞 Sending call started (without notification):', { chatId, userId });
       connection.invoke('NotifyCallStarted', chatId, userId);
+    } else {
+      console.error('❌ No SignalR connection available!');
     }
     
     // Вызываем глобальный обработчик для начала звонка (без отправки уведомления)
@@ -535,18 +541,40 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
 
             // Обработчики для статуса звонков
             connection.on('CallStarted', (callChatId, callerId) => {
-                console.log('CallStarted received:', { callChatId, callerId, currentChatId: chatId });
+                console.log('🟢 CallStarted received:', { 
+                    callChatId, 
+                    callerId, 
+                    currentChatId: chatId, 
+                    userId: userId,
+                    isCurrentChat: String(callChatId) === String(chatId),
+                    isNotMe: callerId !== userId
+                });
+                
                 // Если звонок в этом чате и звонит не мы, показываем панель
                 if (String(callChatId) === String(chatId) && callerId !== userId) {
+                    console.log('🎯 Setting otherUserInCall to TRUE');
                     setOtherUserInCall(true);
+                } else {
+                    console.log('❌ Not setting panel because:', {
+                        wrongChat: String(callChatId) !== String(chatId),
+                        isMe: callerId === userId
+                    });
                 }
             });
 
             connection.on('CallEnded', (callChatId) => {
-                console.log('CallEnded received:', { callChatId, currentChatId: chatId });
+                console.log('🔴 CallEnded received:', { 
+                    callChatId, 
+                    currentChatId: chatId,
+                    isCurrentChat: String(callChatId) === String(chatId)
+                });
+                
                 // Если звонок закончился в этом чате, скрываем панель
                 if (String(callChatId) === String(chatId)) {
+                    console.log('🎯 Setting otherUserInCall to FALSE');
                     setOtherUserInCall(false);
+                } else {
+                    console.log('❌ Not hiding panel because wrong chat');
                 }
             });
 
@@ -634,6 +662,26 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           </div>
         </div>
         <div className="header-actions">
+          {/* Тестовая кнопка для проверки панели */}
+          {isPrivateChat && (
+            <button
+              onClick={() => setOtherUserInCall(!otherUserInCall)}
+              style={{
+                background: 'orange',
+                border: 'none',
+                color: 'white',
+                cursor: 'pointer',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '12px',
+                marginRight: '8px'
+              }}
+              title="Тест панели"
+            >
+              Тест: {otherUserInCall ? 'Скрыть' : 'Показать'} панель
+            </button>
+          )}
+          
           {isPrivateChat && !isCallActiveInThisChat && (
             <button
               onClick={handleStartCall}
@@ -783,6 +831,12 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       )}
 
       {/* Панель звонка в стиле Discord */}
+      {console.log('🎨 Panel render check:', { 
+        isPrivateChat, 
+        otherUserInCall, 
+        isCallActiveInThisChat,
+        shouldShow: isPrivateChat && otherUserInCall && !isCallActiveInThisChat
+      })}
       {isPrivateChat && otherUserInCall && !isCallActiveInThisChat && (
         <div style={{
           backgroundColor: '#5865f2',
