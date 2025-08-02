@@ -164,10 +164,24 @@ const Home = ({ user }) => {
         setIncomingCall(null);
     };
     
+    // Глобальная функция для уведомления о завершении звонка
+    const notifyCallEnded = useCallback((chatId, userId) => {
+        // Эта функция будет вызываться из GroupChat для отправки NotifyCallEnded
+        // Она должна быть передана как prop в GroupChat
+        window.dispatchEvent(new CustomEvent('callEnded', { 
+            detail: { chatId, userId } 
+        }));
+    }, []);
+
     // Обработчик выхода из голосового канала
     const handleLeaveVoiceChannel = () => {
         // Останавливаем звук входящего звонка если он играет
         stopIncomingCallSound();
+        
+        // Уведомляем о завершении звонка для приватных звонков
+        if (activePrivateCall) {
+            notifyCallEnded(activePrivateCall.chatId, user?.userId);
+        }
         
         setVoiceRoom(null);
         setActivePrivateCall(null); // Очищаем состояние приватного звонка

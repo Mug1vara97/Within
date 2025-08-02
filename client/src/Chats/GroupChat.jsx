@@ -540,7 +540,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
             });
 
             // Обработчики для статуса звонков
-            connection.on('CallStarted', (callChatId, callerId) => {
+            const handleCallStarted = (callChatId, callerId) => {
                 console.log('🟢 CallStarted received:', { 
                     callChatId, 
                     callerId, 
@@ -560,9 +560,9 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
                         isMe: callerId === userId
                     });
                 }
-            });
+            };
 
-            connection.on('CallEnded', (callChatId) => {
+            const handleCallEnded = (callChatId) => {
                 console.log('🔴 CallEnded received:', { 
                     callChatId, 
                     currentChatId: chatId,
@@ -576,16 +576,39 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
                 } else {
                     console.log('❌ Not hiding panel because wrong chat');
                 }
-            });
+            };
 
-      return () => {
+            connection.on('CallStarted', handleCallStarted);
+            connection.on('CallEnded', handleCallEnded);
+
+        return () => {
         connection.off('ReceiveMessage', receiveMessageHandler);
         connection.off('MessageEdited', messageEditedHandler);
         connection.off('MessageDeleted', messageDeletedHandler);
-        connection.off('CallStarted');
-        connection.off('CallEnded');
+        connection.off('CallStarted', handleCallStarted);
+        connection.off('CallEnded', handleCallEnded);
       };
     }
+  }, [connection, chatId]);
+
+  // Обработчик события завершения звонка из Home.jsx
+  useEffect(() => {
+    const handleCallEndedEvent = (event) => {
+      const { chatId: endedChatId, userId } = event.detail;
+      console.log('📞 Call ended event received:', { endedChatId, userId, currentChatId: chatId });
+      
+      // Если звонок завершился в этом чате, отправляем уведомление
+      if (String(endedChatId) === String(chatId) && connection) {
+        console.log('📞 Sending NotifyCallEnded:', { chatId: endedChatId, userId });
+        connection.invoke('NotifyCallEnded', endedChatId, userId);
+      }
+    };
+
+    window.addEventListener('callEnded', handleCallEndedEvent);
+    
+    return () => {
+      window.removeEventListener('callEnded', handleCallEndedEvent);
+    };
   }, [connection, chatId]);
 
   // Отправка текстового сообщения
@@ -662,26 +685,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           </div>
         </div>
         <div className="header-actions">
-          {/* Тестовая кнопка для проверки панели */}
-          {isPrivateChat && (
-            <button
-              onClick={() => setOtherUserInCall(!otherUserInCall)}
-              style={{
-                background: 'orange',
-                border: 'none',
-                color: 'white',
-                cursor: 'pointer',
-                padding: '4px 8px',
-                borderRadius: '4px',
-                fontSize: '12px',
-                marginRight: '8px'
-              }}
-              title="Тест панели"
-            >
-              Тест: {otherUserInCall ? 'Скрыть' : 'Показать'} панель
-            </button>
-          )}
-          
           {isPrivateChat && !isCallActiveInThisChat && (
             <button
               onClick={handleStartCall}
@@ -831,12 +834,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       )}
 
       {/* Панель звонка в стиле Discord */}
-      {console.log('🎨 Panel render check:', { 
-        isPrivateChat, 
-        otherUserInCall, 
-        isCallActiveInThisChat,
-        shouldShow: isPrivateChat && otherUserInCall && !isCallActiveInThisChat
-      })}
       {isPrivateChat && otherUserInCall && !isCallActiveInThisChat && (
         <div style={{
           backgroundColor: '#5865f2',
