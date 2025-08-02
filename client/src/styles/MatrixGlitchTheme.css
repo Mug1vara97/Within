@@ -34,6 +34,19 @@
     background-color: transparent !important;
 }
 
+/* Стили для VoiceChat компонента */
+.matrix-glitch-theme .MuiBox-root {
+    background-color: transparent !important;
+}
+
+.matrix-glitch-theme #voice-chat-container-private .MuiBox-root {
+    background-color: transparent !important;
+}
+
+.matrix-glitch-theme #voice-chat-container-server .MuiBox-root {
+    background-color: transparent !important;
+}
+
 .matrix-glitch-theme .messages {
     background-color: transparent !important;
 }

@@ -543,15 +543,15 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           </div>
         </div>
         <div className="header-actions">
-          {isPrivateChat && (
+          {isPrivateChat && !isCallActiveInThisChat && (
             <button
-              onClick={isCallActiveInThisChat ? handleEndCall : handleStartCall}
+              onClick={handleStartCall}
               className="voice-call-button"
-              title={isCallActiveInThisChat ? "Завершить звонок" : "Начать звонок"}
+              title="Начать звонок"
               style={{
-                background: isCallActiveInThisChat ? '#ed4245' : 'transparent',
+                background: 'transparent',
                 border: 'none',
-                color: isCallActiveInThisChat ? 'white' : '#b9bbbe',
+                color: '#b9bbbe',
                 cursor: 'pointer',
                 padding: '8px',
                 borderRadius: '4px',
@@ -562,21 +562,12 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
                 transition: 'background-color 0.2s, color 0.2s'
               }}
               onMouseEnter={(e) => {
-                if (isCallActiveInThisChat) {
-                  e.target.style.backgroundColor = '#c53030';
-                } else {
-                  e.target.style.backgroundColor = '#4f545c';
-                  e.target.style.color = '#dcddde';
-                }
+                e.target.style.backgroundColor = '#4f545c';
+                e.target.style.color = '#dcddde';
               }}
               onMouseLeave={(e) => {
-                if (isCallActiveInThisChat) {
-                  e.target.style.backgroundColor = '#ed4245';
-                  e.target.style.color = 'white';
-                } else {
-                  e.target.style.backgroundColor = 'transparent';
-                  e.target.style.color = '#b9bbbe';
-                }
+                e.target.style.backgroundColor = 'transparent';
+                e.target.style.color = '#b9bbbe';
               }}
             >
               <CallIcon style={{ fontSize: '20px' }} />
