@@ -1178,7 +1178,7 @@ const VideoView = React.memo(({
   );
 });
 
-const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true }, ref) => {
+const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, autoJoin = true, showUI = false, isVisible = true, onLeave, onManualLeave, onMuteStateChange, onAudioStateChange, initialMuted = false, initialAudioEnabled = true, isPrivateCall = false }, ref) => {
   const { 
     removeVoiceChannelParticipant, 
     updateVoiceChannelParticipant,
@@ -4744,13 +4744,17 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
       return document.getElementById('voice-chat-container-server');
     }
     
-    // Для личных звонков (1 на 1)
-    const privateContainer = document.getElementById('voice-chat-container-private');
-    if (privateContainer) {
-      return privateContainer;
+    // Для личных звонков (1 на 1) ищем контейнер в GroupChat
+    if (isPrivateCall) {
+      const privateContainer = document.getElementById('voice-chat-container-private');
+      if (privateContainer) {
+        return privateContainer;
+      }
+      // Если контейнера нет, значит пользователь не в том чате - не показываем
+      return null;
     }
     
-    // Для личных сообщений не создаем портал (работаем в фоне)
+    // Для других случаев не создаем портал (работаем в фоне)
     return null;
   };
 

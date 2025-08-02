@@ -69,10 +69,10 @@ const Home = ({ user }) => {
             return false;
         }
         
-        // Для личных звонков (когда есть isPrivateCall) всегда показываем
+        // Для личных звонков скрываем глобальный VoiceChat (он отображается в GroupChat)
         if (voiceRoom.isPrivateCall) {
-            console.log('Private call detected - showing voice chat');
-            return true;
+            console.log('Private call detected - hiding global voice chat (shown in GroupChat)');
+            return false;
         }
         
         // В личных сообщениях голосовой чат скрыт (кроме личных звонков)
