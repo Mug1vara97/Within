@@ -14,7 +14,6 @@ import useScrollToBottom from '../hooks/useScrollToBottom';
 import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/GroupSettings';
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
-import VoiceChat from '../VoiceChat';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
   return (
@@ -688,7 +687,13 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
               </span>
             </div>
             <button
-              onClick={handleEndCall}
+              onClick={() => {
+                handleEndCall();
+                // Вызываем глобальный обработчик для выхода из звонка
+                if (onJoinVoiceChannel) {
+                  onJoinVoiceChannel(null); // null означает выход из звонка
+                }
+              }}
               style={{
                 background: '#ed4245',
                 border: 'none',
@@ -707,20 +712,20 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
             </button>
           </div>
           
-          {/* Область VoiceChat */}
-          <div style={{ flex: 1, position: 'relative', minHeight: '250px' }}>
-            <VoiceChat
-              roomId={activeCall.roomId}
-              roomName={activeCall.roomName}
-              userName={activeCall.userName}
-              userId={activeCall.userId}
-              autoJoin={true}
-              showUI={true}
-              isVisible={true}
-              onLeave={handleEndCall}
-              isPrivateCall={true}
-              embedMode={true}
-            />
+          {/* Область для глобального VoiceChat */}
+          <div style={{ 
+            flex: 1, 
+            position: 'relative', 
+            minHeight: '250px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#8e9297'
+          }}>
+            <div id="voice-chat-container-private" style={{ 
+              width: '100%', 
+              height: '100%'
+            }} />
           </div>
         </div>
       )}

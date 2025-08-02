@@ -53,7 +53,7 @@ const Home = ({ user }) => {
         return saved ? JSON.parse(saved) : true;
     });
     
-    // Определяем, отображается ли VoiceChat в основной области (только для серверов)
+    // Определяем, отображается ли VoiceChat в основной области
     const isVoiceChatVisible = useMemo(() => {
         console.log('isVoiceChatVisible calculation:', { 
             voiceRoom: !!voiceRoom, 
@@ -66,7 +66,13 @@ const Home = ({ user }) => {
             return false;
         }
         
-        // В личных сообщениях голосовой чат всегда скрыт (даже если подключен к серверному каналу)
+        // Для личных звонков (когда есть isPrivateCall) всегда показываем
+        if (voiceRoom.isPrivateCall) {
+            console.log('Private call detected - showing voice chat');
+            return true;
+        }
+        
+        // В личных сообщениях голосовой чат скрыт (кроме личных звонков)
         if (location.pathname.startsWith('/channels/@me')) {
             console.log('Personal messages - hiding voice chat');
             return false;
@@ -98,8 +104,13 @@ const Home = ({ user }) => {
     
     // Обработчик подключения к голосовому каналу
     const handleJoinVoiceChannel = (data) => {
-        setVoiceRoom(data);
-        setLeftVoiceChannel(false);
+        if (data === null) {
+            // Если передан null, это означает выход из звонка
+            handleLeaveVoiceChannel();
+        } else {
+            setVoiceRoom(data);
+            setLeftVoiceChannel(false);
+        }
     };
     
     // Обработчик выхода из голосового канала
@@ -286,6 +297,7 @@ const Home = ({ user }) => {
                         onAudioStateChange={handleAudioStateChange}
                         initialMuted={localMuted}
                         initialAudioEnabled={localAudioEnabled}
+                        isPrivateCall={voiceRoom.isPrivateCall}
                     />
                 )}
             </div>
