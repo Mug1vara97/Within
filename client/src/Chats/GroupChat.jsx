@@ -52,7 +52,7 @@ const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
 };
 
 const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, userPermissions, chatListConnection,
-  isGroupChat = false, isServerOwner, onJoinVoiceChannel, chatTypeId, activePrivateCall, onIncomingCall }) => {
+  isGroupChat = false, isServerOwner, onJoinVoiceChannel, chatTypeId, activePrivateCall }) => {
   
 
   const [messages, setMessages] = useState([]);
@@ -457,19 +457,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         setMessages(prev => prev.filter(msg => msg.messageId !== messageId));
       };
 
-      // Обработчик входящего звонка
-      const incomingCallHandler = (incomingChatId, caller, callerId, roomId) => {
-        // Проверяем, что звонок для этого чата и не от нас самих
-        if (parseInt(incomingChatId) === parseInt(chatId) && callerId !== userId) {
-          onIncomingCall({
-            chatId: parseInt(incomingChatId),
-            caller: caller,
-            callerId: callerId,
-            roomId: roomId
-          });
-        }
-      };
-
                   connection.on('ReceiveMessage', receiveMessageHandler);
             connection.on('MessageEdited', messageEditedHandler);
             connection.on('MessageDeleted', messageDeletedHandler);
@@ -478,13 +465,11 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
                 // Здесь можно добавить визуальную индикацию прочтения сообщения
                 // Например, обновить состояние сообщения или показать иконку "прочитано"
             });
-            connection.on('IncomingCall', incomingCallHandler);
 
       return () => {
         connection.off('ReceiveMessage', receiveMessageHandler);
         connection.off('MessageEdited', messageEditedHandler);
         connection.off('MessageDeleted', messageDeletedHandler);
-        connection.off('IncomingCall', incomingCallHandler);
       };
     }
   }, [connection, chatId]);

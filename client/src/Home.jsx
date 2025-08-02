@@ -128,10 +128,7 @@ const Home = ({ user }) => {
         }
     };
     
-    // Обработчик входящего звонка
-    const handleIncomingCall = (callData) => {
-        setIncomingCall(callData);
-    };
+
     
     // Обработчик ответа на входящий звонок
     const handleAcceptCall = () => {
@@ -247,6 +244,30 @@ const Home = ({ user }) => {
         }
     }, [location.pathname, isDiscoverMode]);
 
+    // Обработчик входящих звонков через NotificationHub
+    useEffect(() => {
+        const handleIncomingCall = (event) => {
+            const { chatId, caller, callerId, roomId } = event.detail;
+            console.log("IncomingCall event received:", { chatId, caller, callerId, roomId });
+            
+            // Проверяем, что звонок не от нас самих
+            if (callerId !== user?.userId) {
+                handleIncomingCall({
+                    chatId: parseInt(chatId),
+                    caller: caller,
+                    callerId: callerId,
+                    roomId: roomId
+                });
+            }
+        };
+
+        window.addEventListener('incomingCall', handleIncomingCall);
+
+        return () => {
+            window.removeEventListener('incomingCall', handleIncomingCall);
+        };
+    }, [user?.userId]);
+
     // Инициализация уведомлений при входе пользователя
     useEffect(() => {
         if (user.userId) {
@@ -306,7 +327,6 @@ const Home = ({ user }) => {
                                     onToggleMute={handleToggleMute}
                                     onToggleAudio={handleToggleAudio}
                                     activePrivateCall={activePrivateCall}
-                                    onIncomingCall={handleIncomingCall}
                                 />
                             } />
                             <Route path="/channels/:serverId/:chatId?" element={
@@ -322,7 +342,6 @@ const Home = ({ user }) => {
                                     onToggleMute={handleToggleMute}
                                     onToggleAudio={handleToggleAudio}
                                     activePrivateCall={activePrivateCall}
-                                    onIncomingCall={handleIncomingCall}
                                 />
                             } />
                         </Routes>
@@ -367,7 +386,7 @@ const Home = ({ user }) => {
     );
 };
 
-const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio, activePrivateCall, onIncomingCall }) => {
+const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio, activePrivateCall }) => {
     // Компонент для отображения сообщения о выходе из голосового канала
     const LeftVoiceChannelComponent = () => (
         <div style={{
@@ -452,7 +471,6 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel
                                 onJoinVoiceChannel={onJoinVoiceChannel}
                                 chatTypeId={selectedChat.typeId || selectedChat.chatType}
                                 activePrivateCall={activePrivateCall}
-                                onIncomingCall={onIncomingCall}
                             />
                         )}
                         
@@ -476,7 +494,7 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel
     );
 };
 
-const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio, activePrivateCall, onIncomingCall }) => {
+const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio, activePrivateCall }) => {
     // Компонент для отображения сообщения о выходе из голосового канала
     const LeftVoiceChannelComponent = () => (
         <div style={{
@@ -565,7 +583,6 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVis
                                 onJoinVoiceChannel={onJoinVoiceChannel}
                                 chatTypeId={selectedChat.typeId || selectedChat.chatType}
                                 activePrivateCall={activePrivateCall}
-                                onIncomingCall={onIncomingCall}
                             />
                         )}
                         

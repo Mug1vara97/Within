@@ -186,6 +186,15 @@ export const NotificationProvider = ({ children }) => {
             }));
         });
 
+        // Обработчик входящего звонка
+        connection.on("IncomingCall", (chatId, caller, callerId, roomId) => {
+            console.log("IncomingCall received in NotificationContext:", { chatId, caller, callerId, roomId });
+            // Отправляем событие для обработки входящего звонка
+            window.dispatchEvent(new CustomEvent('incomingCall', {
+                detail: { chatId, caller, callerId, roomId }
+            }));
+        });
+
         // Обработчики состояния соединения
         connection.onreconnecting((error) => {
             console.log("SignalR reconnecting:", error);
