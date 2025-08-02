@@ -53,7 +53,7 @@ const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
 };
 
 const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, userPermissions, chatListConnection,
-  isGroupChat = false, isServerOwner, onJoinVoiceChannel, chatTypeId, activePrivateCall }) => {
+  isGroupChat = false, isServerOwner, onJoinVoiceChannel, chatTypeId, activePrivateCall, setOtherUserInCall, removeOtherUserFromCall, isOtherUserInCall, getOtherUserInCall }) => {
   
   console.log('🎨 GroupChat RENDER:', {
     chatId,
@@ -109,7 +109,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const forwardTextareaRef = useRef(null);
   const [isPrivateChat, setIsPrivateChat] = useState(false);
   const [isCallTypeModalOpen, setIsCallTypeModalOpen] = useState(false);
-  const [otherUserInCall, setOtherUserInCall] = useState(false); // Состояние для отображения, что собеседник в звонке
+
 
   // Определяем, является ли это личным чатом
   useEffect(() => {
@@ -601,12 +601,12 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
                 
                 // Тест: всегда устанавливаем панель для отладки
                 console.log('🧪 DEBUG: Setting otherUserInCall to TRUE regardless of conditions');
-                setOtherUserInCall(true);
+                setOtherUserInCall(chatId, callerId, 'Unknown');
                 
                 // Если звонок в этом чате и звонит не мы, показываем панель
                 if (String(callChatId) === String(chatId) && callerId !== userId) {
                     console.log('🎯 Setting otherUserInCall to TRUE');
-                    setOtherUserInCall(true);
+                    setOtherUserInCall(chatId, callerId, 'Unknown');
                 } else {
                     console.log('❌ Not setting panel because:', {
                         wrongChat: String(callChatId) !== String(chatId),
@@ -625,7 +625,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
                 // Если звонок закончился в этом чате, скрываем панель
                 if (String(callChatId) === String(chatId)) {
                     console.log('🎯 Setting otherUserInCall to FALSE');
-                    setOtherUserInCall(false);
+                    removeOtherUserFromCall(chatId);
                 } else {
                     console.log('❌ Not hiding panel because wrong chat');
                 }
@@ -889,7 +889,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       )}
 
       {/* Панель звонка в стиле Discord */}
-      {isPrivateChat && otherUserInCall && !isCallActiveInThisChat && (
+              {isPrivateChat && isOtherUserInCall(chatId) && !isCallActiveInThisChat && (
         <div style={{
           backgroundColor: '#5865f2',
           color: 'white',
