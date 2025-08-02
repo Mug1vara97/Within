@@ -581,7 +581,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
             connection.on('MessageEdited', messageEditedHandler);
             connection.on('MessageDeleted', messageDeletedHandler);
             connection.on('MessageRead', (messageId, readByUserId, readAt) => {
-                console.log(`Message ${messageId} read by user ${readByUserId} at ${readAt}`);
                 // Здесь можно добавить визуальную индикацию прочтения сообщения
                 // Например, обновить состояние сообщения или показать иконку "прочитано"
             });

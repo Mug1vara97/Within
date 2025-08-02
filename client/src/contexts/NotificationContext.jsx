@@ -257,7 +257,7 @@ export const NotificationProvider = ({ children }) => {
         });
 
         connection.on("MessageRead", (chatId, messageId) => {
-            console.log(`Message ${messageId} read in chat ${chatId}`);
+                            // Message read in chat
             // Удаляем уведомления для этого сообщения из списка
             setNotifications(prev => {
                 const filtered = prev.filter(n => !(n.chatId === chatId && n.messageId === messageId));
@@ -267,7 +267,7 @@ export const NotificationProvider = ({ children }) => {
             // Обновляем счетчик непрочитанных сообщений
             setUnreadCount(prev => {
                 const newCount = Math.max(0, prev - 1);
-                console.log("Updated unread count after message read:", newCount);
+                // Updated unread count after message read
                 return newCount;
             });
         });
