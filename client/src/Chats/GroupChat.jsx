@@ -449,7 +449,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   useEffect(() => {
     const connect = async () => {
       const newConnection = new HubConnectionBuilder()
-        .withUrl(`${BASE_URL}/groupchathub?userId=${userId}`)
+        .withUrl(`${BASE_URL}/groupchathub`)
         .withAutomaticReconnect()
         .build();
 
