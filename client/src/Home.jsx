@@ -7,6 +7,8 @@ import { Routes, Route, useParams, useLocation, useNavigate } from 'react-router
 import VoiceChat from './VoiceChat';
 import GroupChat from './Chats/GroupChat';
 import NotificationButton from './components/NotificationButton';
+import OutgoingCallModal from './components/OutgoingCallModal';
+import IncomingCallModal from './components/IncomingCallModal';
 import { useNotifications } from './hooks/useNotifications';
 import { useGlobalHotkeys } from './hooks/useGlobalHotkeys';
 import useHotkeys from './hooks/useHotkeys';
@@ -35,6 +37,12 @@ const Home = ({ user }) => {
     
     // Состояние активного приватного звонка
     const [activePrivateCall, setActivePrivateCall] = useState(null); // { chatId, callData }
+    
+    // Состояние дозвона (outgoing call)
+    const [outgoingCall, setOutgoingCall] = useState(null); // { chatId, callData, targetUser }
+    
+    // Состояние входящего звонка (incoming call)
+    const [incomingCall, setIncomingCall] = useState(null); // { chatId, callData, caller }
     
     // Состояния мьюта для UserPanel (инициализируются из localStorage)
     const [isMuted, setIsMuted] = useState(() => {
@@ -111,8 +119,19 @@ const Home = ({ user }) => {
             // Если передан null, это означает выход из звонка
             handleLeaveVoiceChannel();
         } else {
+            // Если это дозвон, сохраняем состояние дозвона
+            if (data.isOutgoingCall) {
+                setOutgoingCall({
+                    chatId: data.chatId,
+                    callData: data,
+                    targetUser: data.targetUser
+                });
+                return; // Не присоединяемся к звонку пока не ответят
+            }
+            
             setVoiceRoom(data);
             setLeftVoiceChannel(false);
+            setOutgoingCall(null); // Очищаем состояние дозвона
             
             // Если это приватный звонок, сохраняем информацию о нем
             if (data.isPrivateCall && data.chatId) {
@@ -128,6 +147,7 @@ const Home = ({ user }) => {
     const handleLeaveVoiceChannel = () => {
         setVoiceRoom(null);
         setActivePrivateCall(null); // Очищаем состояние приватного звонка
+        setOutgoingCall(null); // Очищаем состояние дозвона
         setLeftVoiceChannel(true);
         // НЕ сбрасываем состояния мьюта - сохраняем пользовательские настройки
         // setIsMuted(false);
@@ -312,6 +332,42 @@ const Home = ({ user }) => {
                         initialMuted={localMuted}
                         initialAudioEnabled={localAudioEnabled}
                         isPrivateCall={voiceRoom.isPrivateCall}
+                    />
+                )}
+                
+                {/* Модальное окно дозвона */}
+                {outgoingCall && (
+                    <OutgoingCallModal
+                        outgoingCall={outgoingCall}
+                        onCancelCall={() => {
+                            setOutgoingCall(null);
+                            handleLeaveVoiceChannel();
+                        }}
+                    />
+                )}
+                
+                {/* Модальное окно входящего звонка */}
+                {incomingCall && (
+                    <IncomingCallModal
+                        incomingCall={incomingCall}
+                        onAcceptCall={() => {
+                            // Принимаем звонок - создаем обычный звонок
+                            const callData = {
+                                ...incomingCall.callData,
+                                isPrivateCall: true,
+                                isOutgoingCall: false
+                            };
+                            setVoiceRoom(callData);
+                            setActivePrivateCall({
+                                chatId: incomingCall.chatId,
+                                callData: callData
+                            });
+                            setIncomingCall(null);
+                        }}
+                        onRejectCall={() => {
+                            // Отклоняем звонок
+                            setIncomingCall(null);
+                        }}
                     />
                 )}
             </div>

@@ -1,0 +1,142 @@
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Button, CircularProgress } from '@mui/material';
+import CallEndIcon from '@mui/icons-material/CallEnd';
+import PhoneIcon from '@mui/icons-material/Phone';
+
+const OutgoingCallModal = ({ outgoingCall, onCancelCall }) => {
+    const [callDuration, setCallDuration] = useState(0);
+
+    // Таймер для отображения длительности дозвона
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCallDuration(prev => prev + 1);
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, []);
+
+    const formatDuration = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    return (
+        <Box
+            sx={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 10000,
+            }}
+        >
+            <Box
+                sx={{
+                    backgroundColor: '#36393f',
+                    borderRadius: '12px',
+                    padding: '32px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    minWidth: '300px',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+                }}
+            >
+                {/* Анимация звонка */}
+                <Box
+                    sx={{
+                        width: '80px',
+                        height: '80px',
+                        borderRadius: '50%',
+                        backgroundColor: '#5865f2',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: '24px',
+                        animation: 'pulse 1.5s ease-in-out infinite',
+                        '@keyframes pulse': {
+                            '0%': {
+                                transform: 'scale(1)',
+                                boxShadow: '0 0 0 0 rgba(88, 101, 242, 0.7)',
+                            },
+                            '70%': {
+                                transform: 'scale(1.05)',
+                                boxShadow: '0 0 0 10px rgba(88, 101, 242, 0)',
+                            },
+                            '100%': {
+                                transform: 'scale(1)',
+                                boxShadow: '0 0 0 0 rgba(88, 101, 242, 0)',
+                            },
+                        },
+                    }}
+                >
+                    <PhoneIcon sx={{ color: 'white', fontSize: '32px' }} />
+                </Box>
+
+                {/* Информация о звонке */}
+                <Typography
+                    variant="h6"
+                    sx={{
+                        color: '#dcddde',
+                        marginBottom: '8px',
+                        textAlign: 'center',
+                    }}
+                >
+                    Дозвон...
+                </Typography>
+
+                <Typography
+                    variant="body1"
+                    sx={{
+                        color: '#8e9297',
+                        marginBottom: '24px',
+                        textAlign: 'center',
+                    }}
+                >
+                    {outgoingCall?.targetUser}
+                </Typography>
+
+                {/* Длительность звонка */}
+                <Typography
+                    variant="body2"
+                    sx={{
+                        color: '#8e9297',
+                        marginBottom: '32px',
+                        fontFamily: 'monospace',
+                        fontSize: '18px',
+                    }}
+                >
+                    {formatDuration(callDuration)}
+                </Typography>
+
+                {/* Кнопка отмены */}
+                <Button
+                    variant="contained"
+                    startIcon={<CallEndIcon />}
+                    onClick={onCancelCall}
+                    sx={{
+                        backgroundColor: '#ed4245',
+                        color: 'white',
+                        '&:hover': {
+                            backgroundColor: '#c03537',
+                        },
+                        borderRadius: '8px',
+                        padding: '12px 24px',
+                        textTransform: 'none',
+                        fontSize: '16px',
+                    }}
+                >
+                    Отменить
+                </Button>
+            </Box>
+        </Box>
+    );
+};
+
+export default OutgoingCallModal; 

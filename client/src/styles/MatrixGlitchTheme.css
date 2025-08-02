@@ -193,3 +193,21 @@
 .matrix-glitch-theme .load-more-button:hover {
     background: rgba(97, 220, 163, 0.2) !important;
 }
+
+/* Стили для модального окна дозвона */
+.matrix-glitch-theme .MuiBox-root[style*="position: fixed"][style*="z-index: 10000"] {
+    background-color: rgba(0, 0, 0, 0.9) !important;
+    backdrop-filter: blur(8px) !important;
+}
+
+.matrix-glitch-theme .MuiBox-root[style*="position: fixed"][style*="z-index: 10000"] > .MuiBox-root {
+    background: rgba(43, 69, 57, 0.95) !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(97, 220, 163, 0.5) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Стили для кнопок в модальных окнах звонков */
+.matrix-glitch-theme .MuiBox-root[style*="position: fixed"][style*="z-index: 10000"] .MuiButton-root {
+    backdrop-filter: blur(4px) !important;
+}

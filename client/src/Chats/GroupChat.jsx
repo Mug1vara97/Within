@@ -114,17 +114,23 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
 
   const handleStartCall = () => {
     if (isPrivateChat && !isCallActiveInThisChat) {
-      // Создаем данные звонка
+      // Создаем данные дозвона
       const callData = {
         roomId: chatId.toString(),
         roomName: `Звонок с ${groupName}`,
         userName: username,
         userId: userId,
-        isPrivateCall: true,
-        chatId: chatId
+        isOutgoingCall: true, // Это дозвон
+        chatId: chatId,
+        targetUser: groupName // Имя пользователя, которому звоним
       };
       
-      // Вызываем глобальный обработчик для начала звонка
+      // Отправляем уведомление о звонке через SignalR
+      if (connection) {
+        connection.invoke('SendCallNotification', chatId, username, userId, groupName);
+      }
+      
+      // Вызываем глобальный обработчик для начала дозвона
       if (onJoinVoiceChannel) {
         onJoinVoiceChannel(callData);
       }
@@ -666,7 +672,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         <div style={{
           position: 'relative',
           width: '100%',
-          height: '400px', // Фиксированная высота для лучшего отображения
+          height: '350px', // Фиксированная высота для лучшего отображения
           backgroundColor: '#18191c',
           borderBottom: '1px solid #202225',
           display: 'flex',
