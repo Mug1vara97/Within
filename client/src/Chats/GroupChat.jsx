@@ -537,6 +537,14 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
 
   // Обработка входящих сообщений
   useEffect(() => {
+    console.log('🔧 GroupChat useEffect - SignalR setup:', {
+      hasConnection: !!connection,
+      connectionState: connection?.state,
+      chatId: chatId,
+      userId: userId,
+      isPrivateChat: isPrivateChat
+    });
+    
     if (connection) {
       const receiveMessageHandler = async (username, content, messageId, avatarUrl, avatarColor, repliedMessage, forwardedMessage) => {
         setMessages(prev => [...prev, {
