@@ -3,6 +3,7 @@ import { HubConnectionBuilder } from '@microsoft/signalr';
 import MicIcon from '@mui/icons-material/Mic';
 import StopIcon from '@mui/icons-material/Stop';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
+import CallIcon from '@mui/icons-material/Call';
 import '../styles/Chat.css';
 import './group-chat.css';
 import '../styles/links.css';
@@ -51,7 +52,7 @@ const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
 };
 
 const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, userPermissions, chatListConnection,
-  isGroupChat = false, isServerOwner }) => {
+  isGroupChat = false, isServerOwner, onJoinVoiceChannel, chatTypeId }) => {
   
 
   const [messages, setMessages] = useState([]);
@@ -98,6 +99,28 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const [forwardMessageText, setForwardMessageText] = useState('');
   const forwardTextareaRef = useRef(null);
+  const [isPrivateChat, setIsPrivateChat] = useState(false);
+
+  // Определяем, является ли это личным чатом
+  useEffect(() => {
+    // TypeId = 1 означает личный чат
+    setIsPrivateChat(chatTypeId === 1 || (!isGroupChat && !isServerChat));
+  }, [chatTypeId, isGroupChat, isServerChat]);
+
+  const handleStartCall = () => {
+    if (onJoinVoiceChannel && isPrivateChat) {
+      // Создаем временную комнату для звонка с уникальным ID
+      const callRoomId = `private_call_${chatId}_${Date.now()}`;
+      onJoinVoiceChannel({
+        roomId: callRoomId,
+        roomName: `Звонок с ${groupName}`,
+        userName: username,
+        userId: userId,
+        isPrivateCall: true,
+        chatId: chatId
+      });
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -504,6 +527,36 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           </div>
         </div>
         <div className="header-actions">
+          {isPrivateChat && (
+            <button
+              onClick={handleStartCall}
+              className="voice-call-button"
+              title="Начать звонок"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#b9bbbe',
+                cursor: 'pointer',
+                padding: '8px',
+                borderRadius: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: '8px',
+                transition: 'background-color 0.2s, color 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#4f545c';
+                e.target.style.color = '#dcddde';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = 'transparent';
+                e.target.style.color = '#b9bbbe';
+              }}
+            >
+              <CallIcon style={{ fontSize: '20px' }} />
+            </button>
+          )}
           {isGroupChat && (
             <button
               onClick={() => setIsAddMembersModalOpen(true)}
