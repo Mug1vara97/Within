@@ -546,18 +546,16 @@ namespace Messenger
                 
                 Console.WriteLine($"Sending CallStarted notifications to {notificationMembers.Count} members: {string.Join(", ", notificationMembers)}");
                 
-                foreach (var memberId in notificationMembers)
+                // Отправляем уведомление через группу чата
+                Console.WriteLine($"📤 Sending CallStarted to group {chatId}: chatId={chatId}, callerId={callerId}");
+                try
                 {
-                    Console.WriteLine($"📤 Sending CallStarted to user {memberId}: chatId={chatId}, callerId={callerId}");
-                    try
-                    {
-                        await Clients.User(memberId.ToString()).SendAsync("CallStarted", chatId, callerId);
-                        Console.WriteLine($"✅ CallStarted sent to user {memberId}");
-                    }
-                    catch (Exception sendEx)
-                    {
-                        Console.Error.WriteLine($"❌ Failed to send CallStarted to user {memberId}: {sendEx.Message}");
-                    }
+                    await Clients.Group(chatId.ToString()).SendAsync("CallStarted", chatId, callerId);
+                    Console.WriteLine($"✅ CallStarted sent to group {chatId}");
+                }
+                catch (Exception sendEx)
+                {
+                    Console.Error.WriteLine($"❌ Failed to send CallStarted to group {chatId}: {sendEx.Message}");
                 }
                 
                 Console.WriteLine("🎯 NotifyCallStarted completed successfully");
@@ -586,12 +584,9 @@ namespace Messenger
                 // Отправляем уведомление о завершении звонка всем участникам
                 Console.WriteLine($"Sending CallEnded notifications to {chatMembers.Count} members: {string.Join(", ", chatMembers)}");
                 
-                foreach (var memberId in chatMembers)
-                {
-                    Console.WriteLine($"Sending CallEnded to user {memberId}: chatId={chatId}");
-                    // Отправляем уведомление через групповой чат
-                    await Clients.User(memberId.ToString()).SendAsync("CallEnded", chatId);
-                }
+                // Отправляем уведомление через группу чата
+                Console.WriteLine($"Sending CallEnded to group {chatId}: chatId={chatId}");
+                await Clients.Group(chatId.ToString()).SendAsync("CallEnded", chatId);
             }
             catch (Exception ex)
             {
