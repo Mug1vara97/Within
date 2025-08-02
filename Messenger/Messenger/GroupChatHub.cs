@@ -594,6 +594,26 @@ namespace Messenger
                 throw;
             }
         }
+
+        public async Task<object> GetCallStatus(int chatId)
+        {
+            try
+            {
+                Console.WriteLine($"🔍 GetCallStatus called for chatId={chatId}");
+                
+                // Здесь можно добавить логику для получения состояния звонка из базы данных
+                // Пока возвращаем null - это означает, что активного звонка нет
+                // В будущем можно добавить таблицу для отслеживания активных звонков
+                
+                Console.WriteLine($"📞 No active call found for chatId={chatId}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Error getting call status: {ex.Message}");
+                return null;
+            }
+        }
     }
 
     public class MessageDto

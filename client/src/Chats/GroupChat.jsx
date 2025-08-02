@@ -132,6 +132,26 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     }
   }, [activePrivateCall, isPrivateChat, connection, chatId, userId]);
 
+  // Проверяем состояние звонка при загрузке чата
+  useEffect(() => {
+    if (isPrivateChat && connection && connection.state === 'Connected') {
+      console.log('🔍 Checking call status for chat:', chatId);
+      
+      // Запрашиваем состояние звонка у сервера
+      connection.invoke('GetCallStatus', chatId)
+        .then((callStatus) => {
+          console.log('📞 Call status received:', callStatus);
+          if (callStatus && callStatus.isActive && callStatus.callerId !== userId) {
+            console.log('🎯 Setting other user in call from server data');
+            setOtherUserInCall(chatId, callStatus.callerId, callStatus.callerName || 'Unknown');
+          }
+        })
+        .catch((error) => {
+          console.log('📞 No call status available or error:', error);
+        });
+    }
+  }, [isPrivateChat, connection, chatId, userId, setOtherUserInCall]);
+
   const handleStartCall = () => {
     if (isPrivateChat && !isCallActiveInThisChat) {
       // Открываем модальное окно выбора типа звонка
