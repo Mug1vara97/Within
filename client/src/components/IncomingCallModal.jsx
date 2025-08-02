@@ -6,7 +6,6 @@ import PhoneIcon from '@mui/icons-material/Phone';
 
 const IncomingCallModal = ({ incomingCall, onAcceptCall, onRejectCall }) => {
     const [callDuration, setCallDuration] = useState(0);
-    const [callSound, setCallSound] = useState(null);
 
     // Таймер для отображения длительности входящего звонка
     useEffect(() => {
@@ -17,48 +16,13 @@ const IncomingCallModal = ({ incomingCall, onAcceptCall, onRejectCall }) => {
         return () => clearInterval(interval);
     }, []);
 
-    // Проигрывание звука входящего звонка
-    useEffect(() => {
-        if (incomingCall) {
-            // Создаем звук звонка
-            const audio = new Audio('/incoming-call.mp3');
-            audio.volume = 0.7;
-            audio.loop = true;
-            
-            // Пытаемся проиграть звук
-            audio.play().catch(() => {
-                // Если файл не найден, используем fallback
-                console.log("Incoming call audio file not found, using fallback");
-            });
-            
-            setCallSound(audio);
-            
-            // Останавливаем звук при размонтировании
-            return () => {
-                if (audio) {
-                    audio.pause();
-                    audio.currentTime = 0;
-                }
-            };
-        }
-    }, [incomingCall]);
-
-    // Остановка звука при принятии или отклонении звонка
-    const stopCallSound = () => {
-        if (callSound) {
-            callSound.pause();
-            callSound.currentTime = 0;
-            setCallSound(null);
-        }
-    };
-
+    // Звук теперь управляется централизованно через NotificationContext
+    // Убираем дублирование звука в этом компоненте
     const handleAcceptCall = () => {
-        stopCallSound();
         onAcceptCall();
     };
 
     const handleRejectCall = () => {
-        stopCallSound();
         onRejectCall();
     };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, useContext } from 'react';
 import ChatList from './ChatList';
 import ServerList from './ServerList';
 import ServerPage from './ServerPage';
@@ -12,6 +12,7 @@ import { useNotifications } from './hooks/useNotifications';
 import { useGlobalHotkeys } from './hooks/useGlobalHotkeys';
 import useHotkeys from './hooks/useHotkeys';
 import useMouseNavigationBlocker from './hooks/useMouseNavigationBlocker';
+import { NotificationContext } from './contexts/NotificationContext';
 
 // Старые компоненты подсказок удалены - теперь используются настраиваемые горячие клавиши
 
@@ -20,6 +21,7 @@ const Home = ({ user }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const { initializeForUser } = useNotifications();
+    const { stopIncomingCallSound } = useContext(NotificationContext);
     const [voiceRoom, setVoiceRoom] = useState(() => {
         // Восстанавливаем состояние голосового чата из localStorage
         const savedVoiceRoom = localStorage.getItem('voiceRoom');
@@ -133,6 +135,9 @@ const Home = ({ user }) => {
     // Обработчик ответа на входящий звонок
     const handleAcceptCall = () => {
         if (incomingCall) {
+            // Останавливаем звук входящего звонка
+            stopIncomingCallSound();
+            
             // Создаем данные звонка для присоединения
             const callData = {
                 roomId: incomingCall.roomId,
@@ -154,11 +159,16 @@ const Home = ({ user }) => {
     
     // Обработчик отклонения входящего звонка
     const handleRejectCall = () => {
+        // Останавливаем звук входящего звонка
+        stopIncomingCallSound();
         setIncomingCall(null);
     };
     
     // Обработчик выхода из голосового канала
     const handleLeaveVoiceChannel = () => {
+        // Останавливаем звук входящего звонка если он играет
+        stopIncomingCallSound();
+        
         setVoiceRoom(null);
         setActivePrivateCall(null); // Очищаем состояние приватного звонка
         setIncomingCall(null); // Очищаем состояние входящего звонка

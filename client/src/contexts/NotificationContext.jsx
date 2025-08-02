@@ -16,6 +16,7 @@ export const NotificationProvider = ({ children }) => {
     const connectionRef = useRef(null);
     const userIdRef = useRef(null);
     const audioContextRef = useRef(null);
+    const incomingCallAudioRef = useRef(null);
 
     // Функция для проигрывания звука уведомления
     const playNotificationSound = useCallback(() => {
@@ -47,16 +48,28 @@ export const NotificationProvider = ({ children }) => {
     // Функция для проигрывания звука входящего звонка
     const playIncomingCallSound = useCallback(() => {
         try {
-            // Сначала пробуем проиграть реальный аудиофайл для звонка
+            // Останавливаем предыдущий звук если он играет
+            if (incomingCallAudioRef.current) {
+                incomingCallAudioRef.current.pause();
+                incomingCallAudioRef.current.currentTime = 0;
+            }
+            
+            // Создаем новый аудио элемент
             const audioElement = new Audio('/incoming-call.mp3');
             audioElement.volume = 0.7;
             audioElement.loop = true; // Зацикливаем звук для звонка
+            
+            // Сохраняем ссылку на аудио элемент
+            incomingCallAudioRef.current = audioElement;
             
             audioElement.play().catch(() => {
                 // Если MP3 не найден, пробуем WAV
                 const wavAudio = new Audio('/incoming-call.wav');
                 wavAudio.volume = 0.7;
                 wavAudio.loop = true;
+                
+                // Сохраняем ссылку на WAV элемент
+                incomingCallAudioRef.current = wavAudio;
                 
                 wavAudio.play().catch(() => {
                     // Если файлы не найдены, используем fallback для звонка
@@ -66,16 +79,20 @@ export const NotificationProvider = ({ children }) => {
             });
             
             console.log("Incoming call sound played");
-            
-            // Возвращаем функцию для остановки звука
-            return () => {
-                audioElement.pause();
-                audioElement.currentTime = 0;
-            };
         } catch (error) {
             console.error("Error playing incoming call sound:", error);
             // В случае ошибки тоже используем fallback
-            return playIncomingCallFallbackSound();
+            playIncomingCallFallbackSound();
+        }
+    }, []);
+
+    // Функция для остановки звука входящего звонка
+    const stopIncomingCallSound = useCallback(() => {
+        if (incomingCallAudioRef.current) {
+            incomingCallAudioRef.current.pause();
+            incomingCallAudioRef.current.currentTime = 0;
+            incomingCallAudioRef.current = null;
+            console.log("Incoming call sound stopped");
         }
     }, []);
 
@@ -560,6 +577,7 @@ export const NotificationProvider = ({ children }) => {
         deleteNotification,
         requestNotificationPermission,
         playNotificationSound, // Экспортируем функцию для тестирования
+        stopIncomingCallSound, // Экспортируем функцию остановки звука звонка
         addNotification: (notification) => {
             setNotifications(prev => [notification, ...prev]);
             setUnreadCount(prev => prev + 1);
