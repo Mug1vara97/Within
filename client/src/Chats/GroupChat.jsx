@@ -167,9 +167,24 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     // Отправляем уведомление о звонке через SignalR
     if (connection) {
       console.log('📞 Sending call notification and call started:', { chatId, userId, username });
-      connection.invoke('SendCallNotification', chatId, username, userId, groupName);
+      console.log('📞 Connection state:', connection.state);
+      
+      connection.invoke('SendCallNotification', chatId, username, userId, groupName)
+        .then(() => {
+          console.log('✅ SendCallNotification sent successfully');
+        })
+        .catch((error) => {
+          console.error('❌ Failed to send SendCallNotification:', error);
+        });
+      
       // Уведомляем о начале звонка
-      connection.invoke('NotifyCallStarted', chatId, userId);
+      connection.invoke('NotifyCallStarted', chatId, userId)
+        .then(() => {
+          console.log('✅ NotifyCallStarted sent successfully');
+        })
+        .catch((error) => {
+          console.error('❌ Failed to send NotifyCallStarted:', error);
+        });
     } else {
       console.error('❌ No SignalR connection available!');
     }
@@ -196,7 +211,15 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     // Уведомляем о начале звонка (даже без уведомления собеседнику нужно показать панель)
     if (connection) {
       console.log('📞 Sending call started (without notification):', { chatId, userId });
-      connection.invoke('NotifyCallStarted', chatId, userId);
+      console.log('📞 Connection state:', connection.state);
+      
+      connection.invoke('NotifyCallStarted', chatId, userId)
+        .then(() => {
+          console.log('✅ NotifyCallStarted sent successfully');
+        })
+        .catch((error) => {
+          console.error('❌ Failed to send NotifyCallStarted:', error);
+        });
     } else {
       console.error('❌ No SignalR connection available!');
     }
