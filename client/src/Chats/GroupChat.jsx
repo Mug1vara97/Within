@@ -52,7 +52,7 @@ const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
 };
 
 const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, userPermissions, chatListConnection,
-  isGroupChat = false, isServerOwner, onJoinVoiceChannel, chatTypeId }) => {
+  isGroupChat = false, isServerOwner, onJoinVoiceChannel, chatTypeId, activePrivateCall }) => {
   
 
   const [messages, setMessages] = useState([]);
@@ -100,8 +100,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const [forwardMessageText, setForwardMessageText] = useState('');
   const forwardTextareaRef = useRef(null);
   const [isPrivateChat, setIsPrivateChat] = useState(false);
-  const [activeCall, setActiveCall] = useState(null);
-  const [isInCall, setIsInCall] = useState(false);
 
   // Определяем, является ли это личным чатом
   useEffect(() => {
@@ -109,9 +107,14 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     setIsPrivateChat(chatTypeId === 1 || (!isGroupChat && !isServerChat));
   }, [chatTypeId, isGroupChat, isServerChat]);
 
+  // Определяем, есть ли активный звонок в этом чате
+  const isCallActiveInThisChat = activePrivateCall && 
+    String(activePrivateCall.chatId) === String(chatId) && 
+    isPrivateChat;
+
   const handleStartCall = () => {
-    if (isPrivateChat && !isInCall) {
-      // Устанавливаем состояние звонка
+    if (isPrivateChat && !isCallActiveInThisChat) {
+      // Создаем данные звонка
       const callData = {
         roomId: chatId.toString(),
         roomName: `Звонок с ${groupName}`,
@@ -121,10 +124,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         chatId: chatId
       };
       
-      setActiveCall(callData);
-      setIsInCall(true);
-      
-      // Если есть глобальный обработчик, вызываем его тоже
+      // Вызываем глобальный обработчик для начала звонка
       if (onJoinVoiceChannel) {
         onJoinVoiceChannel(callData);
       }
@@ -132,8 +132,10 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   };
 
   const handleEndCall = () => {
-    setIsInCall(false);
-    setActiveCall(null);
+    // Вызываем глобальный обработчик для завершения звонка
+    if (onJoinVoiceChannel) {
+      onJoinVoiceChannel(null);
+    }
   };
 
   useEffect(() => {
@@ -541,7 +543,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           </div>
         </div>
         <div className="header-actions">
-          {isPrivateChat && !isInCall && (
+          {isPrivateChat && !isCallActiveInThisChat && (
             <button
               onClick={handleStartCall}
               className="voice-call-button"
@@ -660,7 +662,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       )}
 
       {/* Интерфейс звонка для личных чатов */}
-      {isPrivateChat && isInCall && activeCall && (
+      {isCallActiveInThisChat && (
         <div style={{
           position: 'relative',
           width: '100%',
@@ -683,17 +685,11 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <CallIcon style={{ color: '#3ba55d', fontSize: '20px' }} />
               <span style={{ color: '#dcddde', fontSize: '16px', fontWeight: '500' }}>
-                Голосовой звонок с {groupName}
+                {activePrivateCall?.callData?.roomName || `Звонок с ${groupName}`}
               </span>
             </div>
             <button
-              onClick={() => {
-                handleEndCall();
-                // Вызываем глобальный обработчик для выхода из звонка
-                if (onJoinVoiceChannel) {
-                  onJoinVoiceChannel(null); // null означает выход из звонка
-                }
-              }}
+              onClick={handleEndCall}
               style={{
                 background: '#ed4245',
                 border: 'none',

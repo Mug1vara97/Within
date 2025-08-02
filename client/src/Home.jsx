@@ -33,6 +33,9 @@ const Home = ({ user }) => {
     // Состояние для отображения сообщения о выходе из голосового канала
     const [leftVoiceChannel, setLeftVoiceChannel] = useState(false);
     
+    // Состояние активного приватного звонка
+    const [activePrivateCall, setActivePrivateCall] = useState(null); // { chatId, callData }
+    
     // Состояния мьюта для UserPanel (инициализируются из localStorage)
     const [isMuted, setIsMuted] = useState(() => {
         const saved = localStorage.getItem('localMuted');
@@ -110,12 +113,21 @@ const Home = ({ user }) => {
         } else {
             setVoiceRoom(data);
             setLeftVoiceChannel(false);
+            
+            // Если это приватный звонок, сохраняем информацию о нем
+            if (data.isPrivateCall && data.chatId) {
+                setActivePrivateCall({
+                    chatId: data.chatId,
+                    callData: data
+                });
+            }
         }
     };
     
     // Обработчик выхода из голосового канала
     const handleLeaveVoiceChannel = () => {
         setVoiceRoom(null);
+        setActivePrivateCall(null); // Очищаем состояние приватного звонка
         setLeftVoiceChannel(true);
         // НЕ сбрасываем состояния мьюта - сохраняем пользовательские настройки
         // setIsMuted(false);
@@ -256,6 +268,7 @@ const Home = ({ user }) => {
                                     isAudioEnabled={voiceRoom ? isAudioEnabled : localAudioEnabled}
                                     onToggleMute={handleToggleMute}
                                     onToggleAudio={handleToggleAudio}
+                                    activePrivateCall={activePrivateCall}
                                 />
                             } />
                             <Route path="/channels/:serverId/:chatId?" element={
@@ -270,6 +283,7 @@ const Home = ({ user }) => {
                                     isAudioEnabled={voiceRoom ? isAudioEnabled : localAudioEnabled}
                                     onToggleMute={handleToggleMute}
                                     onToggleAudio={handleToggleAudio}
+                                    activePrivateCall={activePrivateCall}
                                 />
                             } />
                         </Routes>
@@ -305,7 +319,7 @@ const Home = ({ user }) => {
     );
 };
 
-const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
+const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio, activePrivateCall }) => {
     // Компонент для отображения сообщения о выходе из голосового канала
     const LeftVoiceChannelComponent = () => (
         <div style={{
@@ -389,6 +403,7 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel
                                 isServerChat={false}
                                 onJoinVoiceChannel={onJoinVoiceChannel}
                                 chatTypeId={selectedChat.typeId || selectedChat.chatType}
+                                activePrivateCall={activePrivateCall}
                             />
                         )}
                         
@@ -412,7 +427,7 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel
     );
 };
 
-const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio }) => {
+const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVisible, leftVoiceChannel, setLeftVoiceChannel, isMuted, isAudioEnabled, onToggleMute, onToggleAudio, activePrivateCall }) => {
     // Компонент для отображения сообщения о выходе из голосового канала
     const LeftVoiceChannelComponent = () => (
         <div style={{
@@ -500,6 +515,7 @@ const ServerPageWrapper = ({ user, onJoinVoiceChannel, voiceRoom, isVoiceChatVis
                                 isServerOwner={selectedChat.isServerOwner}
                                 onJoinVoiceChannel={onJoinVoiceChannel}
                                 chatTypeId={selectedChat.typeId || selectedChat.chatType}
+                                activePrivateCall={activePrivateCall}
                             />
                         )}
                         
