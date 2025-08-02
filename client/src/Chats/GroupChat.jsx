@@ -109,10 +109,9 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
 
   const handleStartCall = () => {
     if (onJoinVoiceChannel && isPrivateChat) {
-      // Создаем временную комнату для звонка с уникальным ID
-      const callRoomId = `private_call_${chatId}_${Date.now()}`;
+      // Используем ID чата как ID комнаты для звонка
       onJoinVoiceChannel({
-        roomId: callRoomId,
+        roomId: chatId.toString(),
         roomName: `Звонок с ${groupName}`,
         userName: username,
         userId: userId,
