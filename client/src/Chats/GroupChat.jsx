@@ -55,6 +55,13 @@ const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
 const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, userPermissions, chatListConnection,
   isGroupChat = false, isServerOwner, onJoinVoiceChannel, chatTypeId, activePrivateCall }) => {
   
+  console.log('🎨 GroupChat RENDER:', {
+    chatId,
+    userId,
+    username,
+    isGroupChat,
+    groupName
+  });
 
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
