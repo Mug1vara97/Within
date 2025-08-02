@@ -551,6 +551,8 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       userId: userId,
       isPrivateChat: isPrivateChat
     });
+
+    console.log('🔥 ABOUT TO REGISTER CallStarted handler, connection exists:', !!connection);
     
     if (connection) {
       const receiveMessageHandler = async (username, content, messageId, avatarUrl, avatarColor, repliedMessage, forwardedMessage) => {
@@ -587,6 +589,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
 
             // Обработчики для статуса звонков
             const handleCallStarted = (callChatId, callerId) => {
+                console.log('🚨🚨🚨 CallStarted FUNCTION CALLED!!! 🚨🚨🚨');
                 console.log('🟢 CallStarted received:', { 
                     callChatId, 
                     callerId, 
@@ -624,8 +627,10 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
                 }
             };
 
+            console.log('🟡 REGISTERING CallStarted handler NOW');
             connection.on('CallStarted', handleCallStarted);
             connection.on('CallEnded', handleCallEnded);
+            console.log('✅ CallStarted handler REGISTERED');
 
         return () => {
         connection.off('ReceiveMessage', receiveMessageHandler);
