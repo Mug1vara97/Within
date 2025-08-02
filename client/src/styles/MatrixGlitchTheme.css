@@ -34,17 +34,21 @@
     background-color: transparent !important;
 }
 
-/* Стили для VoiceChat компонента */
-.matrix-glitch-theme .MuiBox-root {
+/* Стили для VoiceChat компонента - только основной контейнер */
+.matrix-glitch-theme #voice-chat-container-private > .MuiBox-root:first-child {
     background-color: transparent !important;
 }
 
-.matrix-glitch-theme #voice-chat-container-private .MuiBox-root {
+.matrix-glitch-theme #voice-chat-container-server > .MuiBox-root:first-child {
     background-color: transparent !important;
 }
 
-.matrix-glitch-theme #voice-chat-container-server .MuiBox-root {
-    background-color: transparent !important;
+/* Исключаем контейнеры с кнопками и пользователями */
+.matrix-glitch-theme .MuiBox-root[role="button"],
+.matrix-glitch-theme .MuiBox-root[data-testid],
+.matrix-glitch-theme .MuiBox-root:has(button),
+.matrix-glitch-theme .MuiButtonBase-root {
+    background-color: initial !important;
 }
 
 .matrix-glitch-theme .messages {
