@@ -492,17 +492,24 @@ namespace Messenger
         {
             try
             {
+                Console.WriteLine($"SendCallNotification called: chatId={chatId}, caller={caller}, callerId={callerId}, targetUser={targetUser}");
+                
                 // Получаем участников чата
                 var chatMembers = await _context.Members
                     .Where(m => m.ChatId == chatId)
                     .Select(m => m.UserId)
                     .ToListAsync();
 
+                Console.WriteLine($"Found {chatMembers.Count} chat members: {string.Join(", ", chatMembers)}");
+
                 // Отправляем уведомление о звонке всем участникам кроме звонящего
                 var notificationMembers = chatMembers.Where(m => m != callerId).ToList();
                 
+                Console.WriteLine($"Sending notifications to {notificationMembers.Count} members: {string.Join(", ", notificationMembers)}");
+                
                 foreach (var memberId in notificationMembers)
                 {
+                    Console.WriteLine($"Sending IncomingCall to user {memberId}: chatId={chatId}, caller={caller}, callerId={callerId}, roomId={chatId}");
                     // Отправляем уведомление через SignalR
                     await _notificationHub.Clients.User(memberId.ToString()).SendAsync("IncomingCall", chatId, caller, callerId, chatId.ToString());
                 }

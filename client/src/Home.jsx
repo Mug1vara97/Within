@@ -247,12 +247,19 @@ const Home = ({ user }) => {
     // Обработчик входящих звонков через NotificationHub
     useEffect(() => {
         const handleIncomingCall = (event) => {
+            console.log("IncomingCall event received:", event);
+            
+            if (!event.detail) {
+                console.error("IncomingCall event has no detail:", event);
+                return;
+            }
+            
             const { chatId, caller, callerId, roomId } = event.detail;
-            console.log("IncomingCall event received:", { chatId, caller, callerId, roomId });
+            console.log("IncomingCall event detail:", { chatId, caller, callerId, roomId });
             
             // Проверяем, что звонок не от нас самих
             if (callerId !== user?.userId) {
-                handleIncomingCall({
+                setIncomingCall({
                     chatId: parseInt(chatId),
                     caller: caller,
                     callerId: callerId,

@@ -189,9 +189,24 @@ export const NotificationProvider = ({ children }) => {
         // Обработчик входящего звонка
         connection.on("IncomingCall", (chatId, caller, callerId, roomId) => {
             console.log("IncomingCall received in NotificationContext:", { chatId, caller, callerId, roomId });
+            console.log("IncomingCall types:", { 
+                chatId: typeof chatId, 
+                caller: typeof caller, 
+                callerId: typeof callerId, 
+                roomId: typeof roomId 
+            });
+            
             // Отправляем событие для обработки входящего звонка
+            const eventDetail = { 
+                chatId: parseInt(chatId), 
+                caller, 
+                callerId: parseInt(callerId), 
+                roomId 
+            };
+            console.log("Dispatching incomingCall event with detail:", eventDetail);
+            
             window.dispatchEvent(new CustomEvent('incomingCall', {
-                detail: { chatId, caller, callerId, roomId }
+                detail: eventDetail
             }));
         });
 
