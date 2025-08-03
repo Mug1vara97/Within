@@ -1,5 +1,5 @@
 import React from 'react';
-import { CallIcon, MicOff, MicIcon, HeadsetOff, HeadsetIcon } from '@mui/icons-material';
+import { CallIcon, MicOff, Mic, HeadsetOff, Headset } from '@mui/icons-material';
 import './CallStatusIndicator.css';
 
 const CallStatusIndicator = ({ 
@@ -42,20 +42,20 @@ const CallStatusIndicator = ({
           
           {isInCall && (
             <div className="call-controls">
-              <button
-                className={`mute-button ${isMuted ? 'muted' : ''}`}
-                onClick={onToggleMute}
-                title={isMuted ? "Включить микрофон" : "Выключить микрофон"}
-              >
-                {isMuted ? <MicOff /> : <MicIcon />}
-              </button>
-              <button
-                className={`audio-button ${isAudioDisabled ? 'disabled' : ''}`}
-                onClick={onToggleAudio}
-                title={isAudioDisabled ? "Включить звук" : "Выключить звук"}
-              >
-                {isAudioDisabled ? <HeadsetOff /> : <HeadsetIcon />}
-              </button>
+                             <button
+                 className={`mute-button ${isMuted ? 'muted' : ''}`}
+                 onClick={onToggleMute}
+                 title={isMuted ? "Включить микрофон" : "Выключить микрофон"}
+               >
+                 {isMuted ? <MicOff /> : <Mic />}
+               </button>
+               <button
+                 className={`audio-button ${isAudioDisabled ? 'disabled' : ''}`}
+                 onClick={onToggleAudio}
+                 title={isAudioDisabled ? "Включить звук" : "Выключить звук"}
+               >
+                 {isAudioDisabled ? <HeadsetOff /> : <Headset />}
+               </button>
               <button
                 className="leave-call-button"
                 onClick={onLeaveCall}
