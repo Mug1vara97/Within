@@ -94,22 +94,23 @@ const CallParticipantsDisplay = ({ participants, currentUserId, onJoinCall }) =>
      );
   };
 
-     return (
-     <div style={{
-       display: 'flex',
-       flexDirection: 'column',
-       alignItems: 'center',
-       justifyContent: 'space-between',
-       height: '100%',
-       padding: '20px'
-     }}>
-       <div style={{
-         display: 'flex',
-         alignItems: 'center',
-         gap: '12px',
-         flexWrap: 'wrap',
-         justifyContent: 'center'
-       }}>
+           return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+        padding: '20px',
+        position: 'relative'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          flexWrap: 'wrap',
+          justifyContent: 'center'
+        }}>
                  {otherParticipants.map((participant) => (
            <div
              key={participant.id}
@@ -148,10 +149,10 @@ const CallParticipantsDisplay = ({ participants, currentUserId, onJoinCall }) =>
                          {/* Индикаторы состояния */}
              <div style={{
                display: 'flex',
-               gap: '4px',
+               gap: '2px',
                position: 'absolute',
-               bottom: '-4px',
-               right: '-4px'
+               bottom: '0px',
+               right: '0px'
              }}>
                {participant.isMuted && (
                  <div style={{
@@ -161,9 +162,10 @@ const CallParticipantsDisplay = ({ participants, currentUserId, onJoinCall }) =>
                    backgroundColor: '#ed4245',
                    display: 'flex',
                    alignItems: 'center',
-                   justifyContent: 'center'
+                   justifyContent: 'center',
+                   border: '2px solid #36393f'
                  }}>
-                   <MicOff style={{ fontSize: '12px', color: '#ffffff' }} />
+                   <MicOff style={{ fontSize: '10px', color: '#ffffff' }} />
                  </div>
                )}
                {participant.isAudioDisabled && (
@@ -174,9 +176,10 @@ const CallParticipantsDisplay = ({ participants, currentUserId, onJoinCall }) =>
                    backgroundColor: '#ed4245',
                    display: 'flex',
                    alignItems: 'center',
-                   justifyContent: 'center'
+                   justifyContent: 'center',
+                   border: '2px solid #36393f'
                  }}>
-                   <HeadsetOff style={{ fontSize: '12px', color: '#ffffff' }} />
+                   <HeadsetOff style={{ fontSize: '10px', color: '#ffffff' }} />
                  </div>
                )}
              </div>
@@ -198,36 +201,39 @@ const CallParticipantsDisplay = ({ participants, currentUserId, onJoinCall }) =>
          ))}
        </div>
        
-       {/* Кнопка присоединения к звонку */}
-       {onJoinCall && (
-         <button
-           onClick={onJoinCall}
-           style={{
-             background: 'linear-gradient(135deg, #5865f2, #4752c4)',
-             border: 'none',
-             color: '#ffffff',
-             cursor: 'pointer',
-             padding: '12px 24px',
-             borderRadius: '8px',
-             fontSize: '16px',
-             fontWeight: '500',
-             transition: 'background-color 0.2s',
-             display: 'flex',
-             alignItems: 'center',
-             gap: '8px',
-             marginTop: 'auto'
-           }}
-           onMouseEnter={(e) => {
-             e.target.style.background = 'linear-gradient(135deg, #4752c4, #3c45a5)';
-           }}
-           onMouseLeave={(e) => {
-             e.target.style.background = 'linear-gradient(135deg, #5865f2, #4752c4)';
-           }}
-         >
-           <CallIcon style={{ fontSize: '18px' }} />
-           ПРИСОЕДИНИТЬСЯ К ЗВОНКУ
-         </button>
-       )}
+               {/* Кнопка присоединения к звонку */}
+        {onJoinCall && (
+          <button
+            onClick={onJoinCall}
+            style={{
+              background: 'linear-gradient(135deg, #5865f2, #4752c4)',
+              border: 'none',
+              color: '#ffffff',
+              cursor: 'pointer',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: '500',
+              transition: 'background-color 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              position: 'absolute',
+              bottom: '20px',
+              left: '50%',
+              transform: 'translateX(-50%)'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = 'linear-gradient(135deg, #4752c4, #3c45a5)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'linear-gradient(135deg, #5865f2, #4752c4)';
+            }}
+          >
+            <CallIcon style={{ fontSize: '18px' }} />
+            ПРИСОЕДИНИТЬСЯ К ЗВОНКУ
+          </button>
+        )}
      </div>
    );
  };
