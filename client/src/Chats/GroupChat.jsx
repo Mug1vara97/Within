@@ -649,36 +649,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
               <CallIcon style={{ fontSize: '20px' }} />
             </button>
           )}
-          {isPrivateChat && !isCallActiveInThisChat && otherUserInCall && (
-            <div
-              className="call-status-indicator"
-              style={{
-                background: 'linear-gradient(135deg, #5865f2, #4752c4)',
-                border: 'none',
-                color: '#ffffff',
-                cursor: 'pointer',
-                padding: '8px 12px',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginRight: '8px',
-                transition: 'background-color 0.2s',
-                fontSize: '14px',
-                fontWeight: '500'
-              }}
-              onClick={handleJoinCall}
-              onMouseEnter={(e) => {
-                e.target.style.background = 'linear-gradient(135deg, #4752c4, #3c45a5)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.background = 'linear-gradient(135deg, #5865f2, #4752c4)';
-              }}
-            >
-              <CallIcon style={{ fontSize: '16px', marginRight: '6px' }} />
-              ПРИСОЕДИНИТЬСЯ К ЗВОНКУ
-            </div>
-          )}
+
           {isGroupChat && (
             <button
               onClick={() => setIsAddMembersModalOpen(true)}
@@ -793,6 +764,66 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
               width: '100%', 
               height: '100%'
             }} />
+          </div>
+        </div>
+      )}
+
+      {/* Панель статуса звонка - показывается когда другой пользователь в звонке, а текущий нет */}
+      {isPrivateChat && !isCallActiveInThisChat && otherUserInCall && (
+        <div style={{
+          position: 'relative',
+          width: '100%',
+          height: '120px',
+          backgroundColor: '#2f3136',
+          borderBottom: '1px solid #202225',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px'
+        }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: '#8e9297',
+              fontSize: '14px'
+            }}>
+              <CallIcon style={{ fontSize: '16px', color: '#5865f2' }} />
+              <span>В звонке: <strong style={{ color: '#ffffff' }}>{otherUserName}</strong></span>
+            </div>
+            <button
+              onClick={handleJoinCall}
+              style={{
+                background: 'linear-gradient(135deg, #5865f2, #4752c4)',
+                border: 'none',
+                color: '#ffffff',
+                cursor: 'pointer',
+                padding: '10px 20px',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: '500',
+                transition: 'background-color 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'linear-gradient(135deg, #4752c4, #3c45a5)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'linear-gradient(135deg, #5865f2, #4752c4)';
+              }}
+            >
+              <CallIcon style={{ fontSize: '16px' }} />
+              ПРИСОЕДИНИТЬСЯ К ЗВОНКУ
+            </button>
           </div>
         </div>
       )}
