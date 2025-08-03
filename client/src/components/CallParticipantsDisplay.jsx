@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { MicOff, HeadsetOff } from '@mui/icons-material';
+import { MicOff, HeadsetOff, Call as CallIcon } from '@mui/icons-material';
 
-const CallParticipantsDisplay = ({ participants, currentUserId }) => {
+const CallParticipantsDisplay = ({ participants, currentUserId, onJoinCall }) => {
   const [userProfiles, setUserProfiles] = useState(new Map());
 
   // Фильтруем участников, исключая текущего пользователя
@@ -54,70 +54,62 @@ const CallParticipantsDisplay = ({ participants, currentUserId }) => {
     const avatarUrl = userProfile?.avatarUrl;
     const avatarColor = userProfile?.avatarColor || participant.avatarColor || '#5865f2';
     
-    if (avatarUrl) {
-      return (
-        <img
-          src={avatarUrl}
-          alt={participant.name || 'Пользователь'}
-          style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '50%',
-            border: '2px solid #36393f',
-            objectFit: 'cover'
-          }}
-          onError={(e) => {
-            // Если загрузка аватара не удалась, показываем букву
-            e.target.style.display = 'none';
-            e.target.nextSibling.style.display = 'flex';
-          }}
-        />
-      );
-    }
-    
-    return (
-      <div style={{
-        width: '48px',
-        height: '48px',
-        borderRadius: '50%',
-        backgroundColor: avatarColor,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: '#ffffff',
-        fontSize: '18px',
-        fontWeight: 'bold',
-        border: '2px solid #36393f'
-      }}>
-        {participant.name ? participant.name[0].toUpperCase() : 'U'}
-      </div>
-    );
+         if (avatarUrl) {
+       return (
+         <img
+           src={avatarUrl}
+           alt={participant.name || 'Пользователь'}
+           style={{
+             width: '80px',
+             height: '80px',
+             borderRadius: '50%',
+             border: '2px solid #36393f',
+             objectFit: 'cover'
+           }}
+           onError={(e) => {
+             // Если загрузка аватара не удалась, показываем букву
+             e.target.style.display = 'none';
+             e.target.nextSibling.style.display = 'flex';
+           }}
+         />
+       );
+     }
+     
+     return (
+       <div style={{
+         width: '80px',
+         height: '80px',
+         borderRadius: '50%',
+         backgroundColor: avatarColor,
+         display: 'flex',
+         alignItems: 'center',
+         justifyContent: 'center',
+         color: '#ffffff',
+         fontSize: '25px',
+         fontWeight: 'bold',
+         border: '2px solid #36393f'
+       }}>
+         {participant.name ? participant.name[0].toUpperCase() : 'U'}
+       </div>
+     );
   };
 
-  return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      gap: '12px'
-    }}>
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        color: '#8e9297',
-        fontSize: '14px'
-      }}>
-        <span>В звонке:</span>
-      </div>
-      
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        flexWrap: 'wrap',
-        justifyContent: 'center'
-      }}>
+     return (
+     <div style={{
+       display: 'flex',
+       flexDirection: 'column',
+       alignItems: 'center',
+       justifyContent: 'space-between',
+       height: '100%',
+       padding: '20px'
+     }}>
+       <div style={{
+         display: 'flex',
+         alignItems: 'center',
+         gap: '12px',
+         flexWrap: 'wrap',
+         justifyContent: 'center'
+       }}>
                  {otherParticipants.map((participant) => (
            <div
              key={participant.id}
@@ -134,15 +126,15 @@ const CallParticipantsDisplay = ({ participants, currentUserId }) => {
                {renderUserAvatar(participant)}
                {/* Fallback аватар (скрыт по умолчанию) */}
                <div style={{
-                 width: '48px',
-                 height: '48px',
+                 width: '80px',
+                 height: '80px',
                  borderRadius: '50%',
                  backgroundColor: userProfiles.get(participant.id)?.avatarColor || participant.avatarColor || '#5865f2',
                  display: 'none',
                  alignItems: 'center',
                  justifyContent: 'center',
                  color: '#ffffff',
-                 fontSize: '18px',
+                 fontSize: '25px',
                  fontWeight: 'bold',
                  border: '2px solid #36393f',
                  position: 'absolute',
@@ -156,57 +148,88 @@ const CallParticipantsDisplay = ({ participants, currentUserId }) => {
                          {/* Индикаторы состояния */}
              <div style={{
                display: 'flex',
-               gap: '3px',
+               gap: '4px',
                position: 'absolute',
-               bottom: '-3px',
-               right: '-3px'
+               bottom: '-4px',
+               right: '-4px'
              }}>
                {participant.isMuted && (
                  <div style={{
-                   width: '16px',
-                   height: '16px',
+                   width: '20px',
+                   height: '20px',
                    borderRadius: '50%',
                    backgroundColor: '#ed4245',
                    display: 'flex',
                    alignItems: 'center',
                    justifyContent: 'center'
                  }}>
-                   <MicOff style={{ fontSize: '10px', color: '#ffffff' }} />
+                   <MicOff style={{ fontSize: '12px', color: '#ffffff' }} />
                  </div>
                )}
                {participant.isAudioDisabled && (
                  <div style={{
-                   width: '16px',
-                   height: '16px',
+                   width: '20px',
+                   height: '20px',
                    borderRadius: '50%',
                    backgroundColor: '#ed4245',
                    display: 'flex',
                    alignItems: 'center',
                    justifyContent: 'center'
                  }}>
-                   <HeadsetOff style={{ fontSize: '10px', color: '#ffffff' }} />
+                   <HeadsetOff style={{ fontSize: '12px', color: '#ffffff' }} />
                  </div>
                )}
              </div>
              
              {/* Имя пользователя */}
              <span style={{
-               fontSize: '13px',
+               fontSize: '15px',
                color: '#8e9297',
                textAlign: 'center',
-               maxWidth: '60px',
+               maxWidth: '80px',
                overflow: 'hidden',
                textOverflow: 'ellipsis',
                whiteSpace: 'nowrap',
-               marginTop: '4px'
+               marginTop: '6px'
              }}>
                {participant.name || 'Пользователь'}
              </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
+                     </div>
+         ))}
+       </div>
+       
+       {/* Кнопка присоединения к звонку */}
+       {onJoinCall && (
+         <button
+           onClick={onJoinCall}
+           style={{
+             background: 'linear-gradient(135deg, #5865f2, #4752c4)',
+             border: 'none',
+             color: '#ffffff',
+             cursor: 'pointer',
+             padding: '12px 24px',
+             borderRadius: '8px',
+             fontSize: '16px',
+             fontWeight: '500',
+             transition: 'background-color 0.2s',
+             display: 'flex',
+             alignItems: 'center',
+             gap: '8px',
+             marginTop: 'auto'
+           }}
+           onMouseEnter={(e) => {
+             e.target.style.background = 'linear-gradient(135deg, #4752c4, #3c45a5)';
+           }}
+           onMouseLeave={(e) => {
+             e.target.style.background = 'linear-gradient(135deg, #5865f2, #4752c4)';
+           }}
+         >
+           <CallIcon style={{ fontSize: '18px' }} />
+           ПРИСОЕДИНИТЬСЯ К ЗВОНКУ
+         </button>
+       )}
+     </div>
+   );
+ };
 
 export default CallParticipantsDisplay; 

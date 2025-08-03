@@ -786,33 +786,8 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           <CallParticipantsDisplay 
             participants={getVoiceChannelParticipants(chatId.toString())}
             currentUserId={userId}
+            onJoinCall={handleJoinCall}
           />
-          <button
-            onClick={handleJoinCall}
-            style={{
-              background: 'linear-gradient(135deg, #5865f2, #4752c4)',
-              border: 'none',
-              color: '#ffffff',
-              cursor: 'pointer',
-              padding: '10px 20px',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontWeight: '500',
-              transition: 'background-color 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.background = 'linear-gradient(135deg, #4752c4, #3c45a5)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = 'linear-gradient(135deg, #5865f2, #4752c4)';
-            }}
-          >
-            <CallIcon style={{ fontSize: '16px' }} />
-            ПРИСОЕДИНИТЬСЯ К ЗВОНКУ
-          </button>
         </div>
       )}
 
