@@ -150,7 +150,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         else {
           // Пока используем простую логику - предполагаем, что другой пользователь имеет ID 1
           // В реальном приложении здесь нужно получить информацию о участниках чата
-          otherUserId = '1'; // Временно используем ID 1 для тестирования
+          otherUserId = 1; // Используем числовой ID 1 для тестирования
         }
         
         console.log('GroupChat: getOtherUserInfo - otherUserId:', otherUserId);

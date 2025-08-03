@@ -71,7 +71,12 @@ function scheduleChannelUpdate(channelId, delay = 100) {
 
 // Функции для управления состоянием пользователей
 function updateUserVoiceState(userId, updates) {
-    const currentState = userVoiceStates.get(userId) || {
+    // Убеждаемся, что userId - это число
+    const numericUserId = parseInt(userId);
+    console.log(`[USER_VOICE_STATE] Updating user ${numericUserId} (original: ${userId}, type: ${typeof userId})`);
+    console.log(`[USER_VOICE_STATE] Available keys before update:`, Array.from(userVoiceStates.keys()));
+    
+    const currentState = userVoiceStates.get(numericUserId) || {
         isMuted: false,
         isAudioDisabled: false,
         channelId: null,
@@ -79,19 +84,32 @@ function updateUserVoiceState(userId, updates) {
     };
     
     const newState = { ...currentState, ...updates };
-    userVoiceStates.set(userId, newState);
-    console.log(`[USER_VOICE_STATE] Updated user ${userId}:`, newState);
+    userVoiceStates.set(numericUserId, newState);
+    console.log(`[USER_VOICE_STATE] Updated user ${numericUserId}:`, newState);
     console.log(`[USER_VOICE_STATE] Updates applied:`, updates);
+    console.log(`[USER_VOICE_STATE] Available keys after update:`, Array.from(userVoiceStates.keys()));
     return newState;
 }
 
 function getUserVoiceState(userId) {
-    return userVoiceStates.get(userId) || {
-        isMuted: false,
-        isAudioDisabled: false,
-        channelId: null,
-        userName: 'Unknown'
-    };
+    // Убеждаемся, что userId - это число
+    const numericUserId = parseInt(userId);
+    console.log(`[GET_USER_VOICE_STATE] Requesting state for userId: ${numericUserId} (original: ${userId}, type: ${typeof userId})`);
+    console.log(`[GET_USER_VOICE_STATE] Available keys in userVoiceStates:`, Array.from(userVoiceStates.keys()));
+    
+    const state = userVoiceStates.get(numericUserId);
+    console.log(`[GET_USER_VOICE_STATE] Found state:`, state);
+    
+    if (state) {
+        return state;
+    } else {
+        return {
+            isMuted: false,
+            isAudioDisabled: false,
+            channelId: null,
+            userName: 'Unknown'
+        };
+    }
 }
 
 function removeUserVoiceState(userId) {
@@ -1322,8 +1340,12 @@ io.on('connection', async (socket) => {
     // Обработчик для уведомления о присоединении пользователя к голосовому каналу
     socket.on('userJoinedVoiceChannel', ({ channelId, userId, userName, isMuted }) => {
         try {
+            // Убеждаемся, что userId - это число
+            const numericUserId = parseInt(userId);
+            console.log(`[USER_JOINED] Received event: channelId=${channelId}, userId=${numericUserId} (original: ${userId}, type: ${typeof userId}), userName=${userName}, isMuted=${isMuted}`);
+            
             // Обновляем глобальное состояние пользователя
-            updateUserVoiceState(userId, {
+            updateUserVoiceState(numericUserId, {
                 channelId: channelId,
                 userName: userName,
                 isMuted: isMuted
@@ -1346,12 +1368,16 @@ io.on('connection', async (socket) => {
     // Обработчик для уведомления о выходе пользователя из голосового канала
     socket.on('userLeftVoiceChannel', ({ channelId, userId }) => {
         try {
+            // Убеждаемся, что userId - это число
+            const numericUserId = parseInt(userId);
+            console.log(`[USER_LEFT] Received event: channelId=${channelId}, userId=${numericUserId} (original: ${userId}, type: ${typeof userId})`);
+            
             // Обновляем глобальное состояние пользователя - убираем его из канала
-            updateUserVoiceState(userId, {
+            updateUserVoiceState(numericUserId, {
                 channelId: null
             });
             
-            console.log(`[USER_LEFT] Updated user ${userId} state: removed from channel ${channelId}`);
+            console.log(`[USER_LEFT] Updated user ${numericUserId} state: removed from channel ${channelId}`);
             
             // Проверяем, есть ли еще участники в комнате
             const room = rooms.get(channelId);
@@ -1413,13 +1439,17 @@ io.on('connection', async (socket) => {
     // Новые обработчики для управления глобальным состоянием пользователей
     socket.on('updateUserVoiceState', ({ userId, userName, channelId, isMuted, isAudioDisabled }) => {
         try {
+            // Убеждаемся, что userId - это число
+            const numericUserId = parseInt(userId);
+            console.log(`[UPDATE_USER_VOICE_STATE_HANDLER] Received request for userId: ${numericUserId} (original: ${userId}, type: ${typeof userId})`);
+            
             const updates = {};
             if (userName !== undefined) updates.userName = userName;
             if (channelId !== undefined) updates.channelId = channelId;
             if (isMuted !== undefined) updates.isMuted = isMuted;
             if (isAudioDisabled !== undefined) updates.isAudioDisabled = isAudioDisabled;
             
-            updateUserVoiceState(userId, updates);
+            updateUserVoiceState(numericUserId, updates);
             
             // Если пользователь присоединился/покинул канал, обновляем информацию о канале
             if (channelId !== undefined) {
@@ -1459,7 +1489,11 @@ io.on('connection', async (socket) => {
 
     socket.on('getUserVoiceState', ({ userId }, callback) => {
         try {
-            const state = getUserVoiceState(userId);
+            // Убеждаемся, что userId - это число
+            const numericUserId = parseInt(userId);
+            console.log(`[GET_USER_VOICE_STATE_HANDLER] Received request for userId: ${numericUserId} (original: ${userId}, type: ${typeof userId})`);
+            const state = getUserVoiceState(numericUserId);
+            console.log(`[GET_USER_VOICE_STATE_HANDLER] Returning state:`, state);
             callback(state);
         } catch (error) {
             console.error('Error in getUserVoiceState:', error);
