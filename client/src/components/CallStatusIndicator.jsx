@@ -9,7 +9,10 @@ const CallStatusIndicator = ({
   onJoinCall
 }) => {
   // Компонент отображается только когда другой пользователь в звонке, а текущий - нет
+  console.log('CallStatusIndicator: Props:', { isInCall, otherUserInCall, otherUserName });
+  
   if (!otherUserInCall || isInCall) {
+    console.log('CallStatusIndicator: Not showing - otherUserInCall:', otherUserInCall, 'isInCall:', isInCall);
     return null;
   }
 
