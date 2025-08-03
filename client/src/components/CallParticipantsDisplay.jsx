@@ -151,8 +151,9 @@ const CallParticipantsDisplay = ({ participants, currentUserId, onJoinCall }) =>
                display: 'flex',
                gap: '2px',
                position: 'absolute',
-               bottom: '0px',
-               right: '0px'
+               bottom: '-8px',
+               left: '50%',
+               transform: 'translateX(-50%)'
              }}>
                {participant.isMuted && (
                  <div style={{
