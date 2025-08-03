@@ -141,21 +141,21 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         let otherUserId = null;
         
         try {
-          const response = await fetch(`${BASE_URL}/settings/${chatId}/members`);
-          if (response.ok) {
-            const members = await response.json();
-            console.log('GroupChat: getOtherUserInfo - members:', members);
-            
-            // Находим другого пользователя (не текущего)
-            const otherMember = members.find(member => member.userId !== userId);
-            if (otherMember) {
-              otherUserId = otherMember.userId;
-              console.log('GroupChat: getOtherUserInfo - found other user:', otherUserId);
-            } else {
-              console.log('GroupChat: getOtherUserInfo - no other member found');
-            }
+          console.log('GroupChat: getOtherUserInfo - fetching members for chatId:', chatId);
+          
+          // Используем существующую функцию fetchMembers из useGroupSettings
+          await fetchMembers();
+          console.log('GroupChat: getOtherUserInfo - members from useGroupSettings:', members);
+          console.log('GroupChat: getOtherUserInfo - members length:', members.length);
+          console.log('GroupChat: getOtherUserInfo - current userId:', userId);
+          
+          // Находим другого пользователя (не текущего)
+          const otherMember = members.find(member => member.userId !== userId);
+          if (otherMember) {
+            otherUserId = otherMember.userId;
+            console.log('GroupChat: getOtherUserInfo - found other user:', otherUserId);
           } else {
-            console.log('GroupChat: getOtherUserInfo - failed to fetch members, status:', response.status);
+            console.log('GroupChat: getOtherUserInfo - no other member found');
           }
         } catch (error) {
           console.log('GroupChat: getOtherUserInfo - error fetching members:', error);
@@ -163,13 +163,16 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         
         // Если не удалось получить через API, используем fallback логику
         if (!otherUserId) {
+          console.log('GroupChat: getOtherUserInfo - API failed, using fallback logic');
           // Способ 1: Если chatId содержит userId, то другой пользователь - это оставшаяся часть
           if (chatId.toString().includes(userId.toString())) {
             otherUserId = chatId.toString().replace(userId.toString(), '').replace('-', '');
+            console.log('GroupChat: getOtherUserInfo - fallback method 1, otherUserId:', otherUserId);
           }
           // Способ 2: Fallback - предполагаем, что другой пользователь имеет ID 1
           else {
             otherUserId = 1; // Используем числовой ID 1 для тестирования
+            console.log('GroupChat: getOtherUserInfo - fallback method 2, otherUserId:', otherUserId);
           }
           console.log('GroupChat: getOtherUserInfo - using fallback logic, otherUserId:', otherUserId);
         }
