@@ -93,11 +93,14 @@ export const useMessageVisibility = (userId, chatId, messages) => {
                 entries.forEach((entry) => {
                     if (entry.isIntersecting) {
                         const messageId = entry.target.dataset.messageId;
+                        console.log('Message became visible:', messageId);
                         if (messageId) {
                             const messageIdInt = parseInt(messageId);
                             // Проверяем, не является ли сообщение собственным
                             if (!isOwnMessage(messageIdInt)) {
                                 markMessageAsRead(messageIdInt);
+                            } else {
+                                console.log(`Skipping own message ${messageIdInt}`);
                             }
                         }
                     }
@@ -120,14 +123,17 @@ export const useMessageVisibility = (userId, chatId, messages) => {
     // Функция для добавления ref к сообщению
     const addMessageRef = useCallback((messageId, ref) => {
         if (ref) {
+            console.log(`Adding ref for message ${messageId}`);
             messageRefs.current.set(messageId, ref);
             
             // Добавляем data-атрибут для идентификации сообщения
             ref.dataset.messageId = messageId;
+            console.log(`Set data-message-id="${messageId}" for element`);
             
             // Начинаем наблюдение за элементом
             if (observerRef.current) {
                 observerRef.current.observe(ref);
+                console.log(`Started observing message ${messageId}`);
             }
         }
     }, []);

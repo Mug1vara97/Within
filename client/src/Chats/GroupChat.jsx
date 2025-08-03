@@ -15,7 +15,6 @@ import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
 import CallTypeModal from '../components/CallTypeModal';
-import CallStatusIndicator from '../components/CallStatusIndicator';
 import { useVoiceChannel } from '../contexts/VoiceChannelContext';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
@@ -108,19 +107,12 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const [otherUserName, setOtherUserName] = useState('');
 
   // Получаем контекст голосового канала
-  const { voiceChannels } = useVoiceChannel();
+  const { getVoiceChannelParticipants } = useVoiceChannel();
 
   // Определяем, является ли это личным чатом
   useEffect(() => {
     // TypeId = 1 означает личный чат
-    const isPrivate = chatTypeId === 1 || (!isGroupChat && !isServerChat);
-    setIsPrivateChat(isPrivate);
-    console.log('GroupChat: isPrivateChat determined:', { 
-      chatTypeId, 
-      isGroupChat, 
-      isServerChat, 
-      isPrivate 
-    });
+    setIsPrivateChat(chatTypeId === 1 || (!isGroupChat && !isServerChat));
   }, [chatTypeId, isGroupChat, isServerChat]);
 
   // Определяем, есть ли активный звонок в этом чате
@@ -128,50 +120,35 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     String(activePrivateCall.chatId) === String(chatId) && 
     isPrivateChat;
 
-  // Отслеживаем статус звонка в этом чате
+  // Отслеживаем участников звонка в этом чате
   useEffect(() => {
     if (!isPrivateChat || !chatId) return;
 
-    // Проверяем, есть ли кто-то в звонке в этом чате
-    const checkCallStatus = () => {
-      console.log('GroupChat: checkCallStatus - chatId:', chatId, 'userId:', userId);
+    const checkCallParticipants = () => {
+      const participants = getVoiceChannelParticipants(chatId.toString());
+      console.log('GroupChat: checkCallParticipants - participants:', participants);
       
-      // Проверяем все голосовые каналы
-      let someoneInCall = false;
-      let otherUserName = '';
+      // Находим других пользователей в звонке (не текущего)
+      const otherParticipants = participants.filter(participant => participant.id !== userId);
       
-      voiceChannels.forEach((channel, channelId) => {
-        // Если это канал для этого чата
-        if (channelId === chatId.toString()) {
-          console.log('GroupChat: checkCallStatus - found channel for this chat:', channelId);
-          console.log('GroupChat: checkCallStatus - channel participants:', channel.participants);
-          
-          // Проверяем участников канала
-          channel.participants.forEach((user, userId) => {
-            // Если пользователь в звонке и это не текущий пользователь
-            if (user.id !== userId) {
-              someoneInCall = true;
-              otherUserName = user.name || 'Пользователь';
-              console.log('GroupChat: checkCallStatus - found user in call:', user);
-            }
-          });
-        }
-      });
-      
-      console.log('GroupChat: checkCallStatus - someoneInCall:', someoneInCall, 'otherUserName:', otherUserName);
-      setOtherUserInCall(someoneInCall);
-      if (someoneInCall) {
-        setOtherUserName(otherUserName);
+      if (otherParticipants.length > 0) {
+        setOtherUserInCall(true);
+        setOtherUserName(otherParticipants[0].name || 'Пользователь');
+        console.log('GroupChat: checkCallParticipants - found other users in call:', otherParticipants);
+      } else {
+        setOtherUserInCall(false);
+        setOtherUserName('');
+        console.log('GroupChat: checkCallParticipants - no other users in call');
       }
     };
 
-    checkCallStatus();
+    checkCallParticipants();
 
     // Проверяем статус каждые 2 секунды
-    const interval = setInterval(checkCallStatus, 2000);
+    const interval = setInterval(checkCallParticipants, 2000);
 
     return () => clearInterval(interval);
-  }, [isPrivateChat, chatId, userId, voiceChannels]);
+  }, [isPrivateChat, chatId, userId, getVoiceChannelParticipants]);
 
   const handleStartCall = () => {
     if (isPrivateChat && !isCallActiveInThisChat) {
@@ -223,8 +200,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     setIsCallTypeModalOpen(false);
   };
 
-
-
   const handleJoinCall = () => {
     if (otherUserInCall && onJoinVoiceChannel) {
       const callData = {
@@ -238,8 +213,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       onJoinVoiceChannel(callData);
     }
   };
-
-
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -646,7 +619,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           </div>
         </div>
         <div className="header-actions">
-          {isPrivateChat && !isCallActiveInThisChat && (
+          {isPrivateChat && !isCallActiveInThisChat && !otherUserInCall && (
             <button
               onClick={handleStartCall}
               className="voice-call-button"
@@ -675,6 +648,36 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
             >
               <CallIcon style={{ fontSize: '20px' }} />
             </button>
+          )}
+          {isPrivateChat && !isCallActiveInThisChat && otherUserInCall && (
+            <div
+              className="call-status-indicator"
+              style={{
+                background: 'linear-gradient(135deg, #5865f2, #4752c4)',
+                border: 'none',
+                color: '#ffffff',
+                cursor: 'pointer',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: '8px',
+                transition: 'background-color 0.2s',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+              onClick={handleJoinCall}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'linear-gradient(135deg, #4752c4, #3c45a5)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'linear-gradient(135deg, #5865f2, #4752c4)';
+              }}
+            >
+              <CallIcon style={{ fontSize: '16px', marginRight: '6px' }} />
+              ПРИСОЕДИНИТЬСЯ К ЗВОНКУ
+            </div>
           )}
           {isGroupChat && (
             <button
@@ -744,26 +747,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           </div>
         </div>
       </div>
-
-      {/* Индикатор статуса звонка для личных чатов */}
-      {/* Панель отображается когда другой пользователь в звонке, а текущий - нет */}
-      {(() => {
-        console.log('GroupChat: Render condition:', { 
-          isPrivateChat, 
-          otherUserInCall, 
-          isCallActiveInThisChat,
-          chatId,
-          userId
-        });
-        return isPrivateChat && otherUserInCall && !isCallActiveInThisChat;
-      })() && (
-        <CallStatusIndicator
-          isInCall={false}
-          otherUserInCall={otherUserInCall}
-          otherUserName={otherUserName}
-          onJoinCall={handleJoinCall}
-        />
-      )}
 
       {/* Всплывающее окно настроек */}
       {isGroupChat && isSettingsOpen && (

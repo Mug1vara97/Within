@@ -1851,7 +1851,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         // Уведомляем сервер о присоединении пользователя к голосовому каналу
         socket.emit('userJoinedVoiceChannel', {
           channelId: roomId,
-          userId: peerUserId || peerId, // Используем числовой ID пользователя, если доступен
+          userId: peerId,
           userName: name,
           isMuted: Boolean(isMuted)
         });
@@ -1909,13 +1909,9 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         removeVoiceChannelParticipant(roomId, peerId);
 
         // Уведомляем сервер о выходе пользователя из голосового канала
-        // Нужно найти числовой ID пользователя по peerId
-        const peer = peers.get(peerId);
-        const numericUserId = peer?.userId || peerId;
-        
         socket.emit('userLeftVoiceChannel', {
           channelId: roomId,
-          userId: numericUserId
+          userId: peerId
         });
         
         setPeers(prev => {

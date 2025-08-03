@@ -26,6 +26,7 @@ export const VoiceChannelProvider = ({ children }) => {
       console.log('VoiceChannelContext: Received participants update:', channelId, participants?.length);
       setVoiceChannels(prev => {
         const newChannels = new Map(prev);
+        const existingChannel = newChannels.get(channelId);
         
         if (participants && participants.length > 0) {
           const participantsMap = new Map();
@@ -55,12 +56,6 @@ export const VoiceChannelProvider = ({ children }) => {
     // Слушаем когда пользователь присоединяется к голосовому каналу
     newSocket.on('userJoinedVoiceChannel', ({ channelId, userId, userName, isMuted }) => {
       console.log('VoiceChannelContext: User joined voice channel:', { channelId, userId, userName, isMuted });
-      
-      // Запрашиваем актуальное состояние пользователя с сервера
-      newSocket.emit('getUserVoiceState', { userId }, (state) => {
-        console.log('VoiceChannelContext: User state after joining:', userId, state);
-      });
-      
       setVoiceChannels(prev => {
         const newChannels = new Map(prev);
         if (!newChannels.has(channelId)) {
@@ -297,11 +292,9 @@ export const VoiceChannelProvider = ({ children }) => {
   // Новые функции для работы с серверным состоянием пользователей
   const updateUserVoiceState = useCallback((userId, userName, channelId, isMuted, isAudioDisabled) => {
     if (_socket) {
-      // Убеждаемся, что userId передается как число
-      const numericUserId = parseInt(userId);
-      console.log('VoiceChannelContext: Updating user voice state on server:', { userId: numericUserId, userName, channelId, isMuted, isAudioDisabled });
+      console.log('VoiceChannelContext: Updating user voice state on server:', { userId, userName, channelId, isMuted, isAudioDisabled });
       _socket.emit('updateUserVoiceState', { 
-        userId: numericUserId, 
+        userId, 
         userName, 
         channelId, 
         isMuted, 
@@ -312,13 +305,8 @@ export const VoiceChannelProvider = ({ children }) => {
 
   const getUserVoiceState = useCallback((userId, callback) => {
     if (_socket) {
-      // Убеждаемся, что userId передается как число
-      const numericUserId = parseInt(userId);
-      console.log('VoiceChannelContext: Getting user voice state from server:', numericUserId);
-      _socket.emit('getUserVoiceState', { userId: numericUserId }, (state) => {
-        console.log('VoiceChannelContext: Received user voice state from server:', numericUserId, state);
-        callback(state);
-      });
+      console.log('VoiceChannelContext: Getting user voice state from server:', userId);
+      _socket.emit('getUserVoiceState', { userId }, callback);
     }
   }, [_socket]);
 
