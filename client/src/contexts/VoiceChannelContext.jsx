@@ -55,6 +55,12 @@ export const VoiceChannelProvider = ({ children }) => {
     // Слушаем когда пользователь присоединяется к голосовому каналу
     newSocket.on('userJoinedVoiceChannel', ({ channelId, userId, userName, isMuted }) => {
       console.log('VoiceChannelContext: User joined voice channel:', { channelId, userId, userName, isMuted });
+      
+      // Запрашиваем актуальное состояние пользователя с сервера
+      newSocket.emit('getUserVoiceState', { userId }, (state) => {
+        console.log('VoiceChannelContext: User state after joining:', userId, state);
+      });
+      
       setVoiceChannels(prev => {
         const newChannels = new Map(prev);
         if (!newChannels.has(channelId)) {
@@ -305,7 +311,10 @@ export const VoiceChannelProvider = ({ children }) => {
   const getUserVoiceState = useCallback((userId, callback) => {
     if (_socket) {
       console.log('VoiceChannelContext: Getting user voice state from server:', userId);
-      _socket.emit('getUserVoiceState', { userId }, callback);
+      _socket.emit('getUserVoiceState', { userId }, (state) => {
+        console.log('VoiceChannelContext: Received user voice state from server:', userId, state);
+        callback(state);
+      });
     }
   }, [_socket]);
 

@@ -81,6 +81,7 @@ function updateUserVoiceState(userId, updates) {
     const newState = { ...currentState, ...updates };
     userVoiceStates.set(userId, newState);
     console.log(`[USER_VOICE_STATE] Updated user ${userId}:`, newState);
+    console.log(`[USER_VOICE_STATE] Updates applied:`, updates);
     return newState;
 }
 
@@ -1321,6 +1322,15 @@ io.on('connection', async (socket) => {
     // Обработчик для уведомления о присоединении пользователя к голосовому каналу
     socket.on('userJoinedVoiceChannel', ({ channelId, userId, userName, isMuted }) => {
         try {
+            // Обновляем глобальное состояние пользователя
+            updateUserVoiceState(userId, {
+                channelId: channelId,
+                userName: userName,
+                isMuted: isMuted
+            });
+            
+            console.log(`[USER_JOINED] Updated user ${userId} state: channelId=${channelId}, userName=${userName}, isMuted=${isMuted}`);
+            
             // Отправляем уведомление всем клиентам
             io.emit('userJoinedVoiceChannel', {
                 channelId,
@@ -1336,6 +1346,13 @@ io.on('connection', async (socket) => {
     // Обработчик для уведомления о выходе пользователя из голосового канала
     socket.on('userLeftVoiceChannel', ({ channelId, userId }) => {
         try {
+            // Обновляем глобальное состояние пользователя - убираем его из канала
+            updateUserVoiceState(userId, {
+                channelId: null
+            });
+            
+            console.log(`[USER_LEFT] Updated user ${userId} state: removed from channel ${channelId}`);
+            
             // Проверяем, есть ли еще участники в комнате
             const room = rooms.get(channelId);
             if (room) {
