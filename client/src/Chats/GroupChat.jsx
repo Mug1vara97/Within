@@ -133,8 +133,16 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       
       if (otherParticipants.length > 0) {
         setOtherUserInCall(true);
-        setOtherUserName(otherParticipants[0].name || 'Пользователь');
+        // Формируем список всех пользователей в звонке
+        const userNames = otherParticipants.map(p => p.name || 'Пользователь');
+        const displayText = userNames.length === 1 
+          ? userNames[0] 
+          : userNames.length === 2 
+            ? `${userNames[0]} и ${userNames[1]}`
+            : `${userNames[0]}, ${userNames[1]} и еще ${userNames.length - 2}`;
+        setOtherUserName(displayText);
         console.log('GroupChat: checkCallParticipants - found other users in call:', otherParticipants);
+        console.log('GroupChat: checkCallParticipants - display text:', displayText);
       } else {
         setOtherUserInCall(false);
         setOtherUserName('');
