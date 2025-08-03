@@ -151,7 +151,7 @@ const CallParticipantsDisplay = ({ participants, currentUserId, onJoinCall }) =>
                display: 'flex',
                gap: '2px',
                position: 'absolute',
-               bottom: '-8px',
+               bottom: '21px',
                left: '50%',
                transform: 'translateX(-50%)'
              }}>
@@ -202,39 +202,38 @@ const CallParticipantsDisplay = ({ participants, currentUserId, onJoinCall }) =>
          ))}
        </div>
        
-               {/* Кнопка присоединения к звонку */}
-        {onJoinCall && (
-          <button
-            onClick={onJoinCall}
-            style={{
-              background: 'linear-gradient(135deg, #5865f2, #4752c4)',
-              border: 'none',
-              color: '#ffffff',
-              cursor: 'pointer',
-              padding: '12px 24px',
-              borderRadius: '8px',
-              fontSize: '16px',
-              fontWeight: '500',
-              transition: 'background-color 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              position: 'absolute',
-              bottom: '20px',
-              left: '50%',
-              transform: 'translateX(-50%)'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.background = 'linear-gradient(135deg, #4752c4, #3c45a5)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = 'linear-gradient(135deg, #5865f2, #4752c4)';
-            }}
-          >
-            <CallIcon style={{ fontSize: '18px' }} />
-            ПРИСОЕДИНИТЬСЯ К ЗВОНКУ
-          </button>
-        )}
+                               {/* Иконка присоединения к звонку */}
+         {onJoinCall && (
+           <button
+             onClick={onJoinCall}
+             style={{
+               background: '#43b581',
+               border: 'none',
+               color: '#ffffff',
+               cursor: 'pointer',
+               width: '48px',
+               height: '48px',
+               borderRadius: '50%',
+               display: 'flex',
+               alignItems: 'center',
+               justifyContent: 'center',
+               position: 'absolute',
+               bottom: '20px',
+               left: '50%',
+               transform: 'translateX(-50%)',
+               transition: 'background-color 0.2s',
+               boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
+             }}
+             onMouseEnter={(e) => {
+               e.target.style.background = '#3ca374';
+             }}
+             onMouseLeave={(e) => {
+               e.target.style.background = '#43b581';
+             }}
+           >
+             <CallIcon style={{ fontSize: '24px' }} />
+           </button>
+         )}
      </div>
    );
  };
