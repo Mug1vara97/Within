@@ -108,7 +108,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const [otherUserName, setOtherUserName] = useState('');
 
   // Получаем контекст голосового канала
-  const { getUserVoiceState } = useVoiceChannel();
+  const { voiceChannels } = useVoiceChannel();
 
   // Определяем, является ли это личным чатом
   useEffect(() => {
@@ -128,83 +128,46 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     String(activePrivateCall.chatId) === String(chatId) && 
     isPrivateChat;
 
-  // Отслеживаем статус звонка другого пользователя
+  // Отслеживаем статус звонка в этом чате
   useEffect(() => {
     if (!isPrivateChat || !chatId) return;
 
-    // Получаем информацию о другом пользователе в чате
-    const getOtherUserInfo = async () => {
-      try {
-        console.log('GroupChat: getOtherUserInfo - chatId:', chatId, 'userId:', userId, 'type:', typeof chatId, typeof userId);
-        
-        // Получаем участников чата для определения ID другого пользователя
-        let otherUserId = null;
-        
-        try {
-          console.log('GroupChat: getOtherUserInfo - fetching members for chatId:', chatId);
-          
-          // Используем существующую функцию fetchMembers из useGroupSettings
-          await fetchMembers();
-          console.log('GroupChat: getOtherUserInfo - members from useGroupSettings:', members);
-          console.log('GroupChat: getOtherUserInfo - members length:', members.length);
-          console.log('GroupChat: getOtherUserInfo - current userId:', userId);
-          
-          // Находим другого пользователя (не текущего)
-          const otherMember = members.find(member => member.userId !== userId);
-          if (otherMember) {
-            otherUserId = otherMember.userId;
-            console.log('GroupChat: getOtherUserInfo - found other user:', otherUserId);
-          } else {
-            console.log('GroupChat: getOtherUserInfo - no other member found');
-          }
-        } catch (error) {
-          console.log('GroupChat: getOtherUserInfo - error fetching members:', error);
-        }
-        
-        // Если не удалось получить через API, используем fallback логику
-        if (!otherUserId) {
-          console.log('GroupChat: getOtherUserInfo - API failed, using fallback logic');
-          // Способ 1: Если chatId содержит userId, то другой пользователь - это оставшаяся часть
-          if (chatId.toString().includes(userId.toString())) {
-            otherUserId = chatId.toString().replace(userId.toString(), '').replace('-', '');
-            console.log('GroupChat: getOtherUserInfo - fallback method 1, otherUserId:', otherUserId);
-          }
-          // Способ 2: Fallback - предполагаем, что другой пользователь имеет ID 1
-          else {
-            otherUserId = 1; // Используем числовой ID 1 для тестирования
-            console.log('GroupChat: getOtherUserInfo - fallback method 2, otherUserId:', otherUserId);
-          }
-          console.log('GroupChat: getOtherUserInfo - using fallback logic, otherUserId:', otherUserId);
-        }
-        
-        if (otherUserId && otherUserId !== userId.toString()) {
-          // Получаем статус звонка другого пользователя через WebSocket
-          getUserVoiceState(otherUserId, (userState) => {
-            console.log('VoiceChannelContext: Getting user voice state from server:', otherUserId, userState);
-            if (userState && userState.channelId && userState.channelId === chatId.toString()) {
-              setOtherUserInCall(true);
-              setOtherUserName(userState.userName || 'Пользователь');
-              console.log('VoiceChannelContext: Other user is in call:', otherUserId, userState.userName);
-            } else {
-              setOtherUserInCall(false);
-              console.log('VoiceChannelContext: Other user is not in call:', otherUserId);
+    // Проверяем, есть ли кто-то в звонке в этом чате
+    const checkCallStatus = () => {
+      console.log('GroupChat: checkCallStatus - chatId:', chatId, 'userId:', userId);
+      
+      // Проверяем все голосовые каналы
+      let someoneInCall = false;
+      let otherUserName = '';
+      
+      voiceChannels.forEach((users, channelId) => {
+        // Если это канал для этого чата
+        if (channelId === chatId.toString()) {
+          users.forEach(user => {
+            // Если пользователь в звонке и это не текущий пользователь
+            if (user.id !== userId) {
+              someoneInCall = true;
+              otherUserName = user.name || 'Пользователь';
+              console.log('GroupChat: checkCallStatus - found user in call:', user);
             }
           });
-        } else {
-          console.log('VoiceChannelContext: Could not determine other user ID from chatId:', chatId, 'userId:', userId);
         }
-      } catch (error) {
-        console.error('Error getting other user voice state:', error);
+      });
+      
+      console.log('GroupChat: checkCallStatus - someoneInCall:', someoneInCall, 'otherUserName:', otherUserName);
+      setOtherUserInCall(someoneInCall);
+      if (someoneInCall) {
+        setOtherUserName(otherUserName);
       }
     };
 
-    getOtherUserInfo();
+    checkCallStatus();
 
-    // Проверяем статус каждые 5 секунд
-    const interval = setInterval(getOtherUserInfo, 5000);
+    // Проверяем статус каждые 2 секунды
+    const interval = setInterval(checkCallStatus, 2000);
 
     return () => clearInterval(interval);
-  }, [isPrivateChat, chatId, userId, getUserVoiceState]);
+  }, [isPrivateChat, chatId, userId, voiceChannels]);
 
   const handleStartCall = () => {
     if (isPrivateChat && !isCallActiveInThisChat) {
