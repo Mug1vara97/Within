@@ -106,11 +106,9 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const [isCallTypeModalOpen, setIsCallTypeModalOpen] = useState(false);
   const [otherUserInCall, setOtherUserInCall] = useState(false);
   const [otherUserName, setOtherUserName] = useState('');
-  const [isMuted, setIsMuted] = useState(false);
-  const [isAudioDisabled, setIsAudioDisabled] = useState(false);
 
   // Получаем контекст голосового канала
-  const { getUserVoiceState, updateUserMuteState, updateUserAudioState } = useVoiceChannel();
+  const { getUserVoiceState } = useVoiceChannel();
 
   // Определяем, является ли это личным чатом
   useEffect(() => {
@@ -142,7 +140,8 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           const otherMember = members.find(member => member.userId !== userId);
           
           if (otherMember) {
-            // Получаем статус звонка другого пользователя
+            // Получаем статус звонка другого пользователя через WebSocket
+            // Используем getUserVoiceState из VoiceChannelContext
             getUserVoiceState(otherMember.userId.toString(), (userState) => {
               if (userState && userState.channelId && userState.channelId === chatId.toString()) {
                 setOtherUserInCall(true);
@@ -155,6 +154,26 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         }
       } catch (error) {
         console.error('Error getting other user voice state:', error);
+        // Если API недоступен, попробуем получить информацию через WebSocket
+        // Это запасной вариант для случаев, когда API не работает
+        try {
+          // Получаем информацию о другом пользователе через WebSocket
+          // Предполагаем, что другой пользователь имеет ID, отличный от текущего
+          const otherUserId = chatId.toString().replace(userId.toString(), '').replace('-', '');
+          
+          if (otherUserId && otherUserId !== userId.toString()) {
+            getUserVoiceState(otherUserId, (userState) => {
+              if (userState && userState.channelId && userState.channelId === chatId.toString()) {
+                setOtherUserInCall(true);
+                setOtherUserName(userState.userName || 'Пользователь');
+              } else {
+                setOtherUserInCall(false);
+              }
+            });
+          }
+        } catch (wsError) {
+          console.error('Error getting user voice state via WebSocket:', wsError);
+        }
       }
     };
 
@@ -232,29 +251,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     }
   };
 
-  const handleLeaveCall = () => {
-    if (isCallActiveInThisChat && onJoinVoiceChannel) {
-      // Логика выхода из звонка
-      console.log('Leaving private call');
-      onJoinVoiceChannel(null);
-    }
-  };
 
-  const handleToggleMute = () => {
-    const newMuteState = !isMuted;
-    setIsMuted(newMuteState);
-    if (updateUserMuteState) {
-      updateUserMuteState(userId, newMuteState);
-    }
-  };
-
-  const handleToggleAudio = () => {
-    const newAudioState = !isAudioDisabled;
-    setIsAudioDisabled(newAudioState);
-    if (updateUserAudioState) {
-      updateUserAudioState(userId, newAudioState);
-    }
-  };
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -761,17 +758,13 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       </div>
 
       {/* Индикатор статуса звонка для личных чатов */}
-      {isPrivateChat && (isCallActiveInThisChat || otherUserInCall) && (
+      {/* Панель отображается когда другой пользователь в звонке, а текущий - нет */}
+      {isPrivateChat && otherUserInCall && !isCallActiveInThisChat && (
         <CallStatusIndicator
-          isInCall={isCallActiveInThisChat}
-          isMuted={isMuted}
-          isAudioDisabled={isAudioDisabled}
+          isInCall={false}
           otherUserInCall={otherUserInCall}
           otherUserName={otherUserName}
           onJoinCall={handleJoinCall}
-          onLeaveCall={handleLeaveCall}
-          onToggleMute={handleToggleMute}
-          onToggleAudio={handleToggleAudio}
         />
       )}
 

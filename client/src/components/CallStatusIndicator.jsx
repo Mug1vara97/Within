@@ -4,16 +4,12 @@ import './CallStatusIndicator.css';
 
 const CallStatusIndicator = ({ 
   isInCall, 
-  isMuted, 
-  isAudioDisabled, 
   otherUserInCall, 
   otherUserName,
-  onJoinCall,
-  onLeaveCall,
-  onToggleMute,
-  onToggleAudio
+  onJoinCall
 }) => {
-  if (!isInCall && !otherUserInCall) {
+  // Компонент отображается только когда другой пользователь в звонке, а текущий - нет
+  if (!otherUserInCall || isInCall) {
     return null;
   }
 
@@ -30,41 +26,13 @@ const CallStatusIndicator = ({
         </div>
         
         <div className="call-status-controls">
-          {!isInCall && otherUserInCall && (
-            <button
-              className="join-call-button"
-              onClick={onJoinCall}
-              title="Присоединиться к звонку"
-            >
-              ПРИСОЕДИНИТЬСЯ К ЗВОНКУ
-            </button>
-          )}
-          
-          {isInCall && (
-            <div className="call-controls">
-                             <button
-                 className={`mute-button ${isMuted ? 'muted' : ''}`}
-                 onClick={onToggleMute}
-                 title={isMuted ? "Включить микрофон" : "Выключить микрофон"}
-               >
-                 {isMuted ? <MicOff /> : <Mic />}
-               </button>
-               <button
-                 className={`audio-button ${isAudioDisabled ? 'disabled' : ''}`}
-                 onClick={onToggleAudio}
-                 title={isAudioDisabled ? "Включить звук" : "Выключить звук"}
-               >
-                 {isAudioDisabled ? <HeadsetOff /> : <Headset />}
-               </button>
-              <button
-                className="leave-call-button"
-                onClick={onLeaveCall}
-                title="Покинуть звонок"
-              >
-                Покинуть
-              </button>
-            </div>
-          )}
+          <button
+            className="join-call-button"
+            onClick={onJoinCall}
+            title="Присоединиться к звонку"
+          >
+            ПРИСОЕДИНИТЬСЯ К ЗВОНКУ
+          </button>
         </div>
       </div>
     </div>
