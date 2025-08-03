@@ -15,6 +15,8 @@ import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
 import CallTypeModal from '../components/CallTypeModal';
+import CallStatusIndicator from '../components/CallStatusIndicator';
+import { useVoiceChannel } from '../contexts/VoiceChannelContext';
 
 const UserAvatar = ({ username, avatarUrl, avatarColor }) => {
   return (
@@ -102,6 +104,13 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const forwardTextareaRef = useRef(null);
   const [isPrivateChat, setIsPrivateChat] = useState(false);
   const [isCallTypeModalOpen, setIsCallTypeModalOpen] = useState(false);
+  const [otherUserInCall, setOtherUserInCall] = useState(false);
+  const [otherUserName, setOtherUserName] = useState('');
+  const [isMuted, setIsMuted] = useState(false);
+  const [isAudioDisabled, setIsAudioDisabled] = useState(false);
+
+  // Получаем контекст голосового канала
+  const { getUserVoiceState, updateUserMuteState, updateUserAudioState } = useVoiceChannel();
 
   // Определяем, является ли это личным чатом
   useEffect(() => {
@@ -113,6 +122,49 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const isCallActiveInThisChat = activePrivateCall && 
     String(activePrivateCall.chatId) === String(chatId) && 
     isPrivateChat;
+
+  // Отслеживаем статус звонка другого пользователя
+  useEffect(() => {
+    if (!isPrivateChat || !chatId) return;
+
+    // Получаем информацию о другом пользователе в чате
+    const getOtherUserInfo = async () => {
+      try {
+        // Для личных чатов нужно получить информацию о другом участнике чата
+        // Поскольку ID чата - это просто ID чата, нужно получить участников через API
+        
+        // Получаем участников чата
+        const response = await fetch(`${BASE_URL}/api/chats/${chatId}/members`);
+        if (response.ok) {
+          const members = await response.json();
+          
+          // Находим другого пользователя (не текущего)
+          const otherMember = members.find(member => member.userId !== userId);
+          
+          if (otherMember) {
+            // Получаем статус звонка другого пользователя
+            getUserVoiceState(otherMember.userId.toString(), (userState) => {
+              if (userState && userState.channelId && userState.channelId === chatId.toString()) {
+                setOtherUserInCall(true);
+                setOtherUserName(userState.userName || otherMember.username || 'Пользователь');
+              } else {
+                setOtherUserInCall(false);
+              }
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error getting other user voice state:', error);
+      }
+    };
+
+    getOtherUserInfo();
+
+    // Проверяем статус каждые 5 секунд
+    const interval = setInterval(getOtherUserInfo, 5000);
+
+    return () => clearInterval(interval);
+  }, [isPrivateChat, chatId, userId, getUserVoiceState]);
 
   const handleStartCall = () => {
     if (isPrivateChat && !isCallActiveInThisChat) {
@@ -164,10 +216,43 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     setIsCallTypeModalOpen(false);
   };
 
-  const handleEndCall = () => {
-    // Вызываем глобальный обработчик для завершения звонка
-    if (onJoinVoiceChannel) {
+
+
+  const handleJoinCall = () => {
+    if (otherUserInCall && onJoinVoiceChannel) {
+      const callData = {
+        roomId: chatId.toString(),
+        roomName: `Звонок с ${otherUserName}`,
+        userName: username,
+        userId: userId,
+        isPrivateCall: true,
+        chatId: chatId
+      };
+      onJoinVoiceChannel(callData);
+    }
+  };
+
+  const handleLeaveCall = () => {
+    if (isCallActiveInThisChat && onJoinVoiceChannel) {
+      // Логика выхода из звонка
+      console.log('Leaving private call');
       onJoinVoiceChannel(null);
+    }
+  };
+
+  const handleToggleMute = () => {
+    const newMuteState = !isMuted;
+    setIsMuted(newMuteState);
+    if (updateUserMuteState) {
+      updateUserMuteState(userId, newMuteState);
+    }
+  };
+
+  const handleToggleAudio = () => {
+    const newAudioState = !isAudioDisabled;
+    setIsAudioDisabled(newAudioState);
+    if (updateUserAudioState) {
+      updateUserAudioState(userId, newAudioState);
     }
   };
 
@@ -674,6 +759,21 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           </div>
         </div>
       </div>
+
+      {/* Индикатор статуса звонка для личных чатов */}
+      {isPrivateChat && (isCallActiveInThisChat || otherUserInCall) && (
+        <CallStatusIndicator
+          isInCall={isCallActiveInThisChat}
+          isMuted={isMuted}
+          isAudioDisabled={isAudioDisabled}
+          otherUserInCall={otherUserInCall}
+          otherUserName={otherUserName}
+          onJoinCall={handleJoinCall}
+          onLeaveCall={handleLeaveCall}
+          onToggleMute={handleToggleMute}
+          onToggleAudio={handleToggleAudio}
+        />
+      )}
 
       {/* Всплывающее окно настроек */}
       {isGroupChat && isSettingsOpen && (
