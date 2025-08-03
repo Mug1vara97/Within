@@ -26,7 +26,6 @@ export const VoiceChannelProvider = ({ children }) => {
       console.log('VoiceChannelContext: Received participants update:', channelId, participants?.length);
       setVoiceChannels(prev => {
         const newChannels = new Map(prev);
-        const existingChannel = newChannels.get(channelId);
         
         if (participants && participants.length > 0) {
           const participantsMap = new Map();

@@ -128,52 +128,23 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     // Получаем информацию о другом пользователе в чате
     const getOtherUserInfo = async () => {
       try {
-        // Для личных чатов нужно получить информацию о другом участнике чата
-        // Поскольку ID чата - это просто ID чата, нужно получить участников через API
+        // Для личных чатов получаем информацию о другом пользователе через WebSocket
+        // Предполагаем, что другой пользователь имеет ID, отличный от текущего
+        const otherUserId = chatId.toString().replace(userId.toString(), '').replace('-', '');
         
-        // Получаем участников чата
-        const response = await fetch(`${BASE_URL}/api/chats/${chatId}/members`);
-        if (response.ok) {
-          const members = await response.json();
-          
-          // Находим другого пользователя (не текущего)
-          const otherMember = members.find(member => member.userId !== userId);
-          
-          if (otherMember) {
-            // Получаем статус звонка другого пользователя через WebSocket
-            // Используем getUserVoiceState из VoiceChannelContext
-            getUserVoiceState(otherMember.userId.toString(), (userState) => {
-              if (userState && userState.channelId && userState.channelId === chatId.toString()) {
-                setOtherUserInCall(true);
-                setOtherUserName(userState.userName || otherMember.username || 'Пользователь');
-              } else {
-                setOtherUserInCall(false);
-              }
-            });
-          }
+        if (otherUserId && otherUserId !== userId.toString()) {
+          // Получаем статус звонка другого пользователя через WebSocket
+          getUserVoiceState(otherUserId, (userState) => {
+            if (userState && userState.channelId && userState.channelId === chatId.toString()) {
+              setOtherUserInCall(true);
+              setOtherUserName(userState.userName || 'Пользователь');
+            } else {
+              setOtherUserInCall(false);
+            }
+          });
         }
       } catch (error) {
         console.error('Error getting other user voice state:', error);
-        // Если API недоступен, попробуем получить информацию через WebSocket
-        // Это запасной вариант для случаев, когда API не работает
-        try {
-          // Получаем информацию о другом пользователе через WebSocket
-          // Предполагаем, что другой пользователь имеет ID, отличный от текущего
-          const otherUserId = chatId.toString().replace(userId.toString(), '').replace('-', '');
-          
-          if (otherUserId && otherUserId !== userId.toString()) {
-            getUserVoiceState(otherUserId, (userState) => {
-              if (userState && userState.channelId && userState.channelId === chatId.toString()) {
-                setOtherUserInCall(true);
-                setOtherUserName(userState.userName || 'Пользователь');
-              } else {
-                setOtherUserInCall(false);
-              }
-            });
-          }
-        } catch (wsError) {
-          console.error('Error getting user voice state via WebSocket:', wsError);
-        }
       }
     };
 
