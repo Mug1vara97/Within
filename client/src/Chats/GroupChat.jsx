@@ -135,25 +135,44 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     // Получаем информацию о другом пользователе в чате
     const getOtherUserInfo = async () => {
       try {
-        // Для личных чатов получаем информацию о другом пользователе через WebSocket
-        // Предполагаем, что другой пользователь имеет ID, отличный от текущего
         console.log('GroupChat: getOtherUserInfo - chatId:', chatId, 'userId:', userId, 'type:', typeof chatId, typeof userId);
         
-        // Пробуем разные способы получения ID другого пользователя
+        // Получаем участников чата для определения ID другого пользователя
         let otherUserId = null;
         
-        // Способ 1: Если chatId содержит userId, то другой пользователь - это оставшаяся часть
-        if (chatId.toString().includes(userId.toString())) {
-          otherUserId = chatId.toString().replace(userId.toString(), '').replace('-', '');
-        }
-        // Способ 2: Если chatId - это просто ID чата, то нужно получить информацию из VoiceChannelContext
-        else {
-          // Пока используем простую логику - предполагаем, что другой пользователь имеет ID 1
-          // В реальном приложении здесь нужно получить информацию о участниках чата
-          otherUserId = 1; // Используем числовой ID 1 для тестирования
+        try {
+          const response = await fetch(`${BASE_URL}/settings/${chatId}/members`);
+          if (response.ok) {
+            const members = await response.json();
+            console.log('GroupChat: getOtherUserInfo - members:', members);
+            
+            // Находим другого пользователя (не текущего)
+            const otherMember = members.find(member => member.userId !== userId);
+            if (otherMember) {
+              otherUserId = otherMember.userId;
+              console.log('GroupChat: getOtherUserInfo - found other user:', otherUserId);
+            } else {
+              console.log('GroupChat: getOtherUserInfo - no other member found');
+            }
+          } else {
+            console.log('GroupChat: getOtherUserInfo - failed to fetch members, status:', response.status);
+          }
+        } catch (error) {
+          console.log('GroupChat: getOtherUserInfo - error fetching members:', error);
         }
         
-        console.log('GroupChat: getOtherUserInfo - otherUserId:', otherUserId);
+        // Если не удалось получить через API, используем fallback логику
+        if (!otherUserId) {
+          // Способ 1: Если chatId содержит userId, то другой пользователь - это оставшаяся часть
+          if (chatId.toString().includes(userId.toString())) {
+            otherUserId = chatId.toString().replace(userId.toString(), '').replace('-', '');
+          }
+          // Способ 2: Fallback - предполагаем, что другой пользователь имеет ID 1
+          else {
+            otherUserId = 1; // Используем числовой ID 1 для тестирования
+          }
+          console.log('GroupChat: getOtherUserInfo - using fallback logic, otherUserId:', otherUserId);
+        }
         
         if (otherUserId && otherUserId !== userId.toString()) {
           // Получаем статус звонка другого пользователя через WebSocket
