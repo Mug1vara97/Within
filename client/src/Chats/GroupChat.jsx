@@ -774,7 +774,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         <div style={{
           position: 'relative',
           width: '100%',
-          height: '120px',
+          height: '350px',
           backgroundColor: '#2f3136',
           borderBottom: '1px solid #202225',
           display: 'flex',

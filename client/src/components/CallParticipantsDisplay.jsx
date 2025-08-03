@@ -9,6 +9,48 @@ const CallParticipantsDisplay = ({ participants, currentUserId }) => {
     return null;
   }
 
+  // Функция для отображения аватара пользователя
+  const renderUserAvatar = (participant) => {
+    if (participant.avatarUrl) {
+      return (
+        <img
+          src={participant.avatarUrl.startsWith('http') ? participant.avatarUrl : `https://whithin.ru${participant.avatarUrl}`}
+          alt={participant.name || 'Пользователь'}
+          style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '50%',
+            border: '2px solid #36393f',
+            objectFit: 'cover'
+          }}
+          onError={(e) => {
+            // Если загрузка аватара не удалась, показываем букву
+            e.target.style.display = 'none';
+            e.target.nextSibling.style.display = 'flex';
+          }}
+        />
+      );
+    }
+    
+    return (
+      <div style={{
+        width: '48px',
+        height: '48px',
+        borderRadius: '50%',
+        backgroundColor: participant.avatarColor || '#5865f2',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#ffffff',
+        fontSize: '18px',
+        fontWeight: 'bold',
+        border: '2px solid #36393f'
+      }}>
+        {participant.name ? participant.name[0].toUpperCase() : 'U'}
+      </div>
+    );
+  };
+
   return (
     <div style={{
       display: 'flex',
@@ -33,82 +75,90 @@ const CallParticipantsDisplay = ({ participants, currentUserId }) => {
         flexWrap: 'wrap',
         justifyContent: 'center'
       }}>
-        {otherParticipants.map((participant, index) => (
-          <div
-            key={participant.id}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '4px',
-              position: 'relative'
-            }}
-          >
-            {/* Аватар пользователя */}
-            <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              backgroundColor: participant.avatarColor || '#5865f2',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#ffffff',
-              fontSize: '14px',
-              fontWeight: 'bold',
-              border: '2px solid #36393f'
-            }}>
-              {participant.name ? participant.name[0].toUpperCase() : 'U'}
-            </div>
+                 {otherParticipants.map((participant) => (
+           <div
+             key={participant.id}
+             style={{
+               display: 'flex',
+               flexDirection: 'column',
+               alignItems: 'center',
+               gap: '4px',
+               position: 'relative'
+             }}
+           >
+             {/* Аватар пользователя */}
+             <div style={{ position: 'relative' }}>
+               {renderUserAvatar(participant)}
+               {/* Fallback аватар (скрыт по умолчанию) */}
+               <div style={{
+                 width: '48px',
+                 height: '48px',
+                 borderRadius: '50%',
+                 backgroundColor: participant.avatarColor || '#5865f2',
+                 display: 'none',
+                 alignItems: 'center',
+                 justifyContent: 'center',
+                 color: '#ffffff',
+                 fontSize: '18px',
+                 fontWeight: 'bold',
+                 border: '2px solid #36393f',
+                 position: 'absolute',
+                 top: 0,
+                 left: 0
+               }}>
+                 {participant.name ? participant.name[0].toUpperCase() : 'U'}
+               </div>
+             </div>
             
-            {/* Индикаторы состояния */}
-            <div style={{
-              display: 'flex',
-              gap: '2px',
-              position: 'absolute',
-              bottom: '-2px',
-              right: '-2px'
-            }}>
-              {participant.isMuted && (
-                <div style={{
-                  width: '12px',
-                  height: '12px',
-                  borderRadius: '50%',
-                  backgroundColor: '#ed4245',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <MicOff style={{ fontSize: '8px', color: '#ffffff' }} />
-                </div>
-              )}
-              {participant.isAudioDisabled && (
-                <div style={{
-                  width: '12px',
-                  height: '12px',
-                  borderRadius: '50%',
-                  backgroundColor: '#ed4245',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <HeadsetOff style={{ fontSize: '8px', color: '#ffffff' }} />
-                </div>
-              )}
-            </div>
-            
-            {/* Имя пользователя */}
-            <span style={{
-              fontSize: '11px',
-              color: '#8e9297',
-              textAlign: 'center',
-              maxWidth: '40px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}>
-              {participant.name || 'Пользователь'}
-            </span>
+                         {/* Индикаторы состояния */}
+             <div style={{
+               display: 'flex',
+               gap: '3px',
+               position: 'absolute',
+               bottom: '-3px',
+               right: '-3px'
+             }}>
+               {participant.isMuted && (
+                 <div style={{
+                   width: '16px',
+                   height: '16px',
+                   borderRadius: '50%',
+                   backgroundColor: '#ed4245',
+                   display: 'flex',
+                   alignItems: 'center',
+                   justifyContent: 'center'
+                 }}>
+                   <MicOff style={{ fontSize: '10px', color: '#ffffff' }} />
+                 </div>
+               )}
+               {participant.isAudioDisabled && (
+                 <div style={{
+                   width: '16px',
+                   height: '16px',
+                   borderRadius: '50%',
+                   backgroundColor: '#ed4245',
+                   display: 'flex',
+                   alignItems: 'center',
+                   justifyContent: 'center'
+                 }}>
+                   <HeadsetOff style={{ fontSize: '10px', color: '#ffffff' }} />
+                 </div>
+               )}
+             </div>
+             
+             {/* Имя пользователя */}
+             <span style={{
+               fontSize: '13px',
+               color: '#8e9297',
+               textAlign: 'center',
+               maxWidth: '60px',
+               overflow: 'hidden',
+               textOverflow: 'ellipsis',
+               whiteSpace: 'nowrap',
+               marginTop: '4px'
+             }}>
+               {participant.name || 'Пользователь'}
+             </span>
           </div>
         ))}
       </div>
