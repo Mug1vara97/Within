@@ -140,10 +140,14 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       let someoneInCall = false;
       let otherUserName = '';
       
-      voiceChannels.forEach((users, channelId) => {
+      voiceChannels.forEach((channel, channelId) => {
         // Если это канал для этого чата
         if (channelId === chatId.toString()) {
-          users.forEach(user => {
+          console.log('GroupChat: checkCallStatus - found channel for this chat:', channelId);
+          console.log('GroupChat: checkCallStatus - channel participants:', channel.participants);
+          
+          // Проверяем участников канала
+          channel.participants.forEach((user, userId) => {
             // Если пользователь в звонке и это не текущий пользователь
             if (user.id !== userId) {
               someoneInCall = true;
