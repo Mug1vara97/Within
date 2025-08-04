@@ -14,7 +14,7 @@ import useScrollToBottom from '../hooks/useScrollToBottom';
 import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/GroupSettings';
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
-import CallTypeModal from '../components/CallTypeModal';
+
 import { useVoiceChannel } from '../contexts/VoiceChannelContext';
 import CallParticipantsDisplay from '../components/CallParticipantsDisplay';
 
@@ -103,7 +103,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   const [forwardMessageText, setForwardMessageText] = useState('');
   const forwardTextareaRef = useRef(null);
   const [isPrivateChat, setIsPrivateChat] = useState(false);
-  const [isCallTypeModalOpen, setIsCallTypeModalOpen] = useState(false);
+
   const [otherUserInCall, setOtherUserInCall] = useState(false);
   const [otherParticipants, setOtherParticipants] = useState([]);
 
@@ -151,10 +151,15 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     return () => clearInterval(interval);
   }, [isPrivateChat, chatId, userId, getVoiceChannelParticipants]);
 
-  const handleStartCall = () => {
+  const handleStartCall = (e) => {
     if (isPrivateChat && !isCallActiveInThisChat) {
-      // Открываем модальное окно выбора типа звонка
-      setIsCallTypeModalOpen(true);
+      // Открываем контекстное меню выбора типа звонка
+      setContextMenu({
+        visible: true,
+        x: e ? e.clientX : window.innerWidth / 2,
+        y: e ? e.clientY : window.innerHeight / 2,
+        type: 'call'
+      });
     }
   };
 
@@ -178,8 +183,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     if (onJoinVoiceChannel) {
       onJoinVoiceChannel(callData);
     }
-    
-    setIsCallTypeModalOpen(false);
   };
 
   const handleCallWithoutNotification = () => {
@@ -197,8 +200,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     if (onJoinVoiceChannel) {
       onJoinVoiceChannel(callData);
     }
-    
-    setIsCallTypeModalOpen(false);
   };
 
   const handleJoinCall = () => {
@@ -254,21 +255,30 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       y: e.clientY,
       messageId: messageId,
       isOwnMessage: isOwnMessage,
-      canDelete: canDelete
+      canDelete: canDelete,
+      type: 'message'
     });
     setHighlightedMessageId(messageId);
   };
 
   // Закрытие контекстного меню
   const closeContextMenu = () => {
-    setContextMenu({ ...contextMenu, visible: false });
+    setContextMenu({ 
+      visible: false, 
+      x: 0, 
+      y: 0, 
+      messageId: null, 
+      isOwnMessage: false, 
+      canDelete: false,
+      type: null
+    });
     setHighlightedMessageId(null);
   };
 
   // Начать ответ на сообщение
   const startReply = (message) => {
     setReplyingToMessage(message);
-    setContextMenu({ ...contextMenu, visible: false });
+    closeContextMenu();
   };
 
   // Начать пересылку сообщения
@@ -276,7 +286,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     setMessageToForward(message);
     setForwardModalVisible(true);
     fetchAvailableChats();
-    setContextMenu({ ...contextMenu, visible: false });
+    closeContextMenu();
   };
 
   // Получение списка доступных чатов для пересылки
@@ -622,7 +632,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         <div className="header-actions">
           {isPrivateChat && !isCallActiveInThisChat && !otherUserInCall && (
             <button
-              onClick={handleStartCall}
+              onClick={(e) => handleStartCall(e)}
               className="voice-call-button"
               title="Начать звонок"
               style={{
@@ -848,7 +858,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         </div>
     ))}
 
-        {contextMenu.visible && (
+        {contextMenu.visible && contextMenu.type === 'message' && (
           <div 
             className="context-menu"
             style={{
@@ -892,6 +902,39 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
                 Удалить
               </button>
             )}
+          </div>
+        )}
+
+        {/* Контекстное меню для выбора типа звонка */}
+        {contextMenu.visible && contextMenu.type === 'call' && (
+          <div 
+            className="context-menu call-type-menu"
+            style={{
+              left: `${contextMenu.x}px`,
+              top: `${contextMenu.y}px`
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button 
+              onClick={() => {
+                handleCallWithNotification();
+                closeContextMenu();
+              }}
+              className="context-menu-button call-with-notification"
+            >
+              <CallIcon style={{ fontSize: '16px' }} />
+              Звонить с уведомлением
+            </button>
+            <button 
+              onClick={() => {
+                handleCallWithoutNotification();
+                closeContextMenu();
+              }}
+              className="context-menu-button call-without-notification"
+            >
+              <CallIcon style={{ fontSize: '16px' }} />
+              Звонить без уведомления
+            </button>
           </div>
         )}
         <div ref={messagesEndRef} />
@@ -1002,15 +1045,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         )}
       </form>
       <ForwardModal />
-      
-      {/* Модальное окно выбора типа звонка */}
-      <CallTypeModal
-        isOpen={isCallTypeModalOpen}
-        onClose={() => setIsCallTypeModalOpen(false)}
-        onCallWithNotification={handleCallWithNotification}
-        onCallWithoutNotification={handleCallWithoutNotification}
-        targetUser={groupName}
-      />
     </div>
   );
 };

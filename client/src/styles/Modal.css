@@ -229,4 +229,33 @@
 
 .context-menu-button:hover {
   background-color: var(--hover);
+}
+
+/* Контекстное меню для выбора типа звонка */
+.call-type-menu {
+  min-width: 200px;
+}
+
+.call-type-menu .context-menu-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
+}
+
+.call-type-menu .context-menu-button.call-with-notification {
+  color: #57f287;
+}
+
+.call-type-menu .context-menu-button.call-with-notification:hover {
+  background-color: rgba(87, 242, 135, 0.1);
+}
+
+.call-type-menu .context-menu-button.call-without-notification {
+  color: #5865f2;
+}
+
+.call-type-menu .context-menu-button.call-without-notification:hover {
+  background-color: rgba(88, 101, 242, 0.1);
 } 
