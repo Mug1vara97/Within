@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Box, Typography, Button } from '@mui/material';
 import CallEndIcon from '@mui/icons-material/CallEnd';
 import CallIcon from '@mui/icons-material/Call';
 import PhoneIcon from '@mui/icons-material/Phone';
+import { ThemeContext } from '../contexts/ThemeContext';
 
 const IncomingCallModal = ({ incomingCall, onAcceptCall, onRejectCall }) => {
     const [callDuration, setCallDuration] = useState(0);
+    const { currentTheme } = useContext(ThemeContext);
 
     // Таймер для отображения длительности входящего звонка
     useEffect(() => {
@@ -34,6 +36,7 @@ const IncomingCallModal = ({ incomingCall, onAcceptCall, onRejectCall }) => {
 
     return (
         <Box
+            className={`incoming-call-modal ${currentTheme}`}
             sx={{
                 position: 'fixed',
                 top: 0,
@@ -48,6 +51,7 @@ const IncomingCallModal = ({ incomingCall, onAcceptCall, onRejectCall }) => {
             }}
         >
             <Box
+                className="incoming-call-content"
                 sx={{
                     backgroundColor: '#36393f',
                     borderRadius: '12px',
@@ -61,6 +65,7 @@ const IncomingCallModal = ({ incomingCall, onAcceptCall, onRejectCall }) => {
             >
                 {/* Анимация входящего звонка */}
                 <Box
+                    className="call-animation"
                     sx={{
                         width: '80px',
                         height: '80px',
