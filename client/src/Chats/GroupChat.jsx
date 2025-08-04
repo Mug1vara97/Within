@@ -236,19 +236,19 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     if (contextMenu.visible) {
       // Добавляем небольшую задержку, чтобы избежать немедленного закрытия
       const timeoutId = setTimeout(() => {
-        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('click', handleClickOutside);
         document.addEventListener('keydown', handleEscapeKey);
       }, 100);
   
       return () => {
         clearTimeout(timeoutId);
-        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('click', handleClickOutside);
         document.removeEventListener('keydown', handleEscapeKey);
       };
     }
   
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('click', handleClickOutside);
       document.removeEventListener('keydown', handleEscapeKey);
     };
   }, [contextMenu.visible]);
