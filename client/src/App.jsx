@@ -4,6 +4,7 @@ import Home from './Home';
 import Login from './Authentication/Login';
 import Register from './Authentication/Register';
 import "./UserProfile.css"
+import "./styles/ThemeStyles.css"
 import { AudioProvider } from './contexts/AudioContext';
 import { VoiceChannelProvider } from './contexts/VoiceChannelContext';
 import { ThemeProvider } from './contexts/ThemeContext';
