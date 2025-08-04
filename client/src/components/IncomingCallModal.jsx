@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Typography, Button } from '@mui/material';
 import CallEndIcon from '@mui/icons-material/CallEnd';
 import CallIcon from '@mui/icons-material/Call';
 import PhoneIcon from '@mui/icons-material/Phone';
-import { ThemeContext } from '../contexts/ThemeContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const IncomingCallModal = ({ incomingCall, onAcceptCall, onRejectCall }) => {
     const [callDuration, setCallDuration] = useState(0);
-    const { currentTheme } = useContext(ThemeContext);
+    const { currentTheme } = useTheme();
 
     // Таймер для отображения длительности входящего звонка
     useEffect(() => {
