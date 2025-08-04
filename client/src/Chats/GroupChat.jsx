@@ -234,12 +234,21 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     };
   
     if (contextMenu.visible) {
-      document.addEventListener('click', handleClickOutside);
-      document.addEventListener('keydown', handleEscapeKey);
+      // Добавляем небольшую задержку, чтобы избежать немедленного закрытия
+      const timeoutId = setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleEscapeKey);
+      }, 100);
+  
+      return () => {
+        clearTimeout(timeoutId);
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('keydown', handleEscapeKey);
+      };
     }
   
     return () => {
-      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscapeKey);
     };
   }, [contextMenu.visible]);
@@ -917,7 +926,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
             style={{
               left: `${contextMenu.x}px`,
               top: `${contextMenu.y}px`,
-              zIndex: 10000,
+              zIndex: 1000000000,
               position: 'fixed'
             }}
             onClick={(e) => e.stopPropagation()}
