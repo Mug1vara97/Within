@@ -3,11 +3,9 @@ import { Box, Typography, Button } from '@mui/material';
 import CallEndIcon from '@mui/icons-material/CallEnd';
 import CallIcon from '@mui/icons-material/Call';
 import PhoneIcon from '@mui/icons-material/Phone';
-import { useTheme } from '../contexts/ThemeContext';
 
 const IncomingCallModal = ({ incomingCall, onAcceptCall, onRejectCall }) => {
     const [callDuration, setCallDuration] = useState(0);
-    const { currentTheme } = useTheme();
 
     // Таймер для отображения длительности входящего звонка
     useEffect(() => {
@@ -36,7 +34,7 @@ const IncomingCallModal = ({ incomingCall, onAcceptCall, onRejectCall }) => {
 
     return (
         <Box
-            className={`incoming-call-modal ${currentTheme}`}
+            className="incoming-call-modal"
             sx={{
                 position: 'fixed',
                 top: 0,
@@ -53,7 +51,7 @@ const IncomingCallModal = ({ incomingCall, onAcceptCall, onRejectCall }) => {
             <Box
                 className="incoming-call-content"
                 sx={{
-                    backgroundColor: '#36393f',
+                    backgroundColor: 'var(--surface)',
                     borderRadius: '12px',
                     padding: '32px',
                     display: 'flex',
@@ -61,6 +59,7 @@ const IncomingCallModal = ({ incomingCall, onAcceptCall, onRejectCall }) => {
                     alignItems: 'center',
                     minWidth: '300px',
                     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+                    border: '1px solid var(--border)',
                 }}
             >
                 {/* Анимация входящего звонка */}
@@ -70,7 +69,7 @@ const IncomingCallModal = ({ incomingCall, onAcceptCall, onRejectCall }) => {
                         width: '80px',
                         height: '80px',
                         borderRadius: '50%',
-                        backgroundColor: '#57f287',
+                        backgroundColor: 'var(--success)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -79,15 +78,15 @@ const IncomingCallModal = ({ incomingCall, onAcceptCall, onRejectCall }) => {
                         '@keyframes pulse': {
                             '0%': {
                                 transform: 'scale(1)',
-                                boxShadow: '0 0 0 0 rgba(87, 242, 135, 0.7)',
+                                boxShadow: '0 0 0 0 var(--success)',
                             },
                             '70%': {
                                 transform: 'scale(1.05)',
-                                boxShadow: '0 0 0 10px rgba(87, 242, 135, 0)',
+                                boxShadow: '0 0 0 10px transparent',
                             },
                             '100%': {
                                 transform: 'scale(1)',
-                                boxShadow: '0 0 0 0 rgba(87, 242, 135, 0)',
+                                boxShadow: '0 0 0 0 transparent',
                             },
                         },
                     }}
@@ -99,7 +98,7 @@ const IncomingCallModal = ({ incomingCall, onAcceptCall, onRejectCall }) => {
                 <Typography
                     variant="h6"
                     sx={{
-                        color: '#dcddde',
+                        color: 'var(--text)',
                         marginBottom: '8px',
                         textAlign: 'center',
                     }}
@@ -110,7 +109,7 @@ const IncomingCallModal = ({ incomingCall, onAcceptCall, onRejectCall }) => {
                 <Typography
                     variant="body1"
                     sx={{
-                        color: '#8e9297',
+                        color: 'var(--textSecondary)',
                         marginBottom: '24px',
                         textAlign: 'center',
                     }}
@@ -122,7 +121,7 @@ const IncomingCallModal = ({ incomingCall, onAcceptCall, onRejectCall }) => {
                 <Typography
                     variant="body2"
                     sx={{
-                        color: '#8e9297',
+                        color: 'var(--textSecondary)',
                         marginBottom: '32px',
                         fontFamily: 'monospace',
                         fontSize: '18px',
@@ -138,10 +137,10 @@ const IncomingCallModal = ({ incomingCall, onAcceptCall, onRejectCall }) => {
                         startIcon={<CallIcon />}
                         onClick={handleAcceptCall}
                         sx={{
-                            backgroundColor: '#57f287',
+                            backgroundColor: 'var(--success)',
                             color: 'white',
                             '&:hover': {
-                                backgroundColor: '#3ba55c',
+                                backgroundColor: 'var(--successHover)',
                             },
                             borderRadius: '8px',
                             padding: '12px 24px',
@@ -157,10 +156,10 @@ const IncomingCallModal = ({ incomingCall, onAcceptCall, onRejectCall }) => {
                         startIcon={<CallEndIcon />}
                         onClick={handleRejectCall}
                         sx={{
-                            backgroundColor: '#ed4245',
+                            backgroundColor: 'var(--danger)',
                             color: 'white',
                             '&:hover': {
-                                backgroundColor: '#c03537',
+                                backgroundColor: 'var(--dangerHover)',
                             },
                             borderRadius: '8px',
                             padding: '12px 24px',
