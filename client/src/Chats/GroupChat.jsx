@@ -152,14 +152,17 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   }, [isPrivateChat, chatId, userId, getVoiceChannelParticipants]);
 
   const handleStartCall = (e) => {
+    console.log('handleStartCall called', { isPrivateChat, isCallActiveInThisChat, otherUserInCall });
     if (isPrivateChat && !isCallActiveInThisChat) {
       // Открываем контекстное меню выбора типа звонка
-      setContextMenu({
+      const contextMenuData = {
         visible: true,
         x: e ? e.clientX : window.innerWidth / 2,
         y: e ? e.clientY : window.innerHeight / 2,
         type: 'call'
-      });
+      };
+      console.log('Setting context menu:', contextMenuData);
+      setContextMenu(contextMenuData);
     }
   };
 
@@ -906,6 +909,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         )}
 
         {/* Контекстное меню для выбора типа звонка */}
+        {console.log('Context menu state:', contextMenu)}
         {contextMenu.visible && contextMenu.type === 'call' && (
           <div 
             className="context-menu call-type-menu"
