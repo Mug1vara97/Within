@@ -153,7 +153,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
 
   const handleStartCall = (e) => {
     console.log('handleStartCall called', { isPrivateChat, isCallActiveInThisChat, otherUserInCall });
-    if (isPrivateChat && !isCallActiveInThisChat) {
+    if (isPrivateChat && !isCallActiveInThisChat && !otherUserInCall) {
       // Открываем контекстное меню выбора типа звонка
       const contextMenuData = {
         visible: true,
@@ -910,12 +910,15 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
 
         {/* Контекстное меню для выбора типа звонка */}
         {console.log('Context menu state:', contextMenu)}
+        {console.log('Should render call menu:', contextMenu.visible && contextMenu.type === 'call')}
         {contextMenu.visible && contextMenu.type === 'call' && (
           <div 
             className="context-menu call-type-menu"
             style={{
               left: `${contextMenu.x}px`,
-              top: `${contextMenu.y}px`
+              top: `${contextMenu.y}px`,
+              zIndex: 10000,
+              position: 'fixed'
             }}
             onClick={(e) => e.stopPropagation()}
           >
