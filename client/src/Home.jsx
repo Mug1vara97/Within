@@ -307,6 +307,18 @@ const Home = ({ user }) => {
         }
     }, []);
 
+    // Обработчик перед закрытием страницы
+    useEffect(() => {
+        const handleBeforeUnload = () => {
+            setVoiceRoom(null);
+            localStorage.removeItem('voiceRoom');
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, []);
+
     const handleDiscoverModeChange = (mode) => {
         setIsDiscoverMode(mode);
         if (!mode) {
