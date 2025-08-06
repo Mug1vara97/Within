@@ -8,7 +8,7 @@ export const useGroupSettings = (chatId, userId) => {
 
   const fetchMembers = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/settings/${chatId}/members`);
+      const response = await fetch(`${BASE_URL}/api/settings/${chatId}/members`);
       const data = await response.json();
       setMembers(data);
     } catch (error) {
@@ -18,7 +18,7 @@ export const useGroupSettings = (chatId, userId) => {
 
   const handleLeaveGroup = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/settings/${chatId}/leave/${userId}`, {
+      const response = await fetch(`${BASE_URL}/api/settings/${chatId}/leave/${userId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -41,7 +41,7 @@ export const useGroupSettings = (chatId, userId) => {
 
   const handleAddMember = async (userId) => {
     try {
-      const response = await fetch(`${BASE_URL}/settings/${chatId}/add-member`, {
+      const response = await fetch(`${BASE_URL}/api/settings/${chatId}/add-member`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -82,7 +82,7 @@ export const AddMembersModal = ({ onClose, onAddMembers, userId, chatId }) => {
     const fetchAvailableUsers = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`${BASE_URL}/settings/${chatId}/available-users/${userId}`);
+        const response = await fetch(`${BASE_URL}/api/settings/${chatId}/available-users/${userId}`);
         const data = await response.json();
         setAvailableUsers(data);
       } catch (error) {

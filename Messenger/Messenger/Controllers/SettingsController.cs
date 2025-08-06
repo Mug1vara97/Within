@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Messenger.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     public class SettingsController : ControllerBase
     {
         private readonly MessengerContext _context;
