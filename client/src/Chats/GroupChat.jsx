@@ -1002,6 +1002,15 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
                     : "Введите сообщение..."
               }
               className="message-input"
+              onPaste={async (e) => {
+                if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
+                  const file = e.clipboardData.files[0];
+                  if (file && (file.type.startsWith('image/') || file.type.startsWith('video/'))) {
+                    e.preventDefault();
+                    await handleSendMedia(file);
+                  }
+                }
+              }}
             />
             <button type="submit" className="send-button">
               {editingMessageId ? 'Сохранить' : replyingToMessage ? 'Отправить' : 'Отправить'}
