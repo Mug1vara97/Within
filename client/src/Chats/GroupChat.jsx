@@ -657,11 +657,14 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       }}
       tabIndex={0}
       onKeyDown={async (e) => {
-        // Если input не в фокусе и нажат Enter, отправляем сообщение
+        // Если input не в фокусе и нажат Enter, отправляем сообщение и убираем фокус с div
         if (e.key === 'Enter' && document.activeElement !== inputRef.current && newMessage.trim() !== '') {
           e.preventDefault();
           await handleSendMessage(e);
-          // Не фокусируем input, чтобы не появлялась рамка
+          // Убираем фокус с div, чтобы не появлялась рамка
+          if (document.activeElement === e.currentTarget) {
+            e.currentTarget.blur();
+          }
           return;
         }
         // Если input не в фокусе и печатается символ (буква, цифра, пробел, знак), добавляем в newMessage и фокусируем input
@@ -684,6 +687,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           e.preventDefault();
         }
       }}
+      style={{ outline: 'none' }}
     >
       <div className="chat-header">
         <div className="header-left">
