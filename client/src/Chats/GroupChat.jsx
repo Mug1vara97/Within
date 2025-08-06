@@ -630,6 +630,9 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     }
   };
 
+  // Ref для поля ввода
+  const inputRef = useRef(null);
+
   return (
     <div
       className="group-chat-container"
@@ -651,6 +654,26 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
             // Можно также сфокусировать input, если нужно:
             // document.querySelector('.message-input')?.focus();
           }
+        }
+      }}
+      tabIndex={0} // чтобы div мог получать фокус
+      onKeyDown={async (e) => {
+        // Если input не в фокусе и нажат Enter, отправляем сообщение
+        if (e.key === 'Enter' && document.activeElement !== inputRef.current && newMessage.trim() !== '') {
+          e.preventDefault();
+          await handleSendMessage(e);
+          return;
+        }
+        // Если input не в фокусе и печатается символ (буква, цифра, пробел, знак), добавляем в newMessage
+        if (
+          document.activeElement !== inputRef.current &&
+          e.key.length === 1 &&
+          !e.ctrlKey && !e.metaKey && !e.altKey
+        ) {
+          setNewMessage((prev) => prev + e.key);
+          // Можно сфокусировать input, если нужно:
+          // inputRef.current?.focus();
+          e.preventDefault();
         }
       }}
     >
@@ -1013,6 +1036,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         ) : (
           <>
             <input
+              ref={inputRef}
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
