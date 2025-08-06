@@ -4,8 +4,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Test1.Controllers
 {
-    [Route("[controller]")]
     [ApiController]
+    [Route("[controller]")]
     public class SettingsController : ControllerBase
     {
         private readonly MessengerContext _context;
