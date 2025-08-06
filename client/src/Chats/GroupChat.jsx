@@ -633,60 +633,70 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   // Ref для поля ввода
   const inputRef = useRef(null);
 
+  // Глобальные обработчики для paste и keydown
+  useEffect(() => {
+    const handleGlobalPaste = async (e) => {
+      if (!document.body.contains(inputRef.current)) return;
+      if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
+        const file = e.clipboardData.files[0];
+        if (file && (file.type.startsWith('image/') || file.type.startsWith('video/'))) {
+          e.preventDefault();
+          await handleSendMedia(file);
+          return;
+        }
+      }
+      if (e.clipboardData && e.clipboardData.getData('text')) {
+        const text = e.clipboardData.getData('text');
+        if (text) {
+          e.preventDefault();
+          setNewMessage((prev) => prev + text);
+          inputRef.current?.focus();
+        }
+      }
+    };
+    const handleGlobalKeyDown = async (e) => {
+      if (!document.body.contains(inputRef.current)) return;
+      // Если input не в фокусе и нажат Enter, отправляем сообщение и убираем фокус с div
+      if (e.key === 'Enter' && document.activeElement !== inputRef.current && newMessage.trim() !== '') {
+        e.preventDefault();
+        await handleSendMessage(e);
+        if (document.activeElement.classList?.contains('group-chat-container')) {
+          document.activeElement.blur();
+        }
+        return;
+      }
+      // Если input не в фокусе и печатается символ (буква, цифра, пробел, знак), добавляем в newMessage и фокусируем input
+      if (
+        document.activeElement !== inputRef.current &&
+        e.key.length === 1 &&
+        !e.ctrlKey && !e.metaKey && !e.altKey
+      ) {
+        setNewMessage((prev) => prev + e.key);
+        inputRef.current?.focus();
+        e.preventDefault();
+      }
+      // Если input не в фокусе и нажат Backspace, фокусируем input и удаляем символ
+      if (
+        document.activeElement !== inputRef.current &&
+        e.key === 'Backspace'
+      ) {
+        setNewMessage((prev) => prev.slice(0, -1));
+        inputRef.current?.focus();
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('paste', handleGlobalPaste);
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => {
+      window.removeEventListener('paste', handleGlobalPaste);
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+    };
+  }, [newMessage, handleSendMedia, handleSendMessage]);
+
   return (
     <div
       className="group-chat-container"
-      onPaste={async (e) => {
-        if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
-          const file = e.clipboardData.files[0];
-          if (file && (file.type.startsWith('image/') || file.type.startsWith('video/'))) {
-            e.preventDefault();
-            await handleSendMedia(file);
-            return;
-          }
-        }
-        // Если вставляется текст — добавляем его в поле ввода
-        if (e.clipboardData && e.clipboardData.getData('text')) {
-          const text = e.clipboardData.getData('text');
-          if (text) {
-            e.preventDefault();
-            setNewMessage((prev) => prev + text);
-            inputRef.current?.focus();
-          }
-        }
-      }}
       tabIndex={0}
-      onKeyDown={async (e) => {
-        // Если input не в фокусе и нажат Enter, отправляем сообщение и убираем фокус с div
-        if (e.key === 'Enter' && document.activeElement !== inputRef.current && newMessage.trim() !== '') {
-          e.preventDefault();
-          await handleSendMessage(e);
-          // Убираем фокус с div, чтобы не появлялась рамка
-          if (document.activeElement === e.currentTarget) {
-            e.currentTarget.blur();
-          }
-          return;
-        }
-        // Если input не в фокусе и печатается символ (буква, цифра, пробел, знак), добавляем в newMessage и фокусируем input
-        if (
-          document.activeElement !== inputRef.current &&
-          e.key.length === 1 &&
-          !e.ctrlKey && !e.metaKey && !e.altKey
-        ) {
-          setNewMessage((prev) => prev + e.key);
-          inputRef.current?.focus();
-          e.preventDefault();
-        }
-        // Если input не в фокусе и нажат Backspace, фокусируем input и удаляем символ
-        if (
-          document.activeElement !== inputRef.current &&
-          e.key === 'Backspace'
-        ) {
-          setNewMessage((prev) => prev.slice(0, -1));
-          inputRef.current?.focus();
-          e.preventDefault();
-        }
-      }}
       style={{ outline: 'none' }}
     >
       <div className="chat-header">
