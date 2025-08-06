@@ -7,7 +7,7 @@ using System.Text.Json;
 using System.IO;
 using Microsoft.AspNetCore.Http;
 
-namespace Messenger1.Controllers
+namespace Messenger.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Test1.Controllers
+namespace Messenger.Controllers
 {
     [ApiController]
     [Route("[controller]")]
