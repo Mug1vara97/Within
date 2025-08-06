@@ -706,7 +706,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           </div>
         </div>
         <div className="header-actions">
-          {isPrivateChat && !isCallActiveInThisChat && !otherUserInCall && (
+          {(isPrivateChat || isGroupChat) && !isCallActiveInThisChat && !otherUserInCall && (
             <button
               onClick={(e) => handleStartCall(e)}
               className="voice-call-button"
