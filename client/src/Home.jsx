@@ -497,6 +497,7 @@ const ChatListWrapper = ({ user, onJoinVoiceChannel, voiceRoom, leftVoiceChannel
                                 chatId={selectedChat.chatId}
                                 groupName={selectedChat.groupName || selectedChat.name}
                                 isServerChat={false}
+                                isGroupChat={selectedChat.typeId === 2 || selectedChat.chatType === 2}
                                 onJoinVoiceChannel={onJoinVoiceChannel}
                                 chatTypeId={selectedChat.typeId || selectedChat.chatType}
                                 activePrivateCall={activePrivateCall}
