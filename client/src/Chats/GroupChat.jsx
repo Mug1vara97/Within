@@ -651,28 +651,36 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           if (text) {
             e.preventDefault();
             setNewMessage((prev) => prev + text);
-            // Можно также сфокусировать input, если нужно:
-            // document.querySelector('.message-input')?.focus();
+            inputRef.current?.focus();
           }
         }
       }}
-      tabIndex={0} // чтобы div мог получать фокус
+      tabIndex={0}
       onKeyDown={async (e) => {
         // Если input не в фокусе и нажат Enter, отправляем сообщение
         if (e.key === 'Enter' && document.activeElement !== inputRef.current && newMessage.trim() !== '') {
           e.preventDefault();
           await handleSendMessage(e);
+          // Не фокусируем input, чтобы не появлялась рамка
           return;
         }
-        // Если input не в фокусе и печатается символ (буква, цифра, пробел, знак), добавляем в newMessage
+        // Если input не в фокусе и печатается символ (буква, цифра, пробел, знак), добавляем в newMessage и фокусируем input
         if (
           document.activeElement !== inputRef.current &&
           e.key.length === 1 &&
           !e.ctrlKey && !e.metaKey && !e.altKey
         ) {
           setNewMessage((prev) => prev + e.key);
-          // Можно сфокусировать input, если нужно:
-          // inputRef.current?.focus();
+          inputRef.current?.focus();
+          e.preventDefault();
+        }
+        // Если input не в фокусе и нажат Backspace, фокусируем input и удаляем символ
+        if (
+          document.activeElement !== inputRef.current &&
+          e.key === 'Backspace'
+        ) {
+          setNewMessage((prev) => prev.slice(0, -1));
+          inputRef.current?.focus();
           e.preventDefault();
         }
       }}
@@ -1047,7 +1055,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
                     ? "Напишите ответ..." 
                     : "Введите сообщение..."
               }
-              className="message-input"
+              className="message-input no-focus-outline"
               onPaste={async (e) => {
                 if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
                   const file = e.clipboardData.files[0];
@@ -1057,6 +1065,8 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
                   }
                 }
               }}
+              autoComplete="off"
+              spellCheck={true}
             />
             <button type="submit" className="send-button">
               {editingMessageId ? 'Сохранить' : replyingToMessage ? 'Отправить' : 'Отправить'}
