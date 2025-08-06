@@ -631,7 +631,29 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   };
 
   return (
-    <div className="group-chat-container">
+    <div
+      className="group-chat-container"
+      onPaste={async (e) => {
+        if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
+          const file = e.clipboardData.files[0];
+          if (file && (file.type.startsWith('image/') || file.type.startsWith('video/'))) {
+            e.preventDefault();
+            await handleSendMedia(file);
+            return;
+          }
+        }
+        // Если вставляется текст — добавляем его в поле ввода
+        if (e.clipboardData && e.clipboardData.getData('text')) {
+          const text = e.clipboardData.getData('text');
+          if (text) {
+            e.preventDefault();
+            setNewMessage((prev) => prev + text);
+            // Можно также сфокусировать input, если нужно:
+            // document.querySelector('.message-input')?.focus();
+          }
+        }
+      }}
+    >
       <div className="chat-header">
         <div className="header-left">
           <div className="user-info" onClick={isGroupChat ? handleSettingsClick : undefined}>
