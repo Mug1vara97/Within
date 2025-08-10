@@ -1091,6 +1091,13 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         {!editingMessageId && (
           <>
             {/* Голосовые сообщения - кнопка записи как в Telegram */}
+            {console.log('GroupChat permissions check:', { 
+                isServerChat, 
+                userPermissions, 
+                sendVoiceMessages: userPermissions?.sendVoiceMessages, 
+                isServerOwner,
+                shouldShow: (!isServerChat || userPermissions?.sendVoiceMessages) || isServerOwner 
+            })}
             {((!isServerChat || userPermissions?.sendVoiceMessages) || isServerOwner) && (
                               <div className="voice-message-wrapper">
                   {isRecording && (
@@ -1122,6 +1129,13 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
               onChange={(e) => handleSendMedia(e.target.files[0])}
               accept="image/*, video/*, audio/*"
             />
+            {console.log('GroupChat attachFiles check:', { 
+                isServerChat, 
+                userPermissions, 
+                attachFiles: userPermissions?.attachFiles, 
+                isServerOwner,
+                shouldShow: (!isServerChat || userPermissions?.attachFiles) || isServerOwner 
+            })}
             {((!isServerChat || userPermissions?.attachFiles) || isServerOwner) && (
               <button
                 type="button"
