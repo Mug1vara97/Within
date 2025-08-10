@@ -869,26 +869,16 @@ namespace Messenger
                         Console.WriteLine($"RemoveRole: Processing permissions for role {role.RoleId}: {role.Permissions}");
                         var rolePermissions = DeserializePermissions(role.Permissions);
 
-                            foreach (var (permission, value) in rolePermissions)
+                        foreach (var (permission, value) in rolePermissions)
+                        {
+                            if (mergedPermissions.ContainsKey(permission))
                             {
-                                if (mergedPermissions.ContainsKey(permission))
-                                {
-                                    mergedPermissions[permission] = mergedPermissions[permission] || value;
-                                }
-                                else
-                                {
-                                    mergedPermissions[permission] = value;
-                                }
+                                mergedPermissions[permission] = mergedPermissions[permission] || value;
                             }
-                        }
-                        catch (JsonException ex)
-                        {
-                            Console.WriteLine($"Failed to deserialize permissions for role {role.RoleId}: {ex.Message}");
-                            Console.WriteLine($"Raw permissions data: {role.Permissions}");
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Unexpected error deserializing permissions for role {role.RoleId}: {ex.Message}");
+                            else
+                            {
+                                mergedPermissions[permission] = value;
+                            }
                         }
                     }
                 }
