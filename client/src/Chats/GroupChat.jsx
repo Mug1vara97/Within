@@ -452,9 +452,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
 
         if (chatId) {
           await newConnection.invoke('JoinGroup', parseInt(chatId));
-          
-          // Загружаем сообщения через новый хук
-          await loadMessages(1, false);
         }
       } catch (error) {
         console.error('Connection failed: ', error);
@@ -471,6 +468,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
             connectionRef.current.off('ReceiveMessage');
             connectionRef.current.off('MessageEdited');
             connectionRef.current.off('MessageDeleted');
+            connectionRef.current.off('MessageRead'); // Добавляем очистку для MessageRead
             
             // Покидаем группу только если соединение активно
             if (connectionRef.current.state === 'Connected') {
@@ -490,7 +488,15 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       
       cleanup();
     };
-  }, [chatId]);
+  }, [chatId]); // Убрали loadMessages из зависимостей
+
+  // Новый useEffect для загрузки сообщений после установки соединения
+  useEffect(() => {
+    if (connection && connection.state === 'Connected' && chatId) {
+      console.log('Connection is ready, loading messages...');
+      loadMessages(1, false);
+    }
+  }, [connection, chatId, loadMessages]); // Зависимости: connection, chatId, и loadMessages
 
   // Подключение к ChatListHub
   useEffect(() => {
@@ -560,6 +566,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         connection.off('ReceiveMessage', receiveMessageHandler);
         connection.off('MessageEdited', messageEditedHandler);
         connection.off('MessageDeleted', messageDeletedHandler);
+        connection.off('MessageRead'); // Добавляем очистку для MessageRead
       };
     }
   }, [connection, chatId]);
