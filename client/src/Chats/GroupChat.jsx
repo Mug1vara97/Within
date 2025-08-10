@@ -635,22 +635,35 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
 
   // Глобальные обработчики для paste и keydown
   useEffect(() => {
+    let focusTimeout = null;
+    let lastActiveElement = null;
+
     const handleGlobalPaste = async (e) => {
-      // Проверяем, что фокус находится в контейнере чата или на поле ввода
+      if (!document.body.contains(inputRef.current)) return;
+      
       const activeElement = document.activeElement;
-      const isInChatContainer = activeElement?.closest('.group-chat-container') || 
-                               activeElement === inputRef.current ||
-                               activeElement?.classList?.contains('group-chat-container');
       
-      // Проверяем, что активный элемент не находится в модальном окне или других важных элементах
-      const isInModal = activeElement?.closest('.modal') || 
-                       activeElement?.closest('[role="dialog"]') ||
-                       activeElement?.closest('.MuiModal-root') ||
-                       activeElement?.closest('.MuiDialog-root');
+      // Если активный элемент не является полем ввода чата, разфокусируем чат
+      if (activeElement !== inputRef.current) {
+        inputRef.current?.blur();
+        lastActiveElement = activeElement;
+        
+        // Очищаем предыдущий таймаут
+        if (focusTimeout) {
+          clearTimeout(focusTimeout);
+        }
+        
+        // Устанавливаем таймаут для возврата фокуса через 3 секунды
+        focusTimeout = setTimeout(() => {
+          if (lastActiveElement === document.activeElement) {
+            inputRef.current?.focus();
+            lastActiveElement = null;
+          }
+        }, 3000);
+      }
       
-      if (!isInChatContainer || isInModal) return;
-      
-      if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
+      // Обрабатываем вставку файлов только если фокус в чате
+      if (activeElement === inputRef.current && e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
         const file = e.clipboardData.files[0];
         if (file && (file.type.startsWith('image/') || file.type.startsWith('video/'))) {
           e.preventDefault();
@@ -658,73 +671,127 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           return;
         }
       }
-      if (e.clipboardData && e.clipboardData.getData('text')) {
+      
+      // Обрабатываем вставку текста только если фокус в чате
+      if (activeElement === inputRef.current && e.clipboardData && e.clipboardData.getData('text')) {
         const text = e.clipboardData.getData('text');
-        if (text && activeElement !== inputRef.current) {
+        if (text) {
           e.preventDefault();
           setNewMessage((prev) => prev + text);
-          inputRef.current?.focus();
         }
       }
     };
-    
+
     const handleGlobalKeyDown = async (e) => {
-      // Проверяем, что фокус находится в контейнере чата или на поле ввода
+      if (!document.body.contains(inputRef.current)) return;
+      
       const activeElement = document.activeElement;
-      const isInChatContainer = activeElement?.closest('.group-chat-container') || 
-                               activeElement === inputRef.current ||
-                               activeElement?.classList?.contains('group-chat-container');
       
-      // Проверяем, что активный элемент не находится в модальном окне или других важных элементах
-      const isInModal = activeElement?.closest('.modal') || 
-                       activeElement?.closest('[role="dialog"]') ||
-                       activeElement?.closest('.MuiModal-root') ||
-                       activeElement?.closest('.MuiDialog-root');
-      
-      if (!isInChatContainer || isInModal) return;
-      
-      // Если активный элемент является input, textarea или contenteditable, не перехватываем события
-      if (activeElement?.tagName === 'INPUT' || 
-          activeElement?.tagName === 'TEXTAREA' || 
-          activeElement?.contentEditable === 'true') {
-        return;
-      }
-      
-      // Если input не в фокусе и нажат Enter, отправляем сообщение и убираем фокус с div
-      if (e.key === 'Enter' && activeElement !== inputRef.current && newMessage.trim() !== '') {
-        e.preventDefault();
-        await handleSendMessage(e);
-        if (activeElement.classList?.contains('group-chat-container')) {
-          activeElement.blur();
+      // Если активный элемент не является полем ввода чата, разфокусируем чат
+      if (activeElement !== inputRef.current) {
+        inputRef.current?.blur();
+        lastActiveElement = activeElement;
+        
+        // Очищаем предыдущий таймаут
+        if (focusTimeout) {
+          clearTimeout(focusTimeout);
         }
-        return;
+        
+        // Устанавливаем таймаут для возврата фокуса через 3 секунды
+        focusTimeout = setTimeout(() => {
+          if (lastActiveElement === document.activeElement) {
+            inputRef.current?.focus();
+            lastActiveElement = null;
+          }
+        }, 3000);
+        
+        return; // Не обрабатываем события для других элементов
       }
-      // Если input не в фокусе и печатается символ (буква, цифра, пробел, знак), добавляем в newMessage и фокусируем input
-      if (
-        activeElement !== inputRef.current &&
-        e.key.length === 1 &&
-        !e.ctrlKey && !e.metaKey && !e.altKey
-      ) {
-        setNewMessage((prev) => prev + e.key);
-        inputRef.current?.focus();
-        e.preventDefault();
-      }
-      // Если input не в фокусе и нажат Backspace, фокусируем input и удаляем символ
-      if (
-        activeElement !== inputRef.current &&
-        e.key === 'Backspace'
-      ) {
-        setNewMessage((prev) => prev.slice(0, -1));
-        inputRef.current?.focus();
-        e.preventDefault();
+      
+      // Обрабатываем события только если фокус в поле ввода чата
+      if (activeElement === inputRef.current) {
+        // Если нажат Enter, отправляем сообщение
+        if (e.key === 'Enter' && newMessage.trim() !== '') {
+          e.preventDefault();
+          await handleSendMessage(e);
+          return;
+        }
       }
     };
-    
+
+    // Обработчик для отслеживания изменений фокуса
+    const handleFocusChange = () => {
+      const activeElement = document.activeElement;
+      
+      // Если фокус перешел на другой элемент, разфокусируем чат
+      if (activeElement !== inputRef.current) {
+        inputRef.current?.blur();
+        lastActiveElement = activeElement;
+        
+        // Очищаем предыдущий таймаут
+        if (focusTimeout) {
+          clearTimeout(focusTimeout);
+        }
+        
+        // Устанавливаем таймаут для возврата фокуса через 3 секунды
+        focusTimeout = setTimeout(() => {
+          // Проверяем, что пользователь все еще использует тот же элемент
+          if (lastActiveElement === document.activeElement) {
+            // Дополнительная проверка: если это input или textarea, не возвращаем фокус
+            if (lastActiveElement?.tagName === 'INPUT' || lastActiveElement?.tagName === 'TEXTAREA') {
+              return;
+            }
+            inputRef.current?.focus();
+            lastActiveElement = null;
+          }
+        }, 3000);
+      } else {
+        // Если фокус вернулся в чат, очищаем таймаут
+        if (focusTimeout) {
+          clearTimeout(focusTimeout);
+          focusTimeout = null;
+        }
+        lastActiveElement = null;
+      }
+    };
+
+    // Обработчик для отслеживания кликов вне чата
+    const handleClickOutside = (e) => {
+      const isInChatContainer = e.target.closest('.group-chat-container');
+      if (!isInChatContainer) {
+        inputRef.current?.blur();
+        lastActiveElement = document.activeElement;
+        
+        // Очищаем предыдущий таймаут
+        if (focusTimeout) {
+          clearTimeout(focusTimeout);
+        }
+        
+        // Устанавливаем таймаут для возврата фокуса через 3 секунды
+        focusTimeout = setTimeout(() => {
+          if (lastActiveElement === document.activeElement) {
+            inputRef.current?.focus();
+            lastActiveElement = null;
+          }
+        }, 3000);
+      }
+    };
+
     window.addEventListener('paste', handleGlobalPaste);
     window.addEventListener('keydown', handleGlobalKeyDown);
+    document.addEventListener('focusin', handleFocusChange);
+    document.addEventListener('click', handleClickOutside);
+    
     return () => {
       window.removeEventListener('paste', handleGlobalPaste);
       window.removeEventListener('keydown', handleGlobalKeyDown);
+      document.removeEventListener('focusin', handleFocusChange);
+      document.removeEventListener('click', handleClickOutside);
+      
+      // Очищаем таймаут при размонтировании
+      if (focusTimeout) {
+        clearTimeout(focusTimeout);
+      }
     };
   }, [newMessage, handleSendMedia, handleSendMessage]);
 
