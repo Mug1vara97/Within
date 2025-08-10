@@ -109,6 +109,24 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 
+// Добавляем дополнительный UseStaticFiles для uploads с маленькой буквы
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "Uploads")),
+    RequestPath = "/uploads",
+    OnPrepareResponse = ctx =>
+    {
+        // Используем тот же CORS, что и для основного приложения
+        var origin = ctx.Context.Request.Headers["Origin"].ToString();
+        if (!string.IsNullOrEmpty(origin))
+        {
+            ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", origin);
+            ctx.Context.Response.Headers.Append("Access-Control-Allow-Credentials", "true");
+        }
+        ctx.Context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    }
+});
+
 app.UseRouting();
 app.UseAuthorization();
 

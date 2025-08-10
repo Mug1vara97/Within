@@ -137,7 +137,7 @@ const UserProfileModal = ({ userId, username, isOpen, onClose, currentUserId }) 
             <div className="profile-modal">
                 <div className="profile-modal-content">
                     <div className="profile-banner" style={{ 
-                        backgroundImage: userProfile?.banner?.startsWith('/uploads/') 
+                        backgroundImage: userProfile?.banner?.startsWith('/Uploads/') 
                             ? `url(${BASE_URL}${userProfile.banner})` 
                             : (userProfile?.banner?.startsWith('http') ? `url(${userProfile.banner})` : 'none'),
                         backgroundColor: userProfile?.banner?.startsWith('#') 

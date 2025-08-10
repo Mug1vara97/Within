@@ -94,7 +94,7 @@ namespace Messenger.Controllers
                 await file.CopyToAsync(stream);
             }
 
-            return Ok(new { url = $"/uploads/banners/{uniqueFileName}" });
+            return Ok(new { url = $"/Uploads/Banners/{uniqueFileName}" });
         }
 
         [HttpPost("update-avatar")]
