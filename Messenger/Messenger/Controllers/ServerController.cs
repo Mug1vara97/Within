@@ -33,6 +33,38 @@ namespace Messenger.Controllers
             }
         }
 
+        private Dictionary<string, bool> DeserializePermissions(string permissionsJson)
+        {
+            if (string.IsNullOrEmpty(permissionsJson))
+                return new Dictionary<string, bool>();
+
+            try
+            {
+                // Убираем лишние экранирования, если они есть
+                string cleanPermissions = permissionsJson;
+                if (cleanPermissions.StartsWith("\"") && cleanPermissions.EndsWith("\""))
+                {
+                    cleanPermissions = cleanPermissions.Substring(1, cleanPermissions.Length - 2);
+                    cleanPermissions = cleanPermissions.Replace("\\\"", "\"");
+                }
+                
+                Console.WriteLine($"ServerController DeserializePermissions: Cleaned permissions: {cleanPermissions}");
+                
+                return System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, bool>>(cleanPermissions) ?? new Dictionary<string, bool>();
+            }
+            catch (System.Text.Json.JsonException ex)
+            {
+                Console.WriteLine($"ServerController DeserializePermissions: Failed to deserialize permissions: {ex.Message}");
+                Console.WriteLine($"ServerController DeserializePermissions: Raw permissions data: {permissionsJson}");
+                return new Dictionary<string, bool>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ServerController DeserializePermissions: Unexpected error deserializing permissions: {ex.Message}");
+                return new Dictionary<string, bool>();
+            }
+        }
+
 
         [HttpPost("{serverId}/create-chanel")]
         public async Task<IActionResult> CreateChanel(int serverId, [FromBody] CreateChanelRequest request)
@@ -403,22 +435,8 @@ namespace Messenger.Controllers
                                            
                                            if (!string.IsNullOrEmpty(ur.Role.Permissions))
                                            {
-                                               try
-                                               {
-                                                   Console.WriteLine($"ServerController: Attempting to deserialize permissions for role {ur.Role.RoleId}: {ur.Role.Permissions}");
-                                                   permissions = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, bool>>(ur.Role.Permissions) ?? new Dictionary<string, bool>();
-                                               }
-                                               catch (System.Text.Json.JsonException ex)
-                                               {
-                                                   Console.WriteLine($"ServerController: Failed to deserialize permissions for role {ur.Role.RoleId}: {ex.Message}");
-                                                   Console.WriteLine($"ServerController: Raw permissions data: {ur.Role.Permissions}");
-                                                   permissions = new Dictionary<string, bool>();
-                                               }
-                                               catch (Exception ex)
-                                               {
-                                                   Console.WriteLine($"ServerController: Unexpected error deserializing permissions for role {ur.Role.RoleId}: {ex.Message}");
-                                                   permissions = new Dictionary<string, bool>();
-                                               }
+                                               Console.WriteLine($"ServerController: Processing permissions for role {ur.Role.RoleId}: {ur.Role.Permissions}");
+                                               permissions = DeserializePermissions(ur.Role.Permissions);
                                            }
                                            
                                            return permissions.GetValueOrDefault("manageChannels", false);
