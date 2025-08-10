@@ -170,7 +170,7 @@ namespace Messenger.Controllers
             })
             .ToListAsync();
 
-
+            var userRoles = userRolesData.Select(role => {
                 Dictionary<string, bool> permissions = new Dictionary<string, bool>();
                 
                 if (!string.IsNullOrEmpty(role.Permissions))
