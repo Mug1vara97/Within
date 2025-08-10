@@ -1,7 +1,7 @@
 import React from 'react';
 import UserStatus from './UserStatus';
 
-const UserAvatar = ({ username, avatarUrl, avatarColor, bannerUrl, size = '32px', status, showStatus = true }) => {
+const UserAvatar = ({ username, avatarUrl, avatarColor, size = '32px', status, showStatus = true }) => {
     const getStatusSize = () => {
         const sizeNum = parseInt(size);
         if (sizeNum <= 24) return 'small';
@@ -25,20 +25,6 @@ const UserAvatar = ({ username, avatarUrl, avatarColor, bannerUrl, size = '32px'
         return '48px'; // Для больших аватаров как 120px
     };
 
-    const getBackgroundStyle = () => {
-        if (bannerUrl) {
-            return {
-                backgroundImage: `url(${bannerUrl})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center'
-            };
-        }
-        // Если нет баннера, используем avatarColor как фон
-        return {
-            backgroundColor: avatarColor || '#5865F2'
-        };
-    };
-
     return (
         <div 
             className="user-avatar-container"
@@ -50,7 +36,7 @@ const UserAvatar = ({ username, avatarUrl, avatarColor, bannerUrl, size = '32px'
             <div 
                 className="user-avatar"
                 style={{ 
-                    ...getBackgroundStyle(),
+                    backgroundColor: avatarColor || '#5865F2',
                     width: size,
                     height: size,
                     borderRadius: '50%',
@@ -61,22 +47,9 @@ const UserAvatar = ({ username, avatarUrl, avatarColor, bannerUrl, size = '32px'
                     fontSize: getFontSize(),
                     fontWeight: 'bold',
                     flexShrink: 0,
-                    overflow: 'hidden',
-                    position: 'relative'
+                    overflow: 'hidden'
                 }}
             >
-                {bannerUrl && (
-                    // Поверх баннера показываем полупрозрачный слой для читаемости текста
-                    <div style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                        borderRadius: '50%'
-                    }} />
-                )}
                 {avatarUrl ? (
                     <img 
                         src={avatarUrl} 
@@ -85,15 +58,11 @@ const UserAvatar = ({ username, avatarUrl, avatarColor, bannerUrl, size = '32px'
                             width: '100%',
                             height: '100%',
                             borderRadius: '50%',
-                            objectFit: 'cover',
-                            position: 'relative',
-                            zIndex: 1
+                            objectFit: 'cover'
                         }}
                     />
                 ) : (
-                    <span style={{ position: 'relative', zIndex: 1 }}>
-                        {username?.charAt(0).toUpperCase()}
-                    </span>
+                    username?.charAt(0).toUpperCase()
                 )}
             </div>
             {showStatus && status && (

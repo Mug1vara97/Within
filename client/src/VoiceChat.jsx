@@ -1222,8 +1222,7 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
         console.log('Loaded user profile:', { userId, profile });
         const avatarData = {
           avatarUrl: profile.avatar ? `https://whithin.ru${profile.avatar}` : null,
-          avatarColor: profile.avatarColor || '#5865F2',
-          bannerUrl: profile.banner ? `https://whithin.ru${profile.banner}` : null
+          avatarColor: profile.avatarColor || '#5865F2'
         };
         console.log('Setting avatar data:', avatarData);
         setUserProfiles(prev => new Map(prev).set(userId, avatarData));
@@ -4515,7 +4514,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                             username={userName}
                             avatarUrl={avatarData?.avatarUrl}
                             avatarColor={avatarData?.avatarColor}
-                            bannerUrl={avatarData?.bannerUrl}
                             size={adaptiveAvatarSize}
                             showStatus={false}
                           />
@@ -4592,7 +4590,6 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
                               username={peer.name}
                               avatarUrl={avatarData?.avatarUrl}
                               avatarColor={avatarData?.avatarColor}
-                              bannerUrl={avatarData?.bannerUrl}
                               size={adaptiveAvatarSize}
                               showStatus={false}
                             />

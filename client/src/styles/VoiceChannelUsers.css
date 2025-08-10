@@ -40,11 +40,6 @@
     font-weight: 600;
     margin-right: 8px;
     flex-shrink: 0;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    overflow: hidden;
-    position: relative;
 }
 
 .voice-user-info {
