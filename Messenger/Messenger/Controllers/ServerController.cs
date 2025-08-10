@@ -399,7 +399,9 @@ namespace Messenger.Controllers
                 bool hasPermission = server.OwnerId == request.CreatorId || 
                                    userRoles.Any(ur => {
                                        try {
-                                           var permissions = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, bool>>(ur.Role.Permissions);
+                                           var permissions = !string.IsNullOrEmpty(ur.Role.Permissions) 
+                                               ? System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, bool>>(ur.Role.Permissions) ?? new Dictionary<string, bool>()
+                                               : new Dictionary<string, bool>();
                                            return permissions.GetValueOrDefault("manageChannels", false);
                                        }
                                        catch {

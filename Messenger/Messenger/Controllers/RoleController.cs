@@ -53,7 +53,9 @@ namespace Messenger.Controllers
                     role.RoleId,
                     role.RoleName,
                     role.Color,
-                    Permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions)
+                    Permissions = !string.IsNullOrEmpty(role.Permissions) 
+                        ? JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions) ?? new Dictionary<string, bool>()
+                        : new Dictionary<string, bool>()
                 });
             }
             catch (Exception ex)
@@ -144,9 +146,9 @@ namespace Messenger.Controllers
                 usr.Role.RoleId,
                 usr.Role.RoleName,
                 usr.Role.Color,
-                Permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(
-                            usr.Role.Permissions,
-                            (JsonSerializerOptions)null)
+                Permissions = !string.IsNullOrEmpty(usr.Role.Permissions) 
+                    ? JsonSerializer.Deserialize<Dictionary<string, bool>>(usr.Role.Permissions) ?? new Dictionary<string, bool>()
+                    : new Dictionary<string, bool>()
             })
             .ToListAsync();
 
@@ -180,9 +182,9 @@ namespace Messenger.Controllers
                             usr.Role.RoleId,
                             usr.Role.RoleName,
                             usr.Role.Color,
-                            Permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(
-                            usr.Role.Permissions,
-                            (JsonSerializerOptions)null)
+                            Permissions = !string.IsNullOrEmpty(usr.Role.Permissions) 
+                                ? JsonSerializer.Deserialize<Dictionary<string, bool>>(usr.Role.Permissions) ?? new Dictionary<string, bool>()
+                                : new Dictionary<string, bool>()
                         }),
                     AvatarColor = sm.User.UserProfile.AvatarColor
                 })
@@ -217,9 +219,9 @@ namespace Messenger.Controllers
                  usr.Role.RoleId,
                  usr.Role.RoleName,
                  usr.Role.Color,
-                 Permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(
-                            usr.Role.Permissions,
-                            (JsonSerializerOptions)null)
+                 Permissions = !string.IsNullOrEmpty(usr.Role.Permissions) 
+                    ? JsonSerializer.Deserialize<Dictionary<string, bool>>(usr.Role.Permissions) ?? new Dictionary<string, bool>()
+                    : new Dictionary<string, bool>()
              })
              .ToListAsync();
 
@@ -251,9 +253,9 @@ namespace Messenger.Controllers
                         usr.Role.RoleId,
                         usr.Role.RoleName,
                         usr.Role.Color,
-                        Permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(
-                            usr.Role.Permissions,
-                            (JsonSerializerOptions)null) // Явное указание параметров
+                        Permissions = !string.IsNullOrEmpty(usr.Role.Permissions) 
+                            ? JsonSerializer.Deserialize<Dictionary<string, bool>>(usr.Role.Permissions) ?? new Dictionary<string, bool>()
+                            : new Dictionary<string, bool>()
                     })
                     .ToListAsync();
 

@@ -671,6 +671,7 @@ namespace Messenger
         {
             try
             {
+                Console.WriteLine($"GetServerMembers called for serverId: {serverId}");
                 var members = await _context.ServerMembers
                     .Where(sm => sm.ServerId == serverId)
                     .Include(sm => sm.User)
@@ -689,16 +690,20 @@ namespace Messenger
                                 usr.Role.RoleId,
                                 usr.Role.RoleName,
                                 usr.Role.Color,
-                                Permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(
-                                    usr.Role.Permissions,
-                                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-                            }),
+                                Permissions = !string.IsNullOrEmpty(usr.Role.Permissions) 
+                                    ? JsonSerializer.Deserialize<Dictionary<string, bool>>(
+                                        usr.Role.Permissions,
+                                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new Dictionary<string, bool>()
+                                    : new Dictionary<string, bool>()
+                            })
+                            .Where(r => r.RoleId > 0), // Дополнительная проверка
                         Avatar = sm.User.UserProfile.Avatar ?? null,
                         AvatarColor = sm.User.UserProfile.AvatarColor ?? "#5865F2"
                     })
                     .AsNoTracking()
                     .ToListAsync();
 
+                Console.WriteLine($"GetServerMembers: Found {members.Count} members for server {serverId}");
                 await Clients.Caller.SendAsync("ServerMembersLoaded", members);
             }
             catch (Exception ex)
@@ -751,7 +756,9 @@ namespace Messenger
                         role.RoleId,
                         role.RoleName,
                         role.Color,
-                        Permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions)
+                        Permissions = !string.IsNullOrEmpty(role.Permissions) 
+                            ? JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions) ?? new Dictionary<string, bool>()
+                            : new Dictionary<string, bool>()
                     });
             }
             catch (Exception ex)
@@ -814,20 +821,23 @@ namespace Messenger
                 var mergedPermissions = new Dictionary<string, bool>();
                 foreach (var role in remainingRoles)
                 {
-                    var rolePermissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(
-                        role.Permissions,
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-                    );
-
-                    foreach (var (permission, value) in rolePermissions)
+                    if (!string.IsNullOrEmpty(role.Permissions))
                     {
-                        if (mergedPermissions.ContainsKey(permission))
+                        var rolePermissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(
+                            role.Permissions,
+                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                        ) ?? new Dictionary<string, bool>();
+
+                        foreach (var (permission, value) in rolePermissions)
                         {
-                            mergedPermissions[permission] = mergedPermissions[permission] || value;
-                        }
-                        else
-                        {
-                            mergedPermissions[permission] = value;
+                            if (mergedPermissions.ContainsKey(permission))
+                            {
+                                mergedPermissions[permission] = mergedPermissions[permission] || value;
+                            }
+                            else
+                            {
+                                mergedPermissions[permission] = value;
+                            }
                         }
                     }
                 }
@@ -971,10 +981,7 @@ namespace Messenger
                         PropertyNameCaseInsensitive = true,
                         AllowTrailingCommas = true
                     }
-                );
-
-                if (permissions == null)
-                    throw new ArgumentException("Failed to deserialize permissions");
+                ) ?? new Dictionary<string, bool>();
 
                 // Отправляем обновление только целевому пользователю
                 await Clients.User(userId.ToString())
