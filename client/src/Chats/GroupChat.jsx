@@ -542,7 +542,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           repliedMessage,
           forwardedMessage
         });
-        scrollToBottom();
+        // Убираем scrollToBottom() - теперь это автоматически обрабатывается хуком useScrollToBottom
       };
 
       const messageEditedHandler = (messageId, newContent) => {

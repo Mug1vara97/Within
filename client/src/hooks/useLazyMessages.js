@@ -16,7 +16,9 @@ export const useLazyMessages = (chatId, connection) => {
             setIsLoading(true);
             isLoadingRef.current = true;
 
+            console.log(`Loading messages: page=${page}, append=${append}, currentMessages=${messages.length}`);
             const newMessages = await connection.invoke('GetMessagesWithPagination', parseInt(chatId), page, pageSize);
+            console.log(`Received ${newMessages.length} messages for page ${page}`);
             
             if (newMessages.length === 0) {
                 setHasMore(false);
@@ -24,8 +26,10 @@ export const useLazyMessages = (chatId, connection) => {
             }
 
             if (append) {
+                console.log('Appending old messages to beginning of list');
                 setMessages(prev => [...newMessages, ...prev]);
             } else {
+                console.log('Setting new messages (replacing all)');
                 setMessages(newMessages);
             }
 
@@ -37,7 +41,7 @@ export const useLazyMessages = (chatId, connection) => {
             setIsLoading(false);
             isLoadingRef.current = false;
         }
-    }, [chatId, connection, pageSize]);
+    }, [chatId, connection, pageSize, messages.length]);
 
     const loadMoreMessages = useCallback(() => {
         if (hasMore && !isLoading && !isLoadingRef.current) {
@@ -53,6 +57,7 @@ export const useLazyMessages = (chatId, connection) => {
     }, [loadMessages]);
 
     const addNewMessage = useCallback((message) => {
+        console.log('Adding new message to end of list:', message.messageId);
         setMessages(prev => [...prev, message]);
     }, []);
 

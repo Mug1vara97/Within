@@ -4,6 +4,7 @@ const useScrollToBottom = (messages, shouldAutoScroll = true) => {
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
     const isInitialLoad = useRef(true);
+    const lastMessageId = useRef(null);
 
     const scrollToBottom = useCallback((behavior = "smooth") => {
         setTimeout(() => {
@@ -31,7 +32,15 @@ const useScrollToBottom = (messages, shouldAutoScroll = true) => {
     // Автоматическая прокрутка при новых сообщениях (если включено)
     useEffect(() => {
         if (messages.length > 0 && shouldAutoScroll && !isInitialLoad.current) {
-            scrollToBottom();
+            const currentLastMessageId = messages[messages.length - 1]?.messageId;
+            
+            // Прокручиваем вниз только если последнее сообщение изменилось
+            // Это означает, что новое сообщение добавилось в конец
+            if (currentLastMessageId && currentLastMessageId !== lastMessageId.current) {
+                console.log('Scrolling to bottom - new message added to end');
+                scrollToBottom();
+                lastMessageId.current = currentLastMessageId;
+            }
         }
     }, [messages, shouldAutoScroll, scrollToBottom]);
 
