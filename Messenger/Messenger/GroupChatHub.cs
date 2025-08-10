@@ -104,8 +104,79 @@ namespace Messenger
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Error getting messages: {ex}");
-                throw;
+                Console.WriteLine($"Error getting messages: {ex.Message}");
+                return new List<MessageDto>();
+            }
+        }
+
+        public async Task<List<MessageDto>> GetMessagesWithPagination(int chatId, int page = 1, int pageSize = 50)
+        {
+            try 
+            {
+                var totalMessages = await _context.Messages
+                    .Where(m => m.ChatId == chatId)
+                    .CountAsync();
+
+                var messages = await _context.Messages
+                    .Where(m => m.ChatId == chatId)
+                    .Include(m => m.User)
+                        .ThenInclude(u => u.UserProfile)
+                    .Include(m => m.ForwardedFromMessage)
+                        .ThenInclude(m => m.User)
+                    .Include(m => m.ForwardedFromChat)
+                    .Include(m => m.ForwardedByUser)
+                    .Include(m => m.RepliedToMessage)
+                        .ThenInclude(m => m.User)
+                    .OrderByDescending(m => m.CreatedAt) // Сначала новые сообщения
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                // Переворачиваем порядок для правильного отображения
+                messages.Reverse();
+
+                var messageDtos = messages.Select(m =>
+                {
+                    var dto = new MessageDto
+                    {
+                        MessageId = m.MessageId,
+                        Content = m.Content,
+                        CreatedAt = m.CreatedAt,
+                        senderUsername = m.User.Username,
+                        AvatarUrl = m.User.UserProfile?.Avatar,
+                        AvatarColor = !string.IsNullOrEmpty(m.User.UserProfile?.AvatarColor)
+                            ? m.User.UserProfile.AvatarColor
+                            : GenerateAvatarColor(m.UserId),
+                        RepliedMessage = m.RepliedToMessageId != null && m.RepliedToMessage != null
+                            ? new ReplyMessageDto
+                            {
+                                MessageId = m.RepliedToMessage.MessageId,
+                                Content = m.RepliedToMessage.Content,
+                                senderUsername = m.RepliedToMessage.User?.Username
+                            }
+                            : null,
+                        ForwardedMessage = m.ForwardedFromMessageId != null && m.ForwardedFromMessage != null
+                            ? new ForwardedMessageDto
+                            {
+                                MessageId = m.ForwardedFromMessage.MessageId,
+                                Content = m.ForwardedFromMessage.Content,
+                                senderUsername = m.ForwardedFromMessage.User?.Username,
+                                OriginalChatName = m.ForwardedFromChat?.Name,
+                                ForwardedByUsername = m.ForwardedByUser?.Username,
+                                ForwardedMessageContent = m.ForwardedMessageContent
+                            }
+                            : null
+                    };
+
+                    return dto;
+                }).ToList();
+
+                return messageDtos;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting messages with pagination: {ex.Message}");
+                return new List<MessageDto>();
             }
         }
 

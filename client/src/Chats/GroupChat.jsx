@@ -11,6 +11,7 @@ import { BASE_URL } from '../config/apiConfig';
 import MediaMessage from './MediaMessage';
 import { useMediaHandlers } from '../hooks/useMediaHandlers';
 import useScrollToBottom from '../hooks/useScrollToBottom';
+import { useLazyMessages } from '../hooks/useLazyMessages';
 import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/GroupSettings';
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
@@ -58,7 +59,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   isGroupChat = false, isServerOwner, onJoinVoiceChannel, chatTypeId, activePrivateCall }) => {
   
 
-  const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [connection, setConnection] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,7 +73,20 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     formatRecordingTime,
     cancelRecording
   } = useMediaHandlers(connection, username, chatId);
-  const { messagesEndRef, scrollToBottom } = useScrollToBottom();
+  
+  // Используем новый хук для ленивой загрузки сообщений
+  const {
+    messages,
+    isLoading: messagesLoading,
+    hasMore,
+    loadMessages,
+    loadMoreMessages,
+    addNewMessage,
+    updateMessage,
+    removeMessage
+  } = useLazyMessages(chatId, connection);
+  
+  const { messagesEndRef, messagesContainerRef, scrollToBottom } = useScrollToBottom(messages, true);
   const { addMessageRef } = useMessageVisibility(userId, chatId, messages);
   const {
     isSettingsOpen,
@@ -440,19 +453,8 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         if (chatId) {
           await newConnection.invoke('JoinGroup', parseInt(chatId));
           
-          const messages = await newConnection.invoke('GetMessages', parseInt(chatId));
-          setMessages(messages.map(msg => ({
-            messageId: msg.messageId,
-            senderUsername: msg.senderUsername,
-            content: msg.content,
-            avatarUrl: msg.avatarUrl,
-            avatarColor: msg.avatarColor,
-            repliedMessage: msg.repliedMessage,
-            forwardedMessage: msg.forwardedMessage,
-            createdAt: msg.createdAt
-          })));
-          
-          // Сообщения теперь помечаются как прочитанные при их видимости
+          // Загружаем сообщения через новый хук
+          await loadMessages(1, false);
         }
       } catch (error) {
         console.error('Connection failed: ', error);
@@ -517,15 +519,14 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     };
 }, [chatListConnection]);
 
-  useEffect(() => {
-    scrollToBottom();
-}, [messages]);
+  // Убираем автоматическую прокрутку при загрузке сообщений
+  // Теперь прокрутка управляется хуком useScrollToBottom
 
   // Обработка входящих сообщений
   useEffect(() => {
     if (connection) {
       const receiveMessageHandler = async (username, content, messageId, avatarUrl, avatarColor, repliedMessage, forwardedMessage) => {
-        setMessages(prev => [...prev, {
+        addNewMessage({
           messageId,
           senderUsername: username,
           content,
@@ -534,18 +535,16 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           avatarColor,
           repliedMessage,
           forwardedMessage
-        }]);
+        });
         scrollToBottom();
       };
 
       const messageEditedHandler = (messageId, newContent) => {
-        setMessages(prev => prev.map(msg => 
-          msg.messageId === messageId ? { ...msg, content: newContent } : msg
-        ));
+        updateMessage(messageId, { content: newContent });
       };
 
       const messageDeletedHandler = (messageId) => {
-        setMessages(prev => prev.filter(msg => msg.messageId !== messageId));
+        removeMessage(messageId);
       };
 
                   connection.on('ReceiveMessage', receiveMessageHandler);
@@ -996,7 +995,27 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         </div>
       )}
 
-  <div className="messages">
+      <div className="messages" ref={messagesContainerRef}>
+    {/* Индикатор загрузки */}
+    {messagesLoading && (
+      <div className="loading-indicator">
+        <div className="loading-spinner"></div>
+        <span>Загрузка сообщений...</span>
+      </div>
+    )}
+
+    {/* Кнопка "Загрузить еще" */}
+    {hasMore && !messagesLoading && (
+      <div className="load-more-container">
+        <button 
+          className="load-more-button"
+          onClick={loadMoreMessages}
+        >
+          Загрузить еще сообщения
+        </button>
+      </div>
+    )}
+
     {messages.map((msg) => (
         <div
             key={msg.messageId}

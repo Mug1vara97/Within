@@ -257,3 +257,55 @@
   background-color: var(--textMuted);
   cursor: not-allowed;
 } 
+
+/* Индикатор загрузки */
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  color: #888;
+  font-size: 14px;
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #5865F2;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 10px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Контейнер кнопки "Загрузить еще" */
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  padding: 15px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.load-more-button {
+  background: #5865F2;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.load-more-button:hover {
+  background: #4752c4;
+}
+
+.load-more-button:active {
+  background: #3c45a5;
+} 
