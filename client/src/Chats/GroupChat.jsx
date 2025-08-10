@@ -11,8 +11,6 @@ import { BASE_URL } from '../config/apiConfig';
 import MediaMessage from './MediaMessage';
 import { useMediaHandlers } from '../hooks/useMediaHandlers';
 import useScrollToBottom from '../hooks/useScrollToBottom';
-import { useLazyMessages } from '../hooks/useLazyMessages';
-import { useBatchMessages } from '../hooks/useBatchMessages';
 import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/GroupSettings';
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
@@ -60,6 +58,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   isGroupChat = false, isServerOwner, onJoinVoiceChannel, chatTypeId, activePrivateCall }) => {
   
 
+  const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [connection, setConnection] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -74,30 +73,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     formatRecordingTime,
     cancelRecording
   } = useMediaHandlers(connection, username, chatId);
-  
-  // Используем новый хук для ленивой загрузки сообщений
-  const {
-    messages,
-    isLoading: messagesLoading,
-    hasMore,
-    loadMessages,
-    loadMoreMessages,
-    addNewMessage,
-    updateMessage,
-    removeMessage
-  } = useLazyMessages(chatId, connection);
-  
-  // Используем хук для батчинга сообщений
-  const {
-    addToBatch,
-    forceSendBatch,
-    clearBatch,
-    isSending: isBatchSending,
-    batchSize,
-    hasPendingMessages
-  } = useBatchMessages(connection, chatId, username);
-  
-  const { messagesEndRef, messagesContainerRef, scrollToBottom } = useScrollToBottom(messages, true);
+  const { messagesEndRef, scrollToBottom } = useScrollToBottom();
   const { addMessageRef } = useMessageVisibility(userId, chatId, messages);
   const {
     isSettingsOpen,
@@ -463,6 +439,20 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
 
         if (chatId) {
           await newConnection.invoke('JoinGroup', parseInt(chatId));
+          
+          const messages = await newConnection.invoke('GetMessages', parseInt(chatId));
+          setMessages(messages.map(msg => ({
+            messageId: msg.messageId,
+            senderUsername: msg.senderUsername,
+            content: msg.content,
+            avatarUrl: msg.avatarUrl,
+            avatarColor: msg.avatarColor,
+            repliedMessage: msg.repliedMessage,
+            forwardedMessage: msg.forwardedMessage,
+            createdAt: msg.createdAt
+          })));
+          
+          // Сообщения теперь помечаются как прочитанные при их видимости
         }
       } catch (error) {
         console.error('Connection failed: ', error);
@@ -479,8 +469,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
             connectionRef.current.off('ReceiveMessage');
             connectionRef.current.off('MessageEdited');
             connectionRef.current.off('MessageDeleted');
-            connectionRef.current.off('MessageRead'); // Добавляем очистку для MessageRead
-            connectionRef.current.off('ReceiveBatchMessages'); // Добавляем очистку для ReceiveBatchMessages
             
             // Покидаем группу только если соединение активно
             if (connectionRef.current.state === 'Connected') {
@@ -500,34 +488,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       
       cleanup();
     };
-  }, [chatId]); // Убрали loadMessages из зависимостей
-
-  // Очистка при размонтировании компонента
-  useEffect(() => {
-    return () => {
-      // Принудительно отправляем оставшиеся сообщения в батче
-      if (hasPendingMessages && connection && connection.state === 'Connected') {
-        console.log('Component unmounting, forcing batch send');
-        forceSendBatch();
-      }
-    };
-  }, [hasPendingMessages, connection, forceSendBatch]);
-
-  // Новый useEffect для загрузки сообщений после установки соединения
-  useEffect(() => {
-    if (connection && connection.state === 'Connected' && chatId) {
-      console.log('Connection is ready, loading messages...');
-      loadMessages(1, false);
-    }
-  }, [connection, chatId, loadMessages]); // Зависимости: connection, chatId, и loadMessages
-
-  // Очистка батча при смене чата
-  useEffect(() => {
-    if (hasPendingMessages) {
-      console.log('Chat changed, clearing batch queue');
-      clearBatch();
-    }
-  }, [chatId, hasPendingMessages, clearBatch]);
+  }, [chatId]);
 
   // Подключение к ChatListHub
   useEffect(() => {
@@ -556,14 +517,15 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     };
 }, [chatListConnection]);
 
-  // Убираем автоматическую прокрутку при загрузке сообщений
-  // Теперь прокрутка управляется хуком useScrollToBottom
+  useEffect(() => {
+    scrollToBottom();
+}, [messages]);
 
   // Обработка входящих сообщений
   useEffect(() => {
     if (connection) {
       const receiveMessageHandler = async (username, content, messageId, avatarUrl, avatarColor, repliedMessage, forwardedMessage) => {
-        addNewMessage({
+        setMessages(prev => [...prev, {
           messageId,
           senderUsername: username,
           content,
@@ -572,39 +534,23 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           avatarColor,
           repliedMessage,
           forwardedMessage
-        });
-        // Убираем scrollToBottom() - теперь это автоматически обрабатывается хуком useScrollToBottom
+        }]);
+        scrollToBottom();
       };
 
       const messageEditedHandler = (messageId, newContent) => {
-        updateMessage(messageId, { content: newContent });
+        setMessages(prev => prev.map(msg => 
+          msg.messageId === messageId ? { ...msg, content: newContent } : msg
+        ));
       };
 
       const messageDeletedHandler = (messageId) => {
-        removeMessage(messageId);
+        setMessages(prev => prev.filter(msg => msg.messageId !== messageId));
       };
 
-      const receiveBatchMessagesHandler = async (username, messages) => {
-        console.log(`Received batch of ${messages.length} messages from ${username}`);
-        // Добавляем все сообщения из батча
-        messages.forEach(message => {
-          addNewMessage({
-            messageId: message.messageId,
-            senderUsername: message.senderUsername,
-            content: message.content,
-            createdAt: message.createdAt,
-            avatarUrl: message.avatarUrl,
-            avatarColor: message.avatarColor,
-            repliedMessage: message.repliedMessage,
-            forwardedMessage: message.forwardedMessage
-          });
-        });
-      };
-
-      connection.on('ReceiveMessage', receiveMessageHandler);
-      connection.on('ReceiveBatchMessages', receiveBatchMessagesHandler);
-      connection.on('MessageEdited', messageEditedHandler);
-      connection.on('MessageDeleted', messageDeletedHandler);
+                  connection.on('ReceiveMessage', receiveMessageHandler);
+            connection.on('MessageEdited', messageEditedHandler);
+            connection.on('MessageDeleted', messageDeletedHandler);
             connection.on('MessageRead', (messageId, readByUserId, readAt) => {
                 console.log(`Message ${messageId} read by user ${readByUserId} at ${readAt}`);
                 // Здесь можно добавить визуальную индикацию прочтения сообщения
@@ -615,8 +561,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         connection.off('ReceiveMessage', receiveMessageHandler);
         connection.off('MessageEdited', messageEditedHandler);
         connection.off('MessageDeleted', messageDeletedHandler);
-        connection.off('MessageRead'); // Добавляем очистку для MessageRead
-        connection.off('ReceiveBatchMessages'); // Добавляем очистку для ReceiveBatchMessages
       };
     }
   }, [connection, chatId]);
@@ -628,19 +572,16 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
 
     try {
       if (editingMessageId) {
-        // Редактирование сообщения - отправляем сразу
         await connection.invoke('EditMessage', editingMessageId, newMessage, username);
         cancelEditing();
       } else {
-        // Добавляем сообщение в батч для отправки
-        addToBatch({
-          content: newMessage,
-          repliedToMessageId: replyingToMessage?.messageId || null,
-          forwardedFromMessageId: null,
-          forwardedFromChatId: null,
-          forwardedByUserId: null,
-          forwardedMessageContent: null
-        });
+        await connection.invoke('SendMessage', 
+          newMessage, 
+          username, 
+          parseInt(chatId), 
+          replyingToMessage?.messageId || null,
+          null // forwardedFromMessageId
+        );
         setReplyingToMessage(null);
       }
       setNewMessage('');
@@ -692,44 +633,11 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   // Ref для поля ввода
   const inputRef = useRef(null);
 
-  // Автоматический фокус на поле ввода при загрузке компонента
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, []);
-
   // Глобальные обработчики для paste и keydown
   useEffect(() => {
-    let focusTimeout = null;
-    let lastActiveElement = null;
-
     const handleGlobalPaste = async (e) => {
       if (!document.body.contains(inputRef.current)) return;
-      
-      const activeElement = document.activeElement;
-      
-      // Если активный элемент не является полем ввода чата, разфокусируем чат
-      if (activeElement !== inputRef.current) {
-        inputRef.current?.blur();
-        lastActiveElement = activeElement;
-        
-        // Очищаем предыдущий таймаут
-        if (focusTimeout) {
-          clearTimeout(focusTimeout);
-        }
-        
-        // Устанавливаем таймаут для возврата фокуса через 3 секунды
-        focusTimeout = setTimeout(() => {
-          if (lastActiveElement === document.activeElement) {
-            inputRef.current?.focus();
-            lastActiveElement = null;
-          }
-        }, 3000);
-      }
-      
-      // Обрабатываем вставку файлов только если фокус в чате
-      if (activeElement === inputRef.current && e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
+      if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
         const file = e.clipboardData.files[0];
         if (file && (file.type.startsWith('image/') || file.type.startsWith('video/'))) {
           e.preventDefault();
@@ -737,137 +645,51 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           return;
         }
       }
-      
-      // Обрабатываем вставку текста только если фокус в чате
-      if (activeElement === inputRef.current && e.clipboardData && e.clipboardData.getData('text')) {
+      if (e.clipboardData && e.clipboardData.getData('text')) {
         const text = e.clipboardData.getData('text');
         if (text) {
           e.preventDefault();
           setNewMessage((prev) => prev + text);
+          inputRef.current?.focus();
         }
       }
     };
-
     const handleGlobalKeyDown = async (e) => {
       if (!document.body.contains(inputRef.current)) return;
-      
-      const activeElement = document.activeElement;
-      
-      // Если активный элемент не является полем ввода чата, разфокусируем чат
-      if (activeElement !== inputRef.current) {
-        inputRef.current?.blur();
-        lastActiveElement = activeElement;
-        
-        // Очищаем предыдущий таймаут
-        if (focusTimeout) {
-          clearTimeout(focusTimeout);
+      // Если input не в фокусе и нажат Enter, отправляем сообщение и убираем фокус с div
+      if (e.key === 'Enter' && document.activeElement !== inputRef.current && newMessage.trim() !== '') {
+        e.preventDefault();
+        await handleSendMessage(e);
+        if (document.activeElement.classList?.contains('group-chat-container')) {
+          document.activeElement.blur();
         }
-        
-        // Устанавливаем таймаут для возврата фокуса через 3 секунды
-        focusTimeout = setTimeout(() => {
-          // Проверяем, что пользователь не использует input или textarea
-          if (lastActiveElement?.tagName === 'INPUT' || lastActiveElement?.tagName === 'TEXTAREA') {
-            return;
-          }
-          // Проверяем, что элемент все еще активен
-          if (lastActiveElement === document.activeElement) {
-            inputRef.current?.focus();
-            lastActiveElement = null;
-          }
-        }, 3000);
-        
-        return; // Не обрабатываем события для других элементов
+        return;
       }
-      
-      // Обрабатываем события только если фокус в поле ввода чата
-      if (activeElement === inputRef.current) {
-        // Если нажат Enter, отправляем сообщение
-        if (e.key === 'Enter' && newMessage.trim() !== '') {
-          e.preventDefault();
-          await handleSendMessage(e);
-          return;
-        }
+      // Если input не в фокусе и печатается символ (буква, цифра, пробел, знак), добавляем в newMessage и фокусируем input
+      if (
+        document.activeElement !== inputRef.current &&
+        e.key.length === 1 &&
+        !e.ctrlKey && !e.metaKey && !e.altKey
+      ) {
+        setNewMessage((prev) => prev + e.key);
+        inputRef.current?.focus();
+        e.preventDefault();
+      }
+      // Если input не в фокусе и нажат Backspace, фокусируем input и удаляем символ
+      if (
+        document.activeElement !== inputRef.current &&
+        e.key === 'Backspace'
+      ) {
+        setNewMessage((prev) => prev.slice(0, -1));
+        inputRef.current?.focus();
+        e.preventDefault();
       }
     };
-
-    // Обработчик для отслеживания изменений фокуса
-    const handleFocusChange = () => {
-      const activeElement = document.activeElement;
-      
-      // Если фокус перешел на другой элемент, разфокусируем чат
-      if (activeElement !== inputRef.current) {
-        inputRef.current?.blur();
-        lastActiveElement = activeElement;
-        
-        // Очищаем предыдущий таймаут
-        if (focusTimeout) {
-          clearTimeout(focusTimeout);
-        }
-        
-        // Устанавливаем таймаут для возврата фокуса через 3 секунды
-        focusTimeout = setTimeout(() => {
-          // Проверяем, что пользователь все еще использует тот же элемент
-          if (lastActiveElement === document.activeElement) {
-            // Дополнительная проверка: если это input или textarea, не возвращаем фокус
-            if (lastActiveElement?.tagName === 'INPUT' || lastActiveElement?.tagName === 'TEXTAREA') {
-              return;
-            }
-            inputRef.current?.focus();
-            lastActiveElement = null;
-          }
-        }, 3000);
-      } else {
-        // Если фокус вернулся в чат, очищаем таймаут
-        if (focusTimeout) {
-          clearTimeout(focusTimeout);
-          focusTimeout = null;
-        }
-        lastActiveElement = null;
-      }
-    };
-
-    // Обработчик для отслеживания кликов вне чата
-    const handleClickOutside = (e) => {
-      const isInChatContainer = e.target.closest('.group-chat-container');
-      if (!isInChatContainer) {
-        inputRef.current?.blur();
-        lastActiveElement = document.activeElement;
-        
-        // Очищаем предыдущий таймаут
-        if (focusTimeout) {
-          clearTimeout(focusTimeout);
-        }
-        
-        // Устанавливаем таймаут для возврата фокуса через 3 секунды
-        focusTimeout = setTimeout(() => {
-          // Проверяем, что пользователь не использует input или textarea
-          if (lastActiveElement?.tagName === 'INPUT' || lastActiveElement?.tagName === 'TEXTAREA') {
-            return;
-          }
-          // Проверяем, что элемент все еще активен
-          if (lastActiveElement === document.activeElement) {
-            inputRef.current?.focus();
-            lastActiveElement = null;
-          }
-        }, 3000);
-      }
-    };
-
     window.addEventListener('paste', handleGlobalPaste);
     window.addEventListener('keydown', handleGlobalKeyDown);
-    document.addEventListener('focusin', handleFocusChange);
-    document.addEventListener('click', handleClickOutside);
-    
     return () => {
       window.removeEventListener('paste', handleGlobalPaste);
       window.removeEventListener('keydown', handleGlobalKeyDown);
-      document.removeEventListener('focusin', handleFocusChange);
-      document.removeEventListener('click', handleClickOutside);
-      
-      // Очищаем таймаут при размонтировании
-      if (focusTimeout) {
-        clearTimeout(focusTimeout);
-      }
     };
   }, [newMessage, handleSendMedia, handleSendMessage]);
 
@@ -1055,42 +877,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         </div>
       )}
 
-      <div className="messages" ref={messagesContainerRef}>
-    {/* Индикатор загрузки */}
-    {messagesLoading && (
-      <div className="loading-indicator">
-        <div className="loading-spinner"></div>
-        <span>Загрузка сообщений...</span>
-      </div>
-    )}
-
-    {/* Кнопка "Загрузить еще" */}
-    {hasMore && !messagesLoading && (
-      <div className="load-more-container">
-        <button 
-          className="load-more-button"
-          onClick={loadMoreMessages}
-        >
-          Загрузить еще сообщений
-        </button>
-      </div>
-    )}
-
-    {/* Индикатор батчинга сообщений */}
-    {hasPendingMessages && (
-      <div className="batch-indicator">
-        <div className="batch-spinner"></div>
-        <span>Подготовка к отправке: {batchSize} сообщений</span>
-        <button 
-          className="force-send-button"
-          onClick={forceSendBatch}
-          disabled={isBatchSending}
-        >
-          {isBatchSending ? 'Отправка...' : 'Отправить сейчас'}
-        </button>
-      </div>
-    )}
-
+  <div className="messages">
     {messages.map((msg) => (
         <div
             key={msg.messageId}
@@ -1254,21 +1041,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
             </button>
           </div>
         )}
-        
-        {/* Индикатор батчинга в панели ввода */}
-        {hasPendingMessages && (
-          <div className="batch-indicator-input">
-            <span className="batch-text">В очереди: {batchSize} сообщений</span>
-            <button 
-              type="button"
-              onClick={forceSendBatch}
-              disabled={isBatchSending}
-              className="force-send-button-small"
-            >
-              {isBatchSending ? 'Отправка...' : 'Отправить'}
-            </button>
-          </div>
-        )}
         {isRecording ? (
           <div className="recording-indicator-input">
             <span className="recording-dot">●</span>
@@ -1319,13 +1091,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         {!editingMessageId && (
           <>
             {/* Голосовые сообщения - кнопка записи как в Telegram */}
-            {console.log('GroupChat permissions check:', { 
-                isServerChat, 
-                userPermissions, 
-                sendVoiceMessages: userPermissions?.sendVoiceMessages, 
-                isServerOwner,
-                shouldShow: (!isServerChat || userPermissions?.sendVoiceMessages) || isServerOwner 
-            })}
             {((!isServerChat || userPermissions?.sendVoiceMessages) || isServerOwner) && (
                               <div className="voice-message-wrapper">
                   {isRecording && (
@@ -1357,13 +1122,6 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
               onChange={(e) => handleSendMedia(e.target.files[0])}
               accept="image/*, video/*, audio/*"
             />
-            {console.log('GroupChat attachFiles check:', { 
-                isServerChat, 
-                userPermissions, 
-                attachFiles: userPermissions?.attachFiles, 
-                isServerOwner,
-                shouldShow: (!isServerChat || userPermissions?.attachFiles) || isServerOwner 
-            })}
             {((!isServerChat || userPermissions?.attachFiles) || isServerOwner) && (
               <button
                 type="button"

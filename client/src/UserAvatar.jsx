@@ -25,7 +25,6 @@ const UserAvatar = ({ username, avatarUrl, avatarColor, bannerUrl, size = '32px'
         return '48px'; // Для больших аватаров как 120px
     };
 
-    // Определяем стиль фона: приоритет баннеру, затем аватару, затем цвету
     const getBackgroundStyle = () => {
         if (bannerUrl) {
             return {
@@ -34,11 +33,7 @@ const UserAvatar = ({ username, avatarUrl, avatarColor, bannerUrl, size = '32px'
                 backgroundPosition: 'center'
             };
         }
-        if (avatarUrl) {
-            return {
-                backgroundColor: avatarColor || '#5865F2'
-            };
-        }
+        // Если нет баннера, используем avatarColor как фон
         return {
             backgroundColor: avatarColor || '#5865F2'
         };
@@ -66,9 +61,22 @@ const UserAvatar = ({ username, avatarUrl, avatarColor, bannerUrl, size = '32px'
                     fontSize: getFontSize(),
                     fontWeight: 'bold',
                     flexShrink: 0,
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    position: 'relative'
                 }}
             >
+                {bannerUrl && (
+                    // Поверх баннера показываем полупрозрачный слой для читаемости текста
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                        borderRadius: '50%'
+                    }} />
+                )}
                 {avatarUrl ? (
                     <img 
                         src={avatarUrl} 
@@ -77,11 +85,15 @@ const UserAvatar = ({ username, avatarUrl, avatarColor, bannerUrl, size = '32px'
                             width: '100%',
                             height: '100%',
                             borderRadius: '50%',
-                            objectFit: 'cover'
+                            objectFit: 'cover',
+                            position: 'relative',
+                            zIndex: 1
                         }}
                     />
                 ) : (
-                    username?.charAt(0).toUpperCase()
+                    <span style={{ position: 'relative', zIndex: 1 }}>
+                        {username?.charAt(0).toUpperCase()}
+                    </span>
                 )}
             </div>
             {showStatus && status && (

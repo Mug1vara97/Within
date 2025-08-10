@@ -54,45 +54,88 @@ const CallParticipantsDisplay = ({ participants, currentUserId, onJoinCall }) =>
     const userProfile = userProfiles.get(participant.id);
     const avatarUrl = userProfile?.avatarUrl;
     const avatarColor = userProfile?.avatarColor || participant.avatarColor || '#5865f2';
+    const bannerUrl = userProfile?.bannerUrl;
     
-         if (avatarUrl) {
-       return (
-         <img
-           src={avatarUrl}
-           alt={participant.name || 'Пользователь'}
-           style={{
-             width: '80px',
-             height: '80px',
-             borderRadius: '50%',
-             border: '2px solid #36393f',
-             objectFit: 'cover'
-           }}
-           onError={(e) => {
-             // Если загрузка аватара не удалась, показываем букву
-             e.target.style.display = 'none';
-             e.target.nextSibling.style.display = 'flex';
-           }}
-         />
-       );
-     }
-     
-     return (
-       <div style={{
-         width: '80px',
-         height: '80px',
-         borderRadius: '50%',
-         backgroundColor: avatarColor,
-         display: 'flex',
-         alignItems: 'center',
-         justifyContent: 'center',
-         color: '#ffffff',
-         fontSize: '25px',
-         fontWeight: 'bold',
-         border: '2px solid #36393f'
-       }}>
-         {participant.name ? participant.name[0].toUpperCase() : 'U'}
-       </div>
-     );
+    // Если есть баннер, используем его как фон
+    if (bannerUrl) {
+      return (
+        <div style={{
+          width: '80px',
+          height: '80px',
+          borderRadius: '50%',
+          backgroundImage: `url(${bannerUrl})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          border: '2px solid #36393f',
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          {/* Поверх баннера показываем полупрозрачный слой для читаемости текста */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.3)',
+            borderRadius: '50%'
+          }} />
+          {/* Текст поверх баннера */}
+          <span style={{
+            position: 'relative',
+            zIndex: 1,
+            color: '#ffffff',
+            fontSize: '25px',
+            fontWeight: 'bold'
+          }}>
+            {participant.name ? participant.name[0].toUpperCase() : 'U'}
+          </span>
+        </div>
+      );
+    }
+    
+    // Если есть аватар, используем его
+    if (avatarUrl) {
+      return (
+        <img
+          src={avatarUrl}
+          alt={participant.name || 'Пользователь'}
+          style={{
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
+            border: '2px solid #36393f',
+            objectFit: 'cover'
+          }}
+          onError={(e) => {
+            // Если загрузка аватара не удалась, показываем букву
+            e.target.style.display = 'none';
+            e.target.nextSibling.style.display = 'flex';
+          }}
+        />
+      );
+    }
+    
+    // Если нет ни баннера, ни аватара, используем цвет
+    return (
+      <div style={{
+        width: '80px',
+        height: '80px',
+        borderRadius: '50%',
+        backgroundColor: avatarColor,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#ffffff',
+        fontSize: '25px',
+        fontWeight: 'bold',
+        border: '2px solid #36393f'
+      }}>
+        {participant.name ? participant.name[0].toUpperCase() : 'U'}
+      </div>
+    );
   };
 
            return (

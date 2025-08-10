@@ -53,27 +53,17 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
 
     // Добавляем функцию для агрегации прав
     const aggregatePermissions = useCallback((roles) => {
-        console.log('aggregatePermissions called with roles:', roles);
-        
         return roles.reduce((acc, role) => {
             try {
-                console.log('Processing role:', role);
-                console.log('Role permissions:', role.permissions);
+                const permissions = typeof role.permissions === 'string' 
+                    ? JSON.parse(role.permissions) 
+                    : role.permissions;
                 
-                // Теперь permissions должны приходить как объект
-                if (role.permissions && typeof role.permissions === 'object') {
-                    Object.keys(role.permissions).forEach((key) => {
-                        const value = role.permissions[key];
-                        console.log(`Permission ${key}: ${value}`);
-                        if (value === true) {
-                            acc[key] = true;
-                        }
-                    });
-                }
-                
-                console.log('Accumulated permissions so far:', acc);
+                Object.entries(permissions).forEach(([key, value]) => {
+                    if (value) acc[key] = true;
+                });
             } catch (e) {
-                console.error('Error processing permissions for role:', role, e);
+                console.error('Error processing permissions:', e);
             }
             return acc;
         }, {});
@@ -252,9 +242,7 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
                 setUserRoles(roles.map(role => role.roleId));
                 
                 const mergedPermissions = aggregatePermissions(roles);
-                console.log('Final merged permissions from SignalR:', mergedPermissions);
-                console.log('sendVoiceMessages permission:', mergedPermissions.sendVoiceMessages);
-                console.log('attachFiles permission:', mergedPermissions.attachFiles);
+                console.log('Merged permissions from SignalR:', mergedPermissions);
                 setUserPermissions(mergedPermissions);
                 localStorage.setItem(`permissions-${serverId}`, JSON.stringify(mergedPermissions));
             },
