@@ -818,10 +818,7 @@ namespace Messenger
                 var mergedPermissions = new Dictionary<string, bool>();
                 foreach (var role in remainingRoles)
                 {
-                    var rolePermissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(
-                        role.Permissions,
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-                    );
+                    var rolePermissions = role.Permissions;
 
                     foreach (var (permission, value) in rolePermissions)
                     {
