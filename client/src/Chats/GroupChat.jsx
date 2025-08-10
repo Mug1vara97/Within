@@ -633,6 +633,13 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   // Ref для поля ввода
   const inputRef = useRef(null);
 
+  // Автоматический фокус на поле ввода при загрузке компонента
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
+
   // Глобальные обработчики для paste и keydown
   useEffect(() => {
     let focusTimeout = null;
@@ -699,6 +706,11 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         
         // Устанавливаем таймаут для возврата фокуса через 3 секунды
         focusTimeout = setTimeout(() => {
+          // Проверяем, что пользователь не использует input или textarea
+          if (lastActiveElement?.tagName === 'INPUT' || lastActiveElement?.tagName === 'TEXTAREA') {
+            return;
+          }
+          // Проверяем, что элемент все еще активен
           if (lastActiveElement === document.activeElement) {
             inputRef.current?.focus();
             lastActiveElement = null;
@@ -769,6 +781,11 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         
         // Устанавливаем таймаут для возврата фокуса через 3 секунды
         focusTimeout = setTimeout(() => {
+          // Проверяем, что пользователь не использует input или textarea
+          if (lastActiveElement?.tagName === 'INPUT' || lastActiveElement?.tagName === 'TEXTAREA') {
+            return;
+          }
+          // Проверяем, что элемент все еще активен
           if (lastActiveElement === document.activeElement) {
             inputRef.current?.focus();
             lastActiveElement = null;
