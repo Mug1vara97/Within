@@ -48,14 +48,34 @@ namespace Messenger.Controllers
                 await _context.SaveChangesAsync();
 
                 // Возвращаем DTO вместо полной модели
+                Dictionary<string, bool> permissions = new Dictionary<string, bool>();
+                
+                if (!string.IsNullOrEmpty(role.Permissions))
+                {
+                    try
+                    {
+                        Console.WriteLine($"RoleController CreateRole: Attempting to deserialize permissions for role {role.RoleId}: {role.Permissions}");
+                        permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions) ?? new Dictionary<string, bool>();
+                    }
+                    catch (JsonException ex)
+                    {
+                        Console.WriteLine($"RoleController CreateRole: Failed to deserialize permissions for role {role.RoleId}: {ex.Message}");
+                        Console.WriteLine($"RoleController CreateRole: Raw permissions data: {role.Permissions}");
+                        permissions = new Dictionary<string, bool>();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"RoleController CreateRole: Unexpected error deserializing permissions for role {role.RoleId}: {ex.Message}");
+                        permissions = new Dictionary<string, bool>();
+                    }
+                }
+                
                 return Ok(new
                 {
                     role.RoleId,
                     role.RoleName,
                     role.Color,
-                    Permissions = !string.IsNullOrEmpty(role.Permissions) 
-                        ? JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions) ?? new Dictionary<string, bool>()
-                        : new Dictionary<string, bool>()
+                    Permissions = permissions
                 });
             }
             catch (Exception ex)
@@ -150,13 +170,35 @@ namespace Messenger.Controllers
             })
             .ToListAsync();
 
-            var userRoles = userRolesData.Select(role => new {
-                role.RoleId,
-                role.RoleName,
-                role.Color,
-                Permissions = !string.IsNullOrEmpty(role.Permissions) 
-                    ? JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions) ?? new Dictionary<string, bool>()
-                    : new Dictionary<string, bool>()
+
+                Dictionary<string, bool> permissions = new Dictionary<string, bool>();
+                
+                if (!string.IsNullOrEmpty(role.Permissions))
+                {
+                    try
+                    {
+                        Console.WriteLine($"RoleController AssignRole: Attempting to deserialize permissions for role {role.RoleId}: {role.Permissions}");
+                        permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions) ?? new Dictionary<string, bool>();
+                    }
+                    catch (JsonException ex)
+                    {
+                        Console.WriteLine($"RoleController AssignRole: Failed to deserialize permissions for role {role.RoleId}: {ex.Message}");
+                        Console.WriteLine($"RoleController AssignRole: Raw permissions data: {role.Permissions}");
+                        permissions = new Dictionary<string, bool>();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"RoleController AssignRole: Unexpected error deserializing permissions for role {role.RoleId}: {ex.Message}");
+                        permissions = new Dictionary<string, bool>();
+                    }
+                }
+                
+                return new {
+                    role.RoleId,
+                    role.RoleName,
+                    role.Color,
+                    Permissions = permissions
+                };
             }).ToList();
 
             var hubContext = HttpContext.RequestServices.GetRequiredService<IHubContext<ServerHub>>();
@@ -200,14 +242,36 @@ namespace Messenger.Controllers
                 member.UserId,
                 member.Username,
                 member.Avatar,
-                Roles = member.Roles.Select(role => new
-                {
-                    role.RoleId,
-                    role.RoleName,
-                    role.Color,
-                    Permissions = !string.IsNullOrEmpty(role.Permissions) 
-                        ? JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions) ?? new Dictionary<string, bool>()
-                        : new Dictionary<string, bool>()
+                Roles = member.Roles.Select(role => {
+                    Dictionary<string, bool> permissions = new Dictionary<string, bool>();
+                    
+                    if (!string.IsNullOrEmpty(role.Permissions))
+                    {
+                        try
+                        {
+                            Console.WriteLine($"RoleController GetServerMembers: Attempting to deserialize permissions for role {role.RoleId}: {role.Permissions}");
+                            permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions) ?? new Dictionary<string, bool>();
+                        }
+                        catch (JsonException ex)
+                        {
+                            Console.WriteLine($"RoleController GetServerMembers: Failed to deserialize permissions for role {role.RoleId}: {ex.Message}");
+                            Console.WriteLine($"RoleController GetServerMembers: Raw permissions data: {role.Permissions}");
+                            permissions = new Dictionary<string, bool>();
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"RoleController GetServerMembers: Unexpected error deserializing permissions for role {role.RoleId}: {ex.Message}");
+                            permissions = new Dictionary<string, bool>();
+                        }
+                    }
+                    
+                    return new
+                    {
+                        role.RoleId,
+                        role.RoleName,
+                        role.Color,
+                        Permissions = permissions
+                    };
                 }),
                 member.AvatarColor
             }).ToList();
@@ -245,13 +309,35 @@ namespace Messenger.Controllers
              })
              .ToListAsync();
 
-            var userRoles = userRolesData.Select(role => new {
-                role.RoleId,
-                role.RoleName,
-                role.Color,
-                Permissions = !string.IsNullOrEmpty(role.Permissions) 
-                    ? JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions) ?? new Dictionary<string, bool>()
-                    : new Dictionary<string, bool>()
+            var userRoles = userRolesData.Select(role => {
+                Dictionary<string, bool> permissions = new Dictionary<string, bool>();
+                
+                if (!string.IsNullOrEmpty(role.Permissions))
+                {
+                    try
+                    {
+                        Console.WriteLine($"RoleController UnassignRole: Attempting to deserialize permissions for role {role.RoleId}: {role.Permissions}");
+                        permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions) ?? new Dictionary<string, bool>();
+                    }
+                    catch (JsonException ex)
+                    {
+                        Console.WriteLine($"RoleController UnassignRole: Failed to deserialize permissions for role {role.RoleId}: {ex.Message}");
+                        Console.WriteLine($"RoleController UnassignRole: Raw permissions data: {role.Permissions}");
+                        permissions = new Dictionary<string, bool>();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"RoleController UnassignRole: Unexpected error deserializing permissions for role {role.RoleId}: {ex.Message}");
+                        permissions = new Dictionary<string, bool>();
+                    }
+                }
+                
+                return new {
+                    role.RoleId,
+                    role.RoleName,
+                    role.Color,
+                    Permissions = permissions
+                };
             }).ToList();
 
             var hubContext = HttpContext.RequestServices.GetRequiredService<IHubContext<ServerHub>>();
@@ -286,14 +372,36 @@ namespace Messenger.Controllers
                     })
                     .ToListAsync();
 
-                var roles = rolesData.Select(role => new
-                {
-                    role.RoleId,
-                    role.RoleName,
-                    role.Color,
-                    Permissions = !string.IsNullOrEmpty(role.Permissions) 
-                        ? JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions) ?? new Dictionary<string, bool>()
-                        : new Dictionary<string, bool>()
+                var roles = rolesData.Select(role => {
+                    Dictionary<string, bool> permissions = new Dictionary<string, bool>();
+                    
+                    if (!string.IsNullOrEmpty(role.Permissions))
+                    {
+                        try
+                        {
+                            Console.WriteLine($"RoleController GetUserRoles: Attempting to deserialize permissions for role {role.RoleId}: {role.Permissions}");
+                            permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions) ?? new Dictionary<string, bool>();
+                        }
+                        catch (JsonException ex)
+                        {
+                            Console.WriteLine($"RoleController GetUserRoles: Failed to deserialize permissions for role {role.RoleId}: {ex.Message}");
+                            Console.WriteLine($"RoleController GetUserRoles: Raw permissions data: {role.Permissions}");
+                            permissions = new Dictionary<string, bool>();
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"RoleController GetUserRoles: Unexpected error deserializing permissions for role {role.RoleId}: {ex.Message}");
+                            permissions = new Dictionary<string, bool>();
+                        }
+                    }
+                    
+                    return new
+                    {
+                        role.RoleId,
+                        role.RoleName,
+                        role.Color,
+                        Permissions = permissions
+                    };
                 }).ToList();
 
                 return Ok(new

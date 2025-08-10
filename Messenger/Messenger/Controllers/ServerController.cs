@@ -399,9 +399,28 @@ namespace Messenger.Controllers
                 bool hasPermission = server.OwnerId == request.CreatorId || 
                                    userRoles.Any(ur => {
                                        try {
-                                           var permissions = !string.IsNullOrEmpty(ur.Role.Permissions) 
-                                               ? System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, bool>>(ur.Role.Permissions) ?? new Dictionary<string, bool>()
-                                               : new Dictionary<string, bool>();
+                                           Dictionary<string, bool> permissions = new Dictionary<string, bool>();
+                                           
+                                           if (!string.IsNullOrEmpty(ur.Role.Permissions))
+                                           {
+                                               try
+                                               {
+                                                   Console.WriteLine($"ServerController: Attempting to deserialize permissions for role {ur.Role.RoleId}: {ur.Role.Permissions}");
+                                                   permissions = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, bool>>(ur.Role.Permissions) ?? new Dictionary<string, bool>();
+                                               }
+                                               catch (System.Text.Json.JsonException ex)
+                                               {
+                                                   Console.WriteLine($"ServerController: Failed to deserialize permissions for role {ur.Role.RoleId}: {ex.Message}");
+                                                   Console.WriteLine($"ServerController: Raw permissions data: {ur.Role.Permissions}");
+                                                   permissions = new Dictionary<string, bool>();
+                                               }
+                                               catch (Exception ex)
+                                               {
+                                                   Console.WriteLine($"ServerController: Unexpected error deserializing permissions for role {ur.Role.RoleId}: {ex.Message}");
+                                                   permissions = new Dictionary<string, bool>();
+                                               }
+                                           }
+                                           
                                            return permissions.GetValueOrDefault("manageChannels", false);
                                        }
                                        catch {
