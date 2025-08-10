@@ -1012,7 +1012,7 @@ namespace Messenger
         {
             try
             {
-                var roles = await _context.UserServerRoles
+                var rolesData = await _context.UserServerRoles
                     .Where(usr => usr.UserId == userId && usr.ServerId == serverId)
                     .Include(usr => usr.Role)
                     .Select(usr => new
@@ -1024,6 +1024,39 @@ namespace Messenger
                     })
                     .AsNoTracking()
                     .ToListAsync();
+
+                // Десериализуем разрешения для каждой роли
+                var roles = rolesData.Select(role => {
+                    Dictionary<string, bool> permissions = new Dictionary<string, bool>();
+                    
+                    if (!string.IsNullOrEmpty(role.Permissions))
+                    {
+                        try
+                        {
+                            Console.WriteLine($"GetUserRoles: Attempting to deserialize permissions for role {role.RoleId}: {role.Permissions}");
+                            permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions) ?? new Dictionary<string, bool>();
+                        }
+                        catch (JsonException ex)
+                        {
+                            Console.WriteLine($"GetUserRoles: Failed to deserialize permissions for role {role.RoleId}: {ex.Message}");
+                            Console.WriteLine($"GetUserRoles: Raw permissions data: {role.Permissions}");
+                            permissions = new Dictionary<string, bool>();
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"GetUserRoles: Unexpected error deserializing permissions for role {role.RoleId}: {ex.Message}");
+                            permissions = new Dictionary<string, bool>();
+                        }
+                    }
+                    
+                    return new
+                    {
+                        role.RoleId,
+                        role.RoleName,
+                        role.Color,
+                        Permissions = permissions
+                    };
+                }).ToList();
 
                 await Clients.Caller.SendAsync("UserRolesLoaded", roles);
             }

@@ -58,19 +58,18 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
         return roles.reduce((acc, role) => {
             try {
                 console.log('Processing role:', role);
-                console.log('Role permissions type:', typeof role.permissions);
-                console.log('Role permissions value:', role.permissions);
+                console.log('Role permissions:', role.permissions);
                 
-                const permissions = typeof role.permissions === 'string' 
-                    ? JSON.parse(role.permissions) 
-                    : role.permissions;
-                
-                console.log('Parsed permissions:', permissions);
-                
-                Object.entries(permissions).forEach(([key, value]) => {
-                    console.log(`Permission ${key}: ${value}`);
-                    if (value) acc[key] = true;
-                });
+                // Теперь permissions должны приходить как объект
+                if (role.permissions && typeof role.permissions === 'object') {
+                    Object.keys(role.permissions).forEach((key) => {
+                        const value = role.permissions[key];
+                        console.log(`Permission ${key}: ${value}`);
+                        if (value === true) {
+                            acc[key] = true;
+                        }
+                    });
+                }
                 
                 console.log('Accumulated permissions so far:', acc);
             } catch (e) {
@@ -245,8 +244,7 @@ const ServerPage = ({ username, userId, serverId, initialChatId, onChatSelected,
                     console.log(`Role ${index + 1}:`, {
                         id: role.roleId,
                         name: role.roleName,
-                        permissions: role.permissions,
-                        permissionsType: typeof role.permissions
+                        permissions: role.permissions
                     });
                 });
                 
