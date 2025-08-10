@@ -636,7 +636,20 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
   // Глобальные обработчики для paste и keydown
   useEffect(() => {
     const handleGlobalPaste = async (e) => {
-      if (!document.body.contains(inputRef.current)) return;
+      // Проверяем, что фокус находится в контейнере чата или на поле ввода
+      const activeElement = document.activeElement;
+      const isInChatContainer = activeElement?.closest('.group-chat-container') || 
+                               activeElement === inputRef.current ||
+                               activeElement?.classList?.contains('group-chat-container');
+      
+      // Проверяем, что активный элемент не находится в модальном окне или других важных элементах
+      const isInModal = activeElement?.closest('.modal') || 
+                       activeElement?.closest('[role="dialog"]') ||
+                       activeElement?.closest('.MuiModal-root') ||
+                       activeElement?.closest('.MuiDialog-root');
+      
+      if (!isInChatContainer || isInModal) return;
+      
       if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
         const file = e.clipboardData.files[0];
         if (file && (file.type.startsWith('image/') || file.type.startsWith('video/'))) {
@@ -647,27 +660,48 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       }
       if (e.clipboardData && e.clipboardData.getData('text')) {
         const text = e.clipboardData.getData('text');
-        if (text) {
+        if (text && activeElement !== inputRef.current) {
           e.preventDefault();
           setNewMessage((prev) => prev + text);
           inputRef.current?.focus();
         }
       }
     };
+    
     const handleGlobalKeyDown = async (e) => {
-      if (!document.body.contains(inputRef.current)) return;
+      // Проверяем, что фокус находится в контейнере чата или на поле ввода
+      const activeElement = document.activeElement;
+      const isInChatContainer = activeElement?.closest('.group-chat-container') || 
+                               activeElement === inputRef.current ||
+                               activeElement?.classList?.contains('group-chat-container');
+      
+      // Проверяем, что активный элемент не находится в модальном окне или других важных элементах
+      const isInModal = activeElement?.closest('.modal') || 
+                       activeElement?.closest('[role="dialog"]') ||
+                       activeElement?.closest('.MuiModal-root') ||
+                       activeElement?.closest('.MuiDialog-root');
+      
+      if (!isInChatContainer || isInModal) return;
+      
+      // Если активный элемент является input, textarea или contenteditable, не перехватываем события
+      if (activeElement?.tagName === 'INPUT' || 
+          activeElement?.tagName === 'TEXTAREA' || 
+          activeElement?.contentEditable === 'true') {
+        return;
+      }
+      
       // Если input не в фокусе и нажат Enter, отправляем сообщение и убираем фокус с div
-      if (e.key === 'Enter' && document.activeElement !== inputRef.current && newMessage.trim() !== '') {
+      if (e.key === 'Enter' && activeElement !== inputRef.current && newMessage.trim() !== '') {
         e.preventDefault();
         await handleSendMessage(e);
-        if (document.activeElement.classList?.contains('group-chat-container')) {
-          document.activeElement.blur();
+        if (activeElement.classList?.contains('group-chat-container')) {
+          activeElement.blur();
         }
         return;
       }
       // Если input не в фокусе и печатается символ (буква, цифра, пробел, знак), добавляем в newMessage и фокусируем input
       if (
-        document.activeElement !== inputRef.current &&
+        activeElement !== inputRef.current &&
         e.key.length === 1 &&
         !e.ctrlKey && !e.metaKey && !e.altKey
       ) {
@@ -677,7 +711,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       }
       // Если input не в фокусе и нажат Backspace, фокусируем input и удаляем символ
       if (
-        document.activeElement !== inputRef.current &&
+        activeElement !== inputRef.current &&
         e.key === 'Backspace'
       ) {
         setNewMessage((prev) => prev.slice(0, -1));
@@ -685,6 +719,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         e.preventDefault();
       }
     };
+    
     window.addEventListener('paste', handleGlobalPaste);
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => {
