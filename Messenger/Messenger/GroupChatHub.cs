@@ -346,6 +346,126 @@ namespace Messenger
             }
         }
 
+        public async Task<List<MessageDto>> SendBatchMessages(List<BatchMessageRequest> batchMessages, string username, int chatId)
+        {
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+                if (user == null)
+                {
+                    throw new Exception("User not found");
+                }
+
+                var chat = await _context.Chats.FirstOrDefaultAsync(c => c.ChatId == chatId);
+                if (chat == null)
+                {
+                    throw new Exception("Chat not found");
+                }
+
+                var createdMessages = new List<MessageDto>();
+                var messagesToSave = new List<Message>();
+
+                // Создаем все сообщения в памяти
+                foreach (var batchMsg in batchMessages)
+                {
+                    var message = new Message
+                    {
+                        Content = batchMsg.Content,
+                        UserId = user.UserId,
+                        ChatId = chatId,
+                        CreatedAt = DateTime.UtcNow,
+                        RepliedToMessageId = batchMsg.RepliedToMessageId,
+                        ForwardedFromMessageId = batchMsg.ForwardedFromMessageId,
+                        ForwardedFromChatId = batchMsg.ForwardedFromChatId,
+                        ForwardedByUserId = batchMsg.ForwardedByUserId,
+                        ForwardedMessageContent = batchMsg.ForwardedMessageContent
+                    };
+
+                    messagesToSave.Add(message);
+                }
+
+                // Сохраняем все сообщения одним запросом
+                _context.Messages.AddRange(messagesToSave);
+                await _context.SaveChangesAsync();
+
+                // Получаем сохраненные сообщения с полной информацией
+                var savedMessageIds = messagesToSave.Select(m => m.MessageId).ToList();
+                var savedMessages = await _context.Messages
+                    .Where(m => savedMessageIds.Contains(m.MessageId))
+                    .Include(m => m.User)
+                        .ThenInclude(u => u.UserProfile)
+                    .Include(m => m.ForwardedFromMessage)
+                        .ThenInclude(m => m.User)
+                    .Include(m => m.ForwardedFromChat)
+                    .Include(m => m.ForwardedByUser)
+                    .Include(m => m.RepliedToMessage)
+                        .ThenInclude(m => m.User)
+                    .ToListAsync();
+
+                // Конвертируем в DTO
+                foreach (var msg in savedMessages)
+                {
+                    var dto = new MessageDto
+                    {
+                        MessageId = msg.MessageId,
+                        Content = msg.Content,
+                        CreatedAt = msg.CreatedAt,
+                        senderUsername = msg.User.Username,
+                        AvatarUrl = msg.User.UserProfile?.Avatar,
+                        AvatarColor = !string.IsNullOrEmpty(msg.User.UserProfile?.AvatarColor)
+                            ? msg.User.UserProfile.AvatarColor
+                            : GenerateAvatarColor(msg.UserId),
+                        RepliedMessage = msg.RepliedToMessageId != null && msg.RepliedToMessage != null
+                            ? new ReplyMessageDto
+                            {
+                                MessageId = msg.RepliedToMessage.MessageId,
+                                Content = msg.RepliedToMessage.Content,
+                                senderUsername = msg.RepliedToMessage.User?.Username
+                            }
+                            : null,
+                        ForwardedMessage = msg.ForwardedFromMessageId != null && msg.ForwardedFromMessage != null
+                            ? new ForwardedMessageDto
+                            {
+                                MessageId = msg.ForwardedFromMessage.MessageId,
+                                Content = msg.ForwardedFromMessage.Content,
+                                senderUsername = msg.ForwardedFromMessage.User?.Username,
+                                OriginalChatName = msg.ForwardedFromChat?.Name,
+                                ForwardedByUsername = msg.ForwardedByUser?.Username,
+                                ForwardedMessageContent = msg.ForwardedMessageContent
+                            }
+                            : null
+                    };
+
+                    createdMessages.Add(dto);
+                }
+
+                // Отправляем уведомления всем участникам чата
+                var members = await _context.Members
+                    .Where(m => m.ChatId == chatId && m.UserId != user.UserId)
+                    .ToListAsync();
+
+                foreach (var member in members)
+                {
+                    await CreateNotificationForMember(member.UserId, chatId, 0, "new_message", $"Новые сообщения от {username}");
+                }
+
+                // Отправляем сообщения всем участникам группы
+                await Clients.Group(chatId.ToString()).SendAsync("ReceiveBatchMessages", username, createdMessages);
+
+                // Обновляем список чатов для всех участников
+                await _chatListHubContext.Clients.All.SendAsync("UpdateChatList");
+
+                Console.WriteLine($"Batch messages sent to chat {chatId} by {username}. Count: {createdMessages.Count}");
+
+                return createdMessages;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending batch messages: {ex.Message}");
+                throw;
+            }
+        }
+
         public async Task SendAudioMessage(string username, string audioUrl, int chatId)
         {
             var sender = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
@@ -713,6 +833,16 @@ namespace Messenger
         public string senderUsername { get; set; }
         public string OriginalChatName { get; set; }
         public string ForwardedByUsername { get; set; }
+        public string ForwardedMessageContent { get; set; }
+    }
+
+    public class BatchMessageRequest
+    {
+        public string Content { get; set; }
+        public long? RepliedToMessageId { get; set; }
+        public long? ForwardedFromMessageId { get; set; }
+        public int? ForwardedFromChatId { get; set; }
+        public int? ForwardedByUserId { get; set; }
         public string ForwardedMessageContent { get; set; }
     }
 }

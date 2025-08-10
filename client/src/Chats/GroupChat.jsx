@@ -12,6 +12,7 @@ import MediaMessage from './MediaMessage';
 import { useMediaHandlers } from '../hooks/useMediaHandlers';
 import useScrollToBottom from '../hooks/useScrollToBottom';
 import { useLazyMessages } from '../hooks/useLazyMessages';
+import { useBatchMessages } from '../hooks/useBatchMessages';
 import { useGroupSettings, AddMembersModal, GroupChatSettings } from '../Modals/GroupSettings';
 import { processLinks } from '../utils/linkUtils.jsx';
 import { useMessageVisibility } from '../hooks/useMessageVisibility';
@@ -85,6 +86,16 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     updateMessage,
     removeMessage
   } = useLazyMessages(chatId, connection);
+  
+  // Используем хук для батчинга сообщений
+  const {
+    addToBatch,
+    forceSendBatch,
+    clearBatch,
+    isSending: isBatchSending,
+    batchSize,
+    hasPendingMessages
+  } = useBatchMessages(connection, chatId, username);
   
   const { messagesEndRef, messagesContainerRef, scrollToBottom } = useScrollToBottom(messages, true);
   const { addMessageRef } = useMessageVisibility(userId, chatId, messages);
@@ -469,6 +480,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
             connectionRef.current.off('MessageEdited');
             connectionRef.current.off('MessageDeleted');
             connectionRef.current.off('MessageRead'); // Добавляем очистку для MessageRead
+            connectionRef.current.off('ReceiveBatchMessages'); // Добавляем очистку для ReceiveBatchMessages
             
             // Покидаем группу только если соединение активно
             if (connectionRef.current.state === 'Connected') {
@@ -490,6 +502,17 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
     };
   }, [chatId]); // Убрали loadMessages из зависимостей
 
+  // Очистка при размонтировании компонента
+  useEffect(() => {
+    return () => {
+      // Принудительно отправляем оставшиеся сообщения в батче
+      if (hasPendingMessages && connection && connection.state === 'Connected') {
+        console.log('Component unmounting, forcing batch send');
+        forceSendBatch();
+      }
+    };
+  }, [hasPendingMessages, connection, forceSendBatch]);
+
   // Новый useEffect для загрузки сообщений после установки соединения
   useEffect(() => {
     if (connection && connection.state === 'Connected' && chatId) {
@@ -497,6 +520,14 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
       loadMessages(1, false);
     }
   }, [connection, chatId, loadMessages]); // Зависимости: connection, chatId, и loadMessages
+
+  // Очистка батча при смене чата
+  useEffect(() => {
+    if (hasPendingMessages) {
+      console.log('Chat changed, clearing batch queue');
+      clearBatch();
+    }
+  }, [chatId, hasPendingMessages, clearBatch]);
 
   // Подключение к ChatListHub
   useEffect(() => {
@@ -553,9 +584,27 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         removeMessage(messageId);
       };
 
-                  connection.on('ReceiveMessage', receiveMessageHandler);
-            connection.on('MessageEdited', messageEditedHandler);
-            connection.on('MessageDeleted', messageDeletedHandler);
+      const receiveBatchMessagesHandler = async (username, messages) => {
+        console.log(`Received batch of ${messages.length} messages from ${username}`);
+        // Добавляем все сообщения из батча
+        messages.forEach(message => {
+          addNewMessage({
+            messageId: message.messageId,
+            senderUsername: message.senderUsername,
+            content: message.content,
+            createdAt: message.createdAt,
+            avatarUrl: message.avatarUrl,
+            avatarColor: message.avatarColor,
+            repliedMessage: message.repliedMessage,
+            forwardedMessage: message.forwardedMessage
+          });
+        });
+      };
+
+      connection.on('ReceiveMessage', receiveMessageHandler);
+      connection.on('ReceiveBatchMessages', receiveBatchMessagesHandler);
+      connection.on('MessageEdited', messageEditedHandler);
+      connection.on('MessageDeleted', messageDeletedHandler);
             connection.on('MessageRead', (messageId, readByUserId, readAt) => {
                 console.log(`Message ${messageId} read by user ${readByUserId} at ${readAt}`);
                 // Здесь можно добавить визуальную индикацию прочтения сообщения
@@ -567,6 +616,7 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
         connection.off('MessageEdited', messageEditedHandler);
         connection.off('MessageDeleted', messageDeletedHandler);
         connection.off('MessageRead'); // Добавляем очистку для MessageRead
+        connection.off('ReceiveBatchMessages'); // Добавляем очистку для ReceiveBatchMessages
       };
     }
   }, [connection, chatId]);
@@ -578,16 +628,19 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
 
     try {
       if (editingMessageId) {
+        // Редактирование сообщения - отправляем сразу
         await connection.invoke('EditMessage', editingMessageId, newMessage, username);
         cancelEditing();
       } else {
-        await connection.invoke('SendMessage', 
-          newMessage, 
-          username, 
-          parseInt(chatId), 
-          replyingToMessage?.messageId || null,
-          null // forwardedFromMessageId
-        );
+        // Добавляем сообщение в батч для отправки
+        addToBatch({
+          content: newMessage,
+          repliedToMessageId: replyingToMessage?.messageId || null,
+          forwardedFromMessageId: null,
+          forwardedFromChatId: null,
+          forwardedByUserId: null,
+          forwardedMessageContent: null
+        });
         setReplyingToMessage(null);
       }
       setNewMessage('');
@@ -1018,7 +1071,22 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
           className="load-more-button"
           onClick={loadMoreMessages}
         >
-          Загрузить еще сообщения
+          Загрузить еще сообщений
+        </button>
+      </div>
+    )}
+
+    {/* Индикатор батчинга сообщений */}
+    {hasPendingMessages && (
+      <div className="batch-indicator">
+        <div className="batch-spinner"></div>
+        <span>Подготовка к отправке: {batchSize} сообщений</span>
+        <button 
+          className="force-send-button"
+          onClick={forceSendBatch}
+          disabled={isBatchSending}
+        >
+          {isBatchSending ? 'Отправка...' : 'Отправить сейчас'}
         </button>
       </div>
     )}
@@ -1183,6 +1251,21 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
             </div>
             <button onClick={() => setReplyingToMessage(null)} className="cancel-reply-button">
               ×
+            </button>
+          </div>
+        )}
+        
+        {/* Индикатор батчинга в панели ввода */}
+        {hasPendingMessages && (
+          <div className="batch-indicator-input">
+            <span className="batch-text">В очереди: {batchSize} сообщений</span>
+            <button 
+              type="button"
+              onClick={forceSendBatch}
+              disabled={isBatchSending}
+              className="force-send-button-small"
+            >
+              {isBatchSending ? 'Отправка...' : 'Отправить'}
             </button>
           </div>
         )}
