@@ -599,7 +599,9 @@ namespace Messenger
                     {
                         r.RoleId,
                         r.RoleName,
-                        Permissions = JsonSerializer.Serialize(r.Permissions, new JsonSerializerOptions()),
+                        Permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(
+                            r.Permissions,
+                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }),
                         r.Color
                     })
                     .AsNoTracking()
@@ -632,7 +634,7 @@ namespace Messenger
                 {
                     ServerId = serverId,
                     RoleName = request.RoleName,
-                    Permissions = request.Permissions,
+                    Permissions = JsonSerializer.Serialize(request.Permissions),
                     Color = request.Color
                 };
 
@@ -652,7 +654,7 @@ namespace Messenger
                     {
                         role.RoleId,
                         role.RoleName,
-                        role.Permissions,
+                        Permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions),
                         role.Color
                     });
             }
@@ -805,7 +807,9 @@ namespace Messenger
                     {
                         usr.Role.RoleId,
                         usr.Role.RoleName,
-                        usr.Role.Permissions,
+                        Permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(
+                            usr.Role.Permissions,
+                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }),
                         usr.Role.Color
                     })
                     .ToListAsync();
@@ -939,7 +943,9 @@ namespace Messenger
                     {
                         RoleId = usr.Role.RoleId,
                         RoleName = usr.Role.RoleName,
-                        Permissions = usr.Role.Permissions,
+                        Permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(
+                            usr.Role.Permissions,
+                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }),
                         Color = usr.Role.Color
                     })
                     .AsNoTracking()
@@ -1041,7 +1047,7 @@ namespace Messenger
 
                 var oldName = role.RoleName;
                 role.RoleName = request.RoleName;
-                role.Permissions = request.Permissions;
+                role.Permissions = JsonSerializer.Serialize(request.Permissions);
                 role.Color = request.Color;
 
                 await _context.SaveChangesAsync();
@@ -1059,7 +1065,7 @@ namespace Messenger
                     {
                         role.RoleId,
                         role.RoleName,
-                        role.Permissions,
+                        Permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions),
                         role.Color
                     });
             }
@@ -1180,7 +1186,7 @@ namespace Messenger
         {
             public string RoleName { get; set; }
             public string Color { get; set; }
-            public string Permissions { get; set; }
+            public Dictionary<string, bool> Permissions { get; set; }
         }
 
     }
