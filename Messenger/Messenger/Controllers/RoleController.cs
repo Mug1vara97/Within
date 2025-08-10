@@ -139,18 +139,25 @@ namespace Messenger.Controllers
                     r.UserServerRoles.Any(ur => ur.UserId == request.UserId))
                   .ToListAsync();
 
-            var userRoles = await _context.UserServerRoles
+            var userRolesData = await _context.UserServerRoles
             .Where(usr => usr.UserId == request.UserId && usr.ServerId == serverId)
             .Include(usr => usr.Role)
             .Select(usr => new {
                 usr.Role.RoleId,
                 usr.Role.RoleName,
                 usr.Role.Color,
-                Permissions = !string.IsNullOrEmpty(usr.Role.Permissions) 
-                    ? JsonSerializer.Deserialize<Dictionary<string, bool>>(usr.Role.Permissions) ?? new Dictionary<string, bool>()
-                    : new Dictionary<string, bool>()
+                usr.Role.Permissions
             })
             .ToListAsync();
+
+            var userRoles = userRolesData.Select(role => new {
+                role.RoleId,
+                role.RoleName,
+                role.Color,
+                Permissions = !string.IsNullOrEmpty(role.Permissions) 
+                    ? JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions) ?? new Dictionary<string, bool>()
+                    : new Dictionary<string, bool>()
+            }).ToList();
 
             var hubContext = HttpContext.RequestServices.GetRequiredService<IHubContext<ServerHub>>();
             await hubContext.Clients.Group(serverId.ToString())
@@ -162,7 +169,7 @@ namespace Messenger.Controllers
         [HttpGet("{serverId}/members")]
         public async Task<IActionResult> GetServerMembers(int serverId)
         {
-            var members = await _context.ServerMembers
+            var membersData = await _context.ServerMembers
                 .Where(sm => sm.ServerId == serverId)
                 .Include(sm => sm.User)
                 .ThenInclude(u => u.UserProfile)
@@ -182,13 +189,28 @@ namespace Messenger.Controllers
                             usr.Role.RoleId,
                             usr.Role.RoleName,
                             usr.Role.Color,
-                            Permissions = !string.IsNullOrEmpty(usr.Role.Permissions) 
-                                ? JsonSerializer.Deserialize<Dictionary<string, bool>>(usr.Role.Permissions) ?? new Dictionary<string, bool>()
-                                : new Dictionary<string, bool>()
+                            usr.Role.Permissions
                         }),
                     AvatarColor = sm.User.UserProfile.AvatarColor
                 })
                 .ToListAsync();
+
+            var members = membersData.Select(member => new
+            {
+                member.UserId,
+                member.Username,
+                member.Avatar,
+                Roles = member.Roles.Select(role => new
+                {
+                    role.RoleId,
+                    role.RoleName,
+                    role.Color,
+                    Permissions = !string.IsNullOrEmpty(role.Permissions) 
+                        ? JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions) ?? new Dictionary<string, bool>()
+                        : new Dictionary<string, bool>()
+                }),
+                member.AvatarColor
+            }).ToList();
 
             return Ok(members);
         }
@@ -212,18 +234,25 @@ namespace Messenger.Controllers
                     r.UserServerRoles.Any(ur => ur.UserId == userId))
                  .ToListAsync();
 
-            var userRoles = await _context.UserServerRoles
+            var userRolesData = await _context.UserServerRoles
              .Where(usr => usr.UserId == userId && usr.ServerId == serverId)
              .Include(usr => usr.Role)
              .Select(usr => new {
                  usr.Role.RoleId,
                  usr.Role.RoleName,
                  usr.Role.Color,
-                 Permissions = !string.IsNullOrEmpty(usr.Role.Permissions) 
-                    ? JsonSerializer.Deserialize<Dictionary<string, bool>>(usr.Role.Permissions) ?? new Dictionary<string, bool>()
-                    : new Dictionary<string, bool>()
+                 usr.Role.Permissions
              })
              .ToListAsync();
+
+            var userRoles = userRolesData.Select(role => new {
+                role.RoleId,
+                role.RoleName,
+                role.Color,
+                Permissions = !string.IsNullOrEmpty(role.Permissions) 
+                    ? JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions) ?? new Dictionary<string, bool>()
+                    : new Dictionary<string, bool>()
+            }).ToList();
 
             var hubContext = HttpContext.RequestServices.GetRequiredService<IHubContext<ServerHub>>();
             await hubContext.Clients.Group(serverId.ToString())
@@ -245,7 +274,7 @@ namespace Messenger.Controllers
                 if (!serverExists)
                     return NotFound(new { Message = "Сервер не найден" });
 
-                var roles = await _context.UserServerRoles
+                var rolesData = await _context.UserServerRoles
                     .Where(usr => usr.UserId == userId && usr.ServerId == serverId)
                     .Include(usr => usr.Role)
                     .Select(usr => new
@@ -253,11 +282,19 @@ namespace Messenger.Controllers
                         usr.Role.RoleId,
                         usr.Role.RoleName,
                         usr.Role.Color,
-                        Permissions = !string.IsNullOrEmpty(usr.Role.Permissions) 
-                            ? JsonSerializer.Deserialize<Dictionary<string, bool>>(usr.Role.Permissions) ?? new Dictionary<string, bool>()
-                            : new Dictionary<string, bool>()
+                        usr.Role.Permissions
                     })
                     .ToListAsync();
+
+                var roles = rolesData.Select(role => new
+                {
+                    role.RoleId,
+                    role.RoleName,
+                    role.Color,
+                    Permissions = !string.IsNullOrEmpty(role.Permissions) 
+                        ? JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions) ?? new Dictionary<string, bool>()
+                        : new Dictionary<string, bool>()
+                }).ToList();
 
                 return Ok(new
                 {

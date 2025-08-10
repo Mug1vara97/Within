@@ -672,7 +672,7 @@ namespace Messenger
             try
             {
                 Console.WriteLine($"GetServerMembers called for serverId: {serverId}");
-                var members = await _context.ServerMembers
+                var membersData = await _context.ServerMembers
                     .Where(sm => sm.ServerId == serverId)
                     .Include(sm => sm.User)
                         .ThenInclude(u => u.UserProfile)
@@ -690,11 +690,7 @@ namespace Messenger
                                 usr.Role.RoleId,
                                 usr.Role.RoleName,
                                 usr.Role.Color,
-                                Permissions = !string.IsNullOrEmpty(usr.Role.Permissions) 
-                                    ? JsonSerializer.Deserialize<Dictionary<string, bool>>(
-                                        usr.Role.Permissions,
-                                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new Dictionary<string, bool>()
-                                    : new Dictionary<string, bool>()
+                                usr.Role.Permissions
                             })
                             .Where(r => r.RoleId > 0), // Дополнительная проверка
                         Avatar = sm.User.UserProfile.Avatar ?? null,
@@ -702,6 +698,25 @@ namespace Messenger
                     })
                     .AsNoTracking()
                     .ToListAsync();
+
+                var members = membersData.Select(member => new
+                {
+                    member.UserId,
+                    member.Username,
+                    Roles = member.Roles.Select(role => new
+                    {
+                        role.RoleId,
+                        role.RoleName,
+                        role.Color,
+                        Permissions = !string.IsNullOrEmpty(role.Permissions) 
+                            ? JsonSerializer.Deserialize<Dictionary<string, bool>>(
+                                role.Permissions,
+                                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new Dictionary<string, bool>()
+                            : new Dictionary<string, bool>()
+                    }),
+                    member.Avatar,
+                    member.AvatarColor
+                }).ToList();
 
                 Console.WriteLine($"GetServerMembers: Found {members.Count} members for server {serverId}");
                 await Clients.Caller.SendAsync("ServerMembersLoaded", members);
@@ -750,15 +765,17 @@ namespace Messenger
                     $"Роль '{role.RoleName}' назначена пользователю {targetUser.Username}"
                 );
 
+                var permissions = !string.IsNullOrEmpty(role.Permissions) 
+                    ? JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions) ?? new Dictionary<string, bool>()
+                    : new Dictionary<string, bool>();
+
                 await Clients.Group(role.ServerId.ToString())
                     .SendAsync("RoleAssigned", userId, new
                     {
                         role.RoleId,
                         role.RoleName,
                         role.Color,
-                        Permissions = !string.IsNullOrEmpty(role.Permissions) 
-                            ? JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions) ?? new Dictionary<string, bool>()
-                            : new Dictionary<string, bool>()
+                        Permissions = permissions
                     });
             }
             catch (Exception ex)
