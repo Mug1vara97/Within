@@ -23,7 +23,8 @@ const CallParticipantsDisplay = ({ participants, currentUserId, onJoinCall }) =>
         console.log('CallParticipantsDisplay: Loaded user profile:', { userId, profile });
         const avatarData = {
           avatarUrl: profile.avatar ? `https://whithin.ru${profile.avatar}` : null,
-          avatarColor: profile.avatarColor || '#5865F2'
+          avatarColor: profile.avatarColor || '#5865F2',
+          bannerUrl: profile.banner ? `https://whithin.ru${profile.banner}` : null
         };
         console.log('CallParticipantsDisplay: Setting avatar data:', avatarData);
         setUserProfiles(prev => new Map(prev).set(userId, avatarData));

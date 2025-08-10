@@ -1,7 +1,7 @@
 import React from 'react';
 import UserStatus from './UserStatus';
 
-const UserAvatar = ({ username, avatarUrl, avatarColor, size = '32px', status, showStatus = true }) => {
+const UserAvatar = ({ username, avatarUrl, avatarColor, bannerUrl, size = '32px', status, showStatus = true }) => {
     const getStatusSize = () => {
         const sizeNum = parseInt(size);
         if (sizeNum <= 24) return 'small';
@@ -25,6 +25,25 @@ const UserAvatar = ({ username, avatarUrl, avatarColor, size = '32px', status, s
         return '48px'; // Для больших аватаров как 120px
     };
 
+    // Определяем стиль фона: приоритет баннеру, затем аватару, затем цвету
+    const getBackgroundStyle = () => {
+        if (bannerUrl) {
+            return {
+                backgroundImage: `url(${bannerUrl})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'
+            };
+        }
+        if (avatarUrl) {
+            return {
+                backgroundColor: avatarColor || '#5865F2'
+            };
+        }
+        return {
+            backgroundColor: avatarColor || '#5865F2'
+        };
+    };
+
     return (
         <div 
             className="user-avatar-container"
@@ -36,7 +55,7 @@ const UserAvatar = ({ username, avatarUrl, avatarColor, size = '32px', status, s
             <div 
                 className="user-avatar"
                 style={{ 
-                    backgroundColor: avatarColor || '#5865F2',
+                    ...getBackgroundStyle(),
                     width: size,
                     height: size,
                     borderRadius: '50%',
