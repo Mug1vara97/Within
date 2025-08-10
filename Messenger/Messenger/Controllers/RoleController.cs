@@ -23,15 +23,6 @@ namespace Messenger.Controllers
         {
             var roles = await _context.ServerRoles
                 .Where(r => r.ServerId == serverId)
-                .Select(r => new
-                {
-                    r.RoleId,
-                    r.RoleName,
-                    r.Color,
-                    Permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(
-                        r.Permissions,
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-                })
                 .ToListAsync();
 
             return Ok(roles);
@@ -62,9 +53,7 @@ namespace Messenger.Controllers
                     role.RoleId,
                     role.RoleName,
                     role.Color,
-                    Permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(
-                        role.Permissions,
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                    Permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(role.Permissions)
                 });
             }
             catch (Exception ex)
@@ -89,16 +78,7 @@ namespace Messenger.Controllers
             role.Color = request.Color;
 
             await _context.SaveChangesAsync();
-            
-            return Ok(new
-            {
-                role.RoleId,
-                role.RoleName,
-                role.Color,
-                Permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(
-                    role.Permissions,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-            });
+            return Ok(role);
         }
 
         [HttpDelete("{roleId}")]
@@ -201,8 +181,8 @@ namespace Messenger.Controllers
                             usr.Role.RoleName,
                             usr.Role.Color,
                             Permissions = JsonSerializer.Deserialize<Dictionary<string, bool>>(
-                                usr.Role.Permissions,
-                                new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                            usr.Role.Permissions,
+                            (JsonSerializerOptions)null)
                         }),
                     AvatarColor = sm.User.UserProfile.AvatarColor
                 })
