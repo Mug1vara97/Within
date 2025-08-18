@@ -1322,35 +1322,16 @@ const VoiceChat = forwardRef(({ roomId, roomName, userName, userId, serverId, au
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (roomId && userId && socketRef.current) {
-        // Отправляем событие выхода пользователя из канала
         socketRef.current.emit('userLeftVoiceChannel', {
           channelId: roomId,
           userId: userId
         });
-        
-        // Также отправляем событие для обновления глобального состояния пользователя
-        socketRef.current.emit('updateUserVoiceState', { 
-          userId, 
-          channelId: null 
-        });
-        
-        // Запрашиваем обновление списка участников
-        socketRef.current.emit('getVoiceChannelParticipants');
       }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('pagehide', handleBeforeUnload);
-    window.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
-        handleBeforeUnload();
-      }
-    });
-    
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('pagehide', handleBeforeUnload);
-      window.removeEventListener('visibilitychange', handleBeforeUnload);
     };
   }, [roomId, userId]);
 

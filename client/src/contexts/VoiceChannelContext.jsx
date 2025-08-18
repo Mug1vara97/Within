@@ -20,33 +20,13 @@ export const VoiceChannelProvider = ({ children }) => {
     const syncInterval = setInterval(() => {
       newSocket.emit('getVoiceChannelParticipants');
     }, 30000); // Каждые 30 секунд (редко, так как основное обновление через события)
-    
-    // Добавляем проверку "зависших" пользователей
-    const staleCheckInterval = setInterval(() => {
-      // Проверяем каждый канал на наличие неактивных пользователей
-      voiceChannels.forEach((channel, channelId) => {
-        const participants = channel.participants;
-        
-        // Проверяем каждого участника
-        participants.forEach((participant, userId) => {
-          // Если пользователь не активен (не в активном WebRTC соединении)
-          if (participant.isActive === false) {
-            console.log('Removing stale user from voice channel:', userId, channelId);
-            // Отправляем событие выхода пользователя из канала
-            newSocket.emit('userLeftVoiceChannel', {
-              channelId: channelId,
-              userId: userId
-            });
-          }
-        });
-      });
-    }, 60000); // Проверка каждую минуту
 
     // Слушаем обновления участников голосовых каналов
     newSocket.on('voiceChannelParticipantsUpdate', ({ channelId, participants }) => {
       console.log('VoiceChannelContext: Received participants update:', channelId, participants?.length);
       setVoiceChannels(prev => {
         const newChannels = new Map(prev);
+        const existingChannel = newChannels.get(channelId);
         
         if (participants && participants.length > 0) {
           const participantsMap = new Map();
@@ -222,11 +202,10 @@ export const VoiceChannelProvider = ({ children }) => {
 
     return () => {
       clearInterval(syncInterval);
-      clearInterval(staleCheckInterval);
       window.removeEventListener('peerMuteStateChanged', handleLocalMuteChange);
       newSocket.disconnect();
     };
-  }, [voiceChannels]);
+  }, []);
 
   const updateVoiceChannelParticipants = useCallback((channelId, participants) => {
     console.log('VoiceChannelContext: Updating participants for channel:', channelId, participants);
