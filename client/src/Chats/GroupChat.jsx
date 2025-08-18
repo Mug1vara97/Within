@@ -526,8 +526,13 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
 }, [chatListConnection]);
 
   useEffect(() => {
-    scrollToBottom();
-}, [messages]);
+    if (messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ 
+        behavior: "auto",
+        block: "end"
+      });
+    }
+  }, [messages]);
 
   // Обработка входящих сообщений
   useEffect(() => {
