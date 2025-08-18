@@ -1,7 +1,6 @@
 import React, { createContext, useState, useEffect, useRef, useCallback } from 'react';
 import { notificationService } from '../services/notificationService';
 import * as signalR from '@microsoft/signalr';
-import { BASE_URL } from '../config/apiConfig';
 
 const NotificationContext = createContext();
 
@@ -199,12 +198,8 @@ export const NotificationProvider = ({ children }) => {
         userIdRef.current = userId;
         
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl(`${BASE_URL}/notificationhub?userId=${userId}`, {
-                skipNegotiation: true,
-                transport: signalR.HttpTransportType.WebSockets
-            })
+            .withUrl(`/notificationhub?userId=${userId}`)
             .withAutomaticReconnect([0, 2000, 10000, 30000]) // Более агрессивное переподключение
-            .configureLogging(signalR.LogLevel.Information)
             .build();
 
         connection.on("ReceiveNotification", (notification) => {
