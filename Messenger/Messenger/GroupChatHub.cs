@@ -395,7 +395,7 @@ namespace Messenger
             }
         }
 
-        public async Task ForwardMessage(long messageId, int targetChatId, string username, string forwardedMessageContent = null)
+        public async Task ForwardMessage(long messageId, int targetChatId, string username, string? forwardedMessageContent = null)
         {
             try
             {
