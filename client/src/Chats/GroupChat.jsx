@@ -452,6 +452,14 @@ const GroupChat = ({ username, userId, chatId, groupName, isServerChat = false, 
             createdAt: msg.createdAt
           })));
           
+          // Мгновенно прокручиваем к последнему сообщению после загрузки
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ 
+              behavior: "auto",
+              block: "end"
+            });
+          }, 100);
+          
           // Сообщения теперь помечаются как прочитанные при их видимости
         }
       } catch (error) {
