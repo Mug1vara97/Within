@@ -59,9 +59,15 @@ Thumbs.db
 /server/logs
 /server/*.log
 
-# Completely ignore mobile app
+# Completely ignore mobile apps
 /WithinMobile/
 WithinMobile/
+
+# Android app
+/Whithin/
+Whithin/
+*.apk
+*.aab
 
 # Electron app
 /electron/

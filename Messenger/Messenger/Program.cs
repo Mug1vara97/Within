@@ -23,8 +23,9 @@ builder.Services.AddSignalR(options =>
 {
     options.EnableDetailedErrors = true;
     options.KeepAliveInterval = TimeSpan.FromSeconds(15);
-    options.HandshakeTimeout = TimeSpan.FromSeconds(15);
-    options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+    options.HandshakeTimeout = TimeSpan.FromSeconds(30); // Увеличиваем для Android
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(60); // Увеличиваем для Android
+    options.MaximumReceiveMessageSize = 32 * 1024; // 32KB для больших сообщений
 })
 .AddJsonProtocol(options => {
     options.PayloadSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
@@ -48,6 +49,19 @@ builder.Services.AddCors(options =>
                 .AllowAnyMethod()
                 .AllowCredentials()
                 .WithExposedHeaders("Content-Disposition");
+        });
+        
+    // Специальная политика для Android приложения
+    options.AddPolicy("AndroidPolicy",
+        builder =>
+        {
+            builder
+                .SetIsOriginAllowed(_ => true) // Разрешаем любые origins для Android
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials()
+                .WithHeaders("User-Agent", "UserId", "Accept", "Content-Type", "Authorization")
+                .WithExposedHeaders("Content-Disposition", "Content-Length");
         });
 });
 
@@ -76,6 +90,33 @@ using (var scope = app.Services.CreateScope())
 
 // Перемещаем CORS в начало конвейера middleware
 app.UseCors("AllowAllOrigins");
+
+// Добавляем middleware для обработки Android запросов
+app.Use(async (context, next) =>
+{
+    var userAgent = context.Request.Headers["User-Agent"].ToString();
+    
+    // Если запрос от Android приложения, применяем специальную CORS политику
+    if (userAgent.Contains("Android-SignalR-Client") || userAgent.Contains("okhttp"))
+    {
+        Console.WriteLine($"Android request detected: {userAgent}");
+        
+        // Добавляем специальные заголовки для Android
+        context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+        context.Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        context.Response.Headers.Add("Access-Control-Allow-Headers", "User-Agent, UserId, Accept, Content-Type, Authorization, X-Requested-With");
+        context.Response.Headers.Add("Access-Control-Allow-Credentials", "true");
+        
+        // Обрабатываем OPTIONS preflight запросы
+        if (context.Request.Method == "OPTIONS")
+        {
+            context.Response.StatusCode = 200;
+            return;
+        }
+    }
+    
+    await next();
+});
 
 // Отключаем HTTPS редирект для разработки
 // if (!app.Environment.IsDevelopment())
