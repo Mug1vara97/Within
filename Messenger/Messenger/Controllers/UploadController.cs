@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace Test1.Controllers
+namespace Messenger.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
